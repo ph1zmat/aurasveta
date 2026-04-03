@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 
 export default function AboutSection() {
 	const [expanded, setExpanded] = useState(false)
 
 	return (
-		<section className='mx-auto max-w-7xl px-4 py-10'>
+		<section className='mx-auto max-w-7xl px-4 py-6 md:py-10'>
 			<h2 className='mb-4 text-xl font-bold text-foreground'>
 				Интернет магазин освещения Аура Света
 			</h2>
@@ -37,9 +38,10 @@ export default function AboutSection() {
 					на весь ассортимент.
 				</p>
 			</div>
-			<button
+			<Button
+				variant='link'
 				onClick={() => setExpanded(!expanded)}
-				className='mt-3 flex items-center gap-1 text-sm font-medium uppercase tracking-wider text-foreground hover:text-primary transition-colors'
+				className='mt-3 uppercase tracking-wider'
 			>
 				{expanded ? 'Свернуть описание' : 'Развернуть описание'}
 				<ChevronDown
@@ -48,7 +50,7 @@ export default function AboutSection() {
 						expanded && 'rotate-180',
 					)}
 				/>
-			</button>
+			</Button>
 		</section>
 	)
 }

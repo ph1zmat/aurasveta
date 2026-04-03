@@ -15,6 +15,7 @@ import ProductCarousel from '@/components/product/ProductCarousel'
 import StickyProductHeader from '@/components/product/StickyProductHeader'
 import TagsSection from '@/components/catalog/TagsSection'
 import { BarChart3 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import type { SpecGroup } from '@/components/product/ProductTabs'
 import type { SpecItem } from '@/components/product/QuickSpecs'
 import {
@@ -72,7 +73,7 @@ export default async function ProductPage({
 				bonusAmount={product.bonusAmount}
 			/>
 
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
@@ -96,9 +97,9 @@ export default async function ProductPage({
 						<span className='text-xs text-muted-foreground'>
 							Артикул: {product.slug}
 						</span>
-						<button className='flex items-center gap-1 text-xs font-medium text-foreground transition-colors hover:text-primary'>
+						<Button variant='link' size='inline-xs'>
 							<BarChart3 className='h-3.5 w-3.5' strokeWidth={1.5} />В сравнение
-						</button>
+						</Button>
 					</div>
 				</div>
 
@@ -140,7 +141,7 @@ export default async function ProductPage({
 				<DeliveryAdvantages />
 
 				{/* Tabs + Specs (two-column layout with sticky sidebar) */}
-				<div className='flex gap-8 py-8'>
+				<div className='flex gap-4 py-6 md:gap-8 md:py-8'>
 					{/* Left: Tabs content */}
 					<div className='min-w-0 flex-1'>
 						<ProductTabs specGroups={specGroups} />

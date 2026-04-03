@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Button } from '@/components/ui/Button'
 import CatalogProductCard from '@/components/ui/CatalogProductCard'
 import type { CatalogProductCardProps } from '@/components/ui/CatalogProductCard'
 
@@ -28,12 +29,11 @@ export default function CategorySection({
 			</div>
 
 			<div className='mt-8 flex justify-center'>
-				<Link
-					href={allHref}
-					className='rounded-sm border-2 border-foreground px-8 py-3 text-sm font-medium uppercase tracking-wider text-foreground transition-colors hover:bg-foreground hover:text-card'
-				>
-					{allLabel}
-				</Link>
+				<Button asChild variant='outline' className='border-2'>
+					<Link href={allHref}>
+						{allLabel}
+					</Link>
+				</Button>
 			</div>
 		</section>
 	)

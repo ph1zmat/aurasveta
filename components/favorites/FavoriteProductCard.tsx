@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, BarChart3, Heart, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 
 export interface FavoriteProductCardProps {
 	name: string
@@ -36,30 +37,18 @@ export default function FavoriteProductCard({
 		<div className={cn('group relative flex flex-col', className)}>
 			{/* Action icons row */}
 			<div className='mb-1 flex items-center gap-1'>
-				<button
-					className='p-1 text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='Быстрый просмотр'
-				>
+				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
-				</button>
-				<button
-					className='p-1 text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='В избранное'
-				>
+				</Button>
+				<Button variant='icon' aria-label='В избранное'>
 					<Heart className='h-4 w-4 fill-foreground text-foreground' />
-				</button>
-				<button
-					className='p-1 text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='Сравнить'
-				>
+				</Button>
+				<Button variant='icon' aria-label='Сравнить'>
 					<BarChart3 className='h-4 w-4' />
-				</button>
-				<button
-					className='p-1 text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='Быстрый просмотр'
-				>
+				</Button>
+				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
-				</button>
+				</Button>
 				<span className='text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer'>
 					Быстрый просмотр
 				</span>
@@ -121,12 +110,9 @@ export default function FavoriteProductCard({
 
 			{/* Button + Stock */}
 			<div className='mt-auto flex items-center gap-3'>
-				<Link
-					href={href}
-					className='rounded-sm bg-foreground px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-card transition-colors hover:bg-foreground/90'
-				>
-					В корзину
-				</Link>
+				<Button asChild variant='primary' size='xs'>
+					<Link href={href}>В корзину</Link>
+				</Button>
 				{inStock && <span className='text-xs text-primary'>{inStock}</span>}
 			</div>
 		</div>

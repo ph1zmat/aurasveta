@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ChevronRight, Info } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import type { SpecItem } from '@/types/specs'
 
 export type { SpecItem }
@@ -18,8 +19,8 @@ export default function QuickSpecs({
 			<h3 className='mb-3 text-base font-bold text-foreground'>
 				Характеристики
 			</h3>
-			<div className='rounded-sm border border-border bg-card p-4'>
-				<div className='grid grid-cols-2 gap-x-6 gap-y-2'>
+			<Card padding='compact'>
+				<div className='grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2'>
 					{specs.map(spec => (
 						<div
 							key={spec.label}
@@ -38,7 +39,7 @@ export default function QuickSpecs({
 						</div>
 					))}
 				</div>
-			</div>
+			</Card>
 			<Link
 				href={allSpecsHref}
 				className='mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground transition-colors hover:text-primary'

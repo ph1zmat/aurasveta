@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Card } from '@/components/ui/Card'
 
 interface DesignProjectBannerProps {
 	href?: string
@@ -8,7 +9,7 @@ export default function DesignProjectBanner({
 	href = '/design',
 }: DesignProjectBannerProps) {
 	return (
-		<div className='rounded-sm bg-destructive/10 px-6 py-4'>
+		<Card variant='banner' padding='banner'>
 			<p className='text-sm text-foreground'>
 				Есть дизайн проект?{' '}
 				<Link
@@ -18,6 +19,6 @@ export default function DesignProjectBanner({
 					Пришлите нам
 				</Link>
 			</p>
-		</div>
+		</Card>
 	)
 }

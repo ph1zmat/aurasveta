@@ -1,6 +1,11 @@
+'use client'
+
+import { useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import UnderlineAnimation from '@/components/ui/UnderlineAnimation'
+import CategoryNavDropdown from '@/components/layout/CategoryNavDropdown'
+import { catalogMenuItems, type CatalogMenuItem } from '@/mocks/catalogMenu'
 
 interface Category {
 	id: string
@@ -35,12 +40,37 @@ interface CategoryNavProps {
 export default function CategoryNav({
 	categories = defaultCategories,
 }: CategoryNavProps) {
+	const [activeId, setActiveId] = useState<string | null>(null)
+	const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+	const openDropdown = useCallback((id: string) => {
+		if (closeTimeout.current) clearTimeout(closeTimeout.current)
+		setActiveId(id)
+	}, [])
+
+	const closeDropdown = useCallback(() => {
+		closeTimeout.current = setTimeout(() => setActiveId(null), 150)
+	}, [])
+
+	const keepOpen = useCallback(() => {
+		if (closeTimeout.current) clearTimeout(closeTimeout.current)
+	}, [])
+
+	const activeMenuItem: CatalogMenuItem | undefined = activeId
+		? catalogMenuItems.find(m => m.id === activeId)
+		: undefined
+
 	return (
-		<nav className='border-t border-b border-foreground'>
+		<nav className='hidden md:block relative border-t border-b border-foreground'>
 			<div className='mx-auto max-w-7xl px-4'>
 				<ul className='flex items-stretch overflow-x-auto scrollbar-hide'>
 					{categories.map(cat => (
-						<li key={cat.id} className='flex flex-1 min-w-0'>
+						<li
+							key={cat.id}
+							className='flex flex-1 min-w-0'
+							onMouseEnter={() => openDropdown(cat.id)}
+							onMouseLeave={closeDropdown}
+						>
 							<UnderlineAnimation
 								className='flex w-full'
 								lineClassName={
@@ -52,6 +82,7 @@ export default function CategoryNav({
 									className={cn(
 										'flex w-full items-center justify-center px-3 py-2 text-xs font-medium tracking-wide transition-colors',
 										cat.highlight ? 'text-destructive' : 'text-foreground',
+										activeId === cat.id && !cat.highlight && 'text-primary',
 									)}
 								>
 									{cat.name}
@@ -61,6 +92,19 @@ export default function CategoryNav({
 					))}
 				</ul>
 			</div>
+
+			{/* Dropdown */}
+			{activeMenuItem && (
+				<div
+					onMouseEnter={keepOpen}
+					onMouseLeave={closeDropdown}
+				>
+					<CategoryNavDropdown
+						item={activeMenuItem}
+						onClose={() => setActiveId(null)}
+					/>
+				</div>
+			)}
 		</nav>
 	)
 }

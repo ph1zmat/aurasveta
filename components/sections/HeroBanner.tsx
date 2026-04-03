@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Slider } from '@/components/ui/Slider'
 
 const slides = [
 	{
@@ -32,65 +32,52 @@ const slides = [
 ]
 
 export default function HeroBanner() {
-	const [current, setCurrent] = useState(0)
-
-	const prev = () => setCurrent(c => (c === 0 ? slides.length - 1 : c - 1))
-	const next = () => setCurrent(c => (c === slides.length - 1 ? 0 : c + 1))
-
-	const slide = slides[current]
-
 	return (
-		<section className='relative mx-auto max-w-7xl px-4 py-4'>
-			<div
-				className={cn(
-					'relative flex min-h-[240px] items-center overflow-hidden rounded-xl bg-gradient-to-r md:min-h-[320px]',
-					slide.bg,
+		<section className='mx-auto max-w-7xl md:px-4 py-2 md:py-4'>
+			<Slider
+				visibleItems={1}
+				dots
+				arrows
+				arrowsPosition='inside'
+				loop
+				renderArrow={({ direction, onClick, disabled }) => (
+					<button
+						onClick={onClick}
+						disabled={disabled}
+						className='hidden rounded-full bg-card/20 p-2 backdrop-blur-sm transition-colors hover:bg-card/40 disabled:opacity-30 md:block'
+						aria-label={direction === 'prev' ? 'Предыдущий слайд' : 'Следующий слайд'}
+					>
+						{direction === 'prev' ? (
+							<ChevronLeft className='h-5 w-5 text-card' />
+						) : (
+							<ChevronRight className='h-5 w-5 text-card' />
+						)}
+					</button>
 				)}
 			>
-				<div className='relative z-10 max-w-lg px-8 py-12 md:px-16'>
-					<h2 className='mb-2 text-3xl font-bold tracking-wide text-card md:text-5xl'>
-						{slide.title}
-					</h2>
-					<p className='mb-6 text-card/80 md:text-lg'>{slide.subtitle}</p>
-					<a
-						href={slide.href}
-						className='inline-block rounded-lg bg-destructive px-8 py-3 font-medium text-destructive-foreground transition-colors hover:bg-destructive/90'
-					>
-						{slide.cta}
-					</a>
-				</div>
-
-				{/* Nav arrows */}
-				<button
-					onClick={prev}
-					className='absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/20 p-2 backdrop-blur-sm transition-colors hover:bg-card/40'
-					aria-label='Предыдущий слайд'
-				>
-					<ChevronLeft className='h-5 w-5 text-card' />
-				</button>
-				<button
-					onClick={next}
-					className='absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/20 p-2 backdrop-blur-sm transition-colors hover:bg-card/40'
-					aria-label='Следующий слайд'
-				>
-					<ChevronRight className='h-5 w-5 text-card' />
-				</button>
-			</div>
-
-			{/* Dots */}
-			<div className='mt-3 flex justify-center gap-2'>
-				{slides.map((s, i) => (
-					<button
-						key={s.id}
-						onClick={() => setCurrent(i)}
+				{slides.map(slide => (
+					<div
+						key={slide.id}
 						className={cn(
-							'h-2 w-2 rounded-full transition-colors',
-							i === current ? 'bg-foreground' : 'bg-border',
+							'relative flex min-h-[280px] items-center overflow-hidden bg-gradient-to-r md:min-h-[320px] md:rounded-xl',
+							slide.bg,
 						)}
-						aria-label={`Слайд ${i + 1}`}
-					/>
+					>
+						<div className='relative z-10 max-w-lg px-6 py-8 md:px-16 md:py-12'>
+							<h2 className='mb-2 text-2xl font-bold tracking-wide text-card md:text-5xl'>
+								{slide.title}
+							</h2>
+							<p className='mb-6 text-card/80 md:text-lg'>{slide.subtitle}</p>
+							<a
+								href={slide.href}
+								className='inline-block rounded-lg bg-destructive px-8 py-3 font-medium text-destructive-foreground transition-colors hover:bg-destructive/90'
+							>
+								{slide.cta}
+							</a>
+						</div>
+					</div>
 				))}
-			</div>
+			</Slider>
 		</section>
 	)
 }

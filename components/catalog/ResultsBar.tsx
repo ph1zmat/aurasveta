@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { useFilterDrawer } from '@/components/catalog/MobileFilterWrapper'
 
 interface ResultsBarProps {
 	total: number
@@ -22,16 +24,30 @@ export default function ResultsBar({
 }: ResultsBarProps) {
 	const [sort, setSort] = useState(defaultSort)
 	const [open, setOpen] = useState(false)
+	const onMobileFilterOpen = useFilterDrawer()
 
 	return (
 		<div className='mb-4 flex items-center justify-between border-b border-border pb-3'>
-			<span className='text-sm text-muted-foreground'>
-				Найдено{' '}
-				<span className='font-medium text-foreground'>
-					{total.toLocaleString('ru-RU')}
-				</span>{' '}
-				товаров
-			</span>
+			<div className='flex items-center gap-3'>
+				<span className='text-sm text-muted-foreground'>
+					Найдено{' '}
+					<span className='font-medium text-foreground'>
+						{total.toLocaleString('ru-RU')}
+					</span>{' '}
+					товаров
+				</span>
+				{onMobileFilterOpen && (
+					<Button
+						variant='subtle'
+						size='compact'
+						className='lg:hidden'
+						onClick={onMobileFilterOpen}
+					>
+						<SlidersHorizontal className='h-3.5 w-3.5' strokeWidth={1.5} />
+						Фильтры
+					</Button>
+				)}
+			</div>
 
 			{/* Sort dropdown */}
 			<div className='relative'>

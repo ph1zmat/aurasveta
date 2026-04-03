@@ -17,7 +17,7 @@ import ChatButton from '@/components/ui/ChatButton'
 export default function Home() {
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />

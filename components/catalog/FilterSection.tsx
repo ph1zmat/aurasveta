@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/Checkbox'
 
 interface FilterSectionProps {
 	title: string
@@ -62,14 +63,9 @@ export function CheckboxFilterItem({
 }) {
 	return (
 		<label className='flex cursor-pointer items-center gap-2 py-1'>
-			<input
-				type='checkbox'
+			<Checkbox
 				checked={checked}
 				onChange={e => onChange?.(e.target.checked)}
-				className={cn(
-					'h-4 w-4 rounded-sm border border-border bg-card text-primary',
-					'accent-primary focus:ring-ring focus:ring-1',
-				)}
 			/>
 			<span className='text-sm text-foreground'>{label}</span>
 		</label>

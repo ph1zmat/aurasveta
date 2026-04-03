@@ -5,6 +5,7 @@ import Footer from '@/components/layout/Footer'
 import ChatButton from '@/components/ui/ChatButton'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import CatalogSidebar from '@/components/catalog/CatalogSidebar'
+import MobileFilterWrapper from '@/components/catalog/MobileFilterWrapper'
 import SubcategoryCarousel from '@/components/catalog/SubcategoryCarousel'
 import ViewToggle from '@/components/catalog/ViewToggle'
 import ResultsBar from '@/components/catalog/ResultsBar'
@@ -12,6 +13,7 @@ import TagsSection from '@/components/catalog/TagsSection'
 import CatalogProductCard from '@/components/ui/CatalogProductCard'
 import Pagination from '@/components/catalog/Pagination'
 import SEOText from '@/components/catalog/SEOText'
+import { Button } from '@/components/ui/Button'
 import { mockProducts } from '@/mocks/products'
 import { toCatalogCardProps } from '@/services/productAdapters'
 import {
@@ -60,7 +62,7 @@ export default async function CategoryPage({
 
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
@@ -75,7 +77,11 @@ export default async function CategoryPage({
 				/>
 
 				{/* Two-column layout */}
-				<div className='flex gap-8'>
+				<MobileFilterWrapper
+					categoryTree={categoryTree}
+					activeCategoryPath={`/catalog/${slug}`}
+				>
+				<div className='flex gap-4 md:gap-8'>
 					{/* Sidebar */}
 					<div className='hidden w-64 shrink-0 lg:block'>
 						<CatalogSidebar
@@ -88,7 +94,7 @@ export default async function CategoryPage({
 					<div className='min-w-0 flex-1'>
 						{/* Category heading + toggle */}
 						<div className='mb-4 flex items-start justify-between'>
-							<h1 className='text-2xl font-bold uppercase tracking-wider text-foreground'>
+							<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-2xl'>
 								{categoryName}
 							</h1>
 							<ViewToggle />
@@ -115,9 +121,9 @@ export default async function CategoryPage({
 
 						{/* Load more button */}
 						<div className='mt-8 flex justify-center'>
-							<button className='rounded-sm bg-foreground px-8 py-3 text-sm font-medium uppercase tracking-wider text-card transition-colors hover:bg-foreground/90'>
+							<Button variant='primary' size='default'>
 								Показать ещё
-							</button>
+							</Button>
 						</div>
 
 						{/* Pagination */}
@@ -130,6 +136,7 @@ export default async function CategoryPage({
 						<SEOText content={seoContent} />
 					</div>
 				</div>
+				</MobileFilterWrapper>
 			</main>
 
 			<Footer />

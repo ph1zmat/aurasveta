@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Checkbox'
 import type { CartItemData } from '@/types/cart'
 
 export type { CartItemData }
@@ -19,81 +21,129 @@ export default function CartItem({
 	onRemove,
 }: CartItemProps) {
 	return (
-		<div className='flex items-start gap-4 border-b border-border py-6'>
-			{/* Thumbnail */}
-			<Link href={item.href} className='relative h-24 w-20 shrink-0'>
-				<Image
-					src={item.image}
-					alt={item.name}
-					fill
-					className='object-contain'
-				/>
-			</Link>
-
-			{/* Info */}
-			<div className='min-w-0 flex-1'>
+		<div className='border-b border-border py-4 md:py-6'>
+			{/* Mobile: remove button top-right */}
+			<div className='flex items-start gap-3 md:gap-4'>
+				{/* Thumbnail */}
 				<Link
 					href={item.href}
-					className='text-sm font-medium text-primary transition-colors hover:text-foreground'
+					className='relative h-20 w-16 shrink-0 md:h-24 md:w-20'
 				>
-					{item.name}
+					<Image
+						src={item.image}
+						alt={item.name}
+						fill
+						className='object-contain'
+					/>
 				</Link>
 
-				{item.assemblyOption && (
-					<label className='mt-2 flex items-center gap-2 text-xs text-muted-foreground'>
-						<input
-							type='checkbox'
-							defaultChecked={item.assemblyChecked}
-							className='h-3.5 w-3.5 rounded-sm border border-border accent-primary'
-						/>
-						{item.assemblyOption}
-					</label>
-				)}
-			</div>
+				{/* Info */}
+				<div className='min-w-0 flex-1'>
+					<Link
+						href={item.href}
+						className='text-sm font-medium text-primary transition-colors hover:text-foreground'
+					>
+						{item.name}
+					</Link>
 
-			{/* Quantity controls */}
-			<div className='flex items-center gap-0 shrink-0'>
-				<button
-					onClick={() =>
-						onQuantityChange?.(item.id, Math.max(1, item.quantity - 1))
-					}
-					className='flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='Уменьшить'
-				>
-					<Minus className='h-3.5 w-3.5' strokeWidth={1.5} />
-				</button>
-				<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
-					{item.quantity}
-				</span>
-				<button
-					onClick={() => onQuantityChange?.(item.id, item.quantity + 1)}
-					className='flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground'
-					aria-label='Увеличить'
-				>
-					<Plus className='h-3.5 w-3.5' strokeWidth={1.5} />
-				</button>
-			</div>
+					{item.assemblyOption && (
+						<label className='mt-2 flex items-center gap-2 text-xs text-muted-foreground'>
+							<Checkbox size='sm' defaultChecked={item.assemblyChecked} />
+							{item.assemblyOption}
+						</label>
+					)}
 
-			{/* Price */}
-			<div className='shrink-0 text-right'>
-				<p className='text-sm font-bold text-foreground'>
-					{item.price.toLocaleString('ru-RU')} руб.
-				</p>
-				{item.oldPrice && (
-					<p className='text-xs text-muted-foreground line-through'>
-						{item.oldPrice.toLocaleString('ru-RU')} руб.
+					{/* Mobile: price + quantity inline */}
+					<div className='mt-3 flex items-center justify-between md:hidden'>
+						<div className='flex items-center gap-0'>
+							<Button
+								variant='icon'
+								size='icon-sm'
+								onClick={() =>
+									onQuantityChange?.(item.id, Math.max(1, item.quantity - 1))
+								}
+								className='h-8 w-8'
+								aria-label='Уменьшить'
+							>
+								<Minus className='h-3.5 w-3.5' strokeWidth={1.5} />
+							</Button>
+							<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
+								{item.quantity}
+							</span>
+							<Button
+								variant='icon'
+								size='icon-sm'
+								onClick={() => onQuantityChange?.(item.id, item.quantity + 1)}
+								className='h-8 w-8'
+								aria-label='Увеличить'
+							>
+								<Plus className='h-3.5 w-3.5' strokeWidth={1.5} />
+							</Button>
+						</div>
+
+						<div className='text-right'>
+							<p className='text-sm font-bold text-foreground'>
+								{item.price.toLocaleString('ru-RU')} руб.
+							</p>
+							{item.oldPrice && (
+								<p className='text-xs text-muted-foreground line-through'>
+									{item.oldPrice.toLocaleString('ru-RU')} руб.
+								</p>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* Desktop: Quantity + Price + Remove (hidden on mobile) */}
+				<div className='hidden items-center gap-0 shrink-0 md:flex'>
+					<Button
+						variant='icon'
+						size='icon-sm'
+						onClick={() =>
+							onQuantityChange?.(item.id, Math.max(1, item.quantity - 1))
+						}
+						className='h-8 w-8'
+						aria-label='Уменьшить'
+					>
+						<Minus className='h-3.5 w-3.5' strokeWidth={1.5} />
+					</Button>
+					<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
+						{item.quantity}
+					</span>
+					<Button
+						variant='icon'
+						size='icon-sm'
+						onClick={() => onQuantityChange?.(item.id, item.quantity + 1)}
+						className='h-8 w-8'
+						aria-label='Увеличить'
+					>
+						<Plus className='h-3.5 w-3.5' strokeWidth={1.5} />
+					</Button>
+				</div>
+
+				{/* Desktop: Price */}
+				<div className='hidden shrink-0 text-right md:block'>
+					<p className='text-sm font-bold text-foreground'>
+						{item.price.toLocaleString('ru-RU')} руб.
 					</p>
-				)}
-			</div>
+					{item.oldPrice && (
+						<p className='text-xs text-muted-foreground line-through'>
+							{item.oldPrice.toLocaleString('ru-RU')} руб.
+						</p>
+					)}
+				</div>
 
-			{/* Remove */}
-			<button
-				onClick={() => onRemove?.(item.id)}
-				className='shrink-0 p-1 text-muted-foreground transition-colors hover:text-foreground'
-				aria-label='Удалить'
-			>
-				<X className='h-4 w-4' strokeWidth={1.5} />
-			</button>
+				{/* Remove */}
+				<Button
+					variant='icon'
+					size='icon-sm'
+					onClick={() => onRemove?.(item.id)}
+					className='shrink-0'
+					aria-label='Удалить'
+				>
+					<X className='h-4 w-4' strokeWidth={1.5} />
+				</Button>
+			</div>
 		</div>
 	)
 }

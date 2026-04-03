@@ -8,6 +8,7 @@ import FavoriteProductCard from '@/components/favorites/FavoriteProductCard'
 import type { FavoritesTab } from '@/components/favorites/FavoritesCategoryTabs'
 import { mockProducts } from '@/mocks/products'
 import { toFavoriteCardProps } from '@/services/productAdapters'
+import { Button } from '@/components/ui/Button'
 
 /* ── Mock data from central store ── */
 
@@ -31,19 +32,19 @@ const products = favoriteProducts.map(toFavoriteCardProps)
 export default function FavoritesPage() {
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
 
 				{/* Heading */}
-				<div className='flex items-center justify-between py-6'>
-					<h1 className='text-xl font-bold uppercase tracking-wider text-foreground'>
+				<div className='flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between md:py-6'>
+					<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-xl'>
 						Избранное
 					</h1>
-					<button className='text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground'>
+					<Button variant='ghost' className='uppercase tracking-wider'>
 						Удалить все
-					</button>
+					</Button>
 				</div>
 
 				{/* Category tabs */}

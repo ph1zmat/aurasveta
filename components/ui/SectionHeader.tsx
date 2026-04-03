@@ -12,7 +12,7 @@ export default function SectionHeader({
 	linkText,
 }: SectionHeaderProps) {
 	return (
-		<div className='mb-6 flex items-center justify-between'>
+		<div className='mb-4 flex items-center justify-between md:mb-6'>
 			<h2 className='text-lg font-bold uppercase tracking-wider text-foreground'>
 				{title}
 			</h2>

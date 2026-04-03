@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { Button } from '@/components/ui/Button'
 
 interface StickyProductHeaderProps {
 	name: string
@@ -34,7 +35,7 @@ export default function StickyProductHeader({
 	if (!visible) return null
 
 	return (
-		<div className='fixed top-0 left-0 right-0 z-50 border-b border-border bg-card shadow-sm'>
+		<div className='fixed top-0 left-0 right-0 z-50 hidden border-b border-border bg-card shadow-sm md:block'>
 			<div className='container mx-auto flex max-w-7xl items-center gap-4 py-2'>
 				{/* Product thumbnail */}
 				<div className='relative h-10 w-10 shrink-0'>
@@ -63,12 +64,11 @@ export default function StickyProductHeader({
 				</div>
 
 				{/* CTA */}
-				<Link
-					href={actionHref}
-					className='shrink-0 rounded-sm bg-foreground px-6 py-2.5 text-xs font-medium uppercase tracking-wider text-card transition-colors hover:bg-foreground/90'
-				>
-					{actionLabel}
-				</Link>
+				<Button asChild variant='primary' size='sm' className='shrink-0'>
+					<Link href={actionHref}>
+						{actionLabel}
+					</Link>
+				</Button>
 			</div>
 		</div>
 	)

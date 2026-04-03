@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, BarChart3, Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 
 export interface CatalogProductCardProps {
 	name: string
@@ -36,24 +37,15 @@ export default function CatalogProductCard({
 		<div className={cn('group relative flex flex-col', className)}>
 			{/* Action icons */}
 			<div className='flex items-center gap-1 mb-1'>
-				<button
-					className='p-1 text-muted-foreground hover:text-foreground transition-colors'
-					aria-label='Быстрый просмотр'
-				>
+				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
-				</button>
-				<button
-					className='p-1 text-muted-foreground hover:text-foreground transition-colors'
-					aria-label='Сравнить'
-				>
+				</Button>
+				<Button variant='icon' aria-label='Сравнить'>
 					<BarChart3 className='h-4 w-4' />
-				</button>
-				<button
-					className='p-1 text-muted-foreground hover:text-foreground transition-colors'
-					aria-label='В избранное'
-				>
+				</Button>
+				<Button variant='icon' aria-label='В избранное'>
 					<Heart className='h-4 w-4' />
-				</button>
+				</Button>
 			</div>
 
 			{/* Image + Badges */}
@@ -110,17 +102,13 @@ export default function CatalogProductCard({
 
 			{/* Button + Stock */}
 			<div className='mt-auto flex items-center gap-3'>
-				<Link
-					href={href}
-					className={cn(
-						'rounded-sm px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-colors',
-						buttonLabel === 'УТОЧНИТЬ'
-							? 'border border-foreground text-foreground hover:bg-foreground hover:text-card'
-							: 'bg-foreground text-card hover:bg-foreground/90',
-					)}
+				<Button
+					asChild
+					variant={buttonLabel === 'УТОЧНИТЬ' ? 'outline' : 'primary'}
+					size='xs'
 				>
-					{buttonLabel}
-				</Link>
+					<Link href={href}>{buttonLabel}</Link>
+				</Button>
 				{inStock && <span className='text-xs text-primary'>{inStock}</span>}
 			</div>
 		</div>

@@ -1,24 +1,26 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Card } from '@/components/ui/Card'
 
 export default function CouponForm() {
 	const [code, setCode] = useState('')
 
 	return (
-		<div className='mt-6 rounded-sm border border-border bg-card p-6'>
+		<Card className='mt-6'>
 			<label className='mb-3 block text-sm font-medium text-foreground'>
 				Введите код купона для скидки:
 			</label>
-			<input
-				type='text'
+			<Input
 				value={code}
 				onChange={e => setCode(e.target.value)}
-				className='mb-4 block w-full rounded-sm border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-ring'
+				className='mb-4'
 			/>
-			<button className='w-full rounded-sm border border-foreground py-2.5 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:bg-foreground hover:text-card'>
+			<Button variant='outline' size='xs' fullWidth>
 				Применить
-			</button>
-		</div>
+			</Button>
+		</Card>
 	)
 }

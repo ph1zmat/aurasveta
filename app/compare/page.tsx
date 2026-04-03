@@ -10,6 +10,7 @@ import CompareFilterRadio from '@/components/compare/CompareFilterRadio'
 import CompareSpecsTable from '@/components/compare/CompareSpecsTable'
 import { mockProducts } from '@/mocks/products'
 import { toCompareCardProps } from '@/services/productAdapters'
+import { Button } from '@/components/ui/Button'
 import { getCompareSpecsFor } from '@/mocks/specs'
 
 /* ── Mock data ── */
@@ -35,19 +36,19 @@ const specSections = getCompareSpecsFor('ulichnye')
 export default function ComparePage() {
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
 
 				{/* Heading */}
-				<div className='flex items-center justify-between py-6'>
-					<h1 className='text-xl font-bold uppercase tracking-wider text-foreground'>
+				<div className='flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between md:py-6'>
+					<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-xl'>
 						Сравнение
 					</h1>
-					<button className='text-sm text-muted-foreground transition-colors hover:text-foreground'>
+					<Button variant='ghost'>
 						Очистить сравнение
-					</button>
+					</Button>
 				</div>
 
 				{/* Category tabs */}
@@ -59,7 +60,8 @@ export default function ComparePage() {
 				</p>
 
 				{/* Products row + filter radio */}
-				<div className='grid grid-cols-[280px_repeat(3,1fr)] gap-x-6 pb-8'>
+				<div className='overflow-x-auto pb-4 scrollbar-hide'>
+					<div className='grid min-w-[700px] grid-cols-[160px_repeat(3,1fr)] gap-x-4 pb-8 md:min-w-0 md:grid-cols-[280px_repeat(3,1fr)] md:gap-x-6'>
 					{/* Filter radio (left column, vertically centered) */}
 					<div className='flex items-start pt-2'>
 						<CompareFilterRadio />
@@ -69,6 +71,7 @@ export default function ComparePage() {
 					{products.map(product => (
 						<CompareProductCard key={product.href} {...product} />
 					))}
+					</div>
 				</div>
 
 				{/* Specs comparison table */}

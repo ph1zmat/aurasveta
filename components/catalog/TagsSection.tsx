@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import type { Tag } from '@/types/catalog'
 
 export type { Tag }
@@ -29,10 +30,10 @@ export default function TagsSection({
 					</span>
 				))}
 				{showMore && (
-					<button className='flex items-center gap-1 rounded-sm border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground hover:text-foreground'>
+					<Button variant='ghost' size='compact' className='rounded-sm border border-border font-medium hover:border-foreground'>
 						<Plus className='h-3 w-3' strokeWidth={1.5} />
 						Показать еще
-					</button>
+					</Button>
 				)}
 			</div>
 		</div>

@@ -1,0 +1,66 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { Menu, Search, X, Phone } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import MobileCatalogMenu from '@/components/layout/MobileCatalogMenu'
+
+export default function MobileHeader() {
+	const [menuOpen, setMenuOpen] = useState(false)
+	const toggleMenu = useCallback(() => setMenuOpen(prev => !prev), [])
+	const closeMenu = useCallback(() => setMenuOpen(false), [])
+
+	return (
+		<>
+			<header className='md:hidden'>
+				{/* Top row: Logo + Phone */}
+				<div className='flex items-center justify-between px-4 py-2'>
+					<Link href='/' className='flex items-center gap-2 shrink-0'>
+						<Image
+							src='/aura-logo-noline-primary.png'
+							alt='Logo'
+							width={110}
+							height={40}
+							className='h-10 w-28 object-cover'
+						/>
+					</Link>
+					<a
+						href='tel:+74992292322'
+						className='flex items-center gap-1 text-foreground'
+					>
+						<Phone className='h-4 w-4' />
+						<span className='text-sm font-medium'>+7 (499) 229 23 22</span>
+					</a>
+				</div>
+
+				{/* Search row */}
+				<div className='flex items-center gap-2 px-4 pb-3'>
+					<Button
+						variant={menuOpen ? 'primary' : 'primary'}
+						size='icon'
+						className='shrink-0 rounded-sm h-10 w-10'
+						onClick={toggleMenu}
+						aria-expanded={menuOpen}
+						aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'}
+					>
+						{menuOpen ? (
+							<X className='h-5 w-5' strokeWidth={1.5} />
+						) : (
+							<Menu className='h-5 w-5' strokeWidth={1.5} />
+						)}
+					</Button>
+					<div className='relative flex-1'>
+						<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+						<Input variant='search' placeholder='Найти' className='h-10' />
+					</div>
+				</div>
+			</header>
+
+			{/* Mobile catalog menu overlay */}
+			{menuOpen && <MobileCatalogMenu onClose={closeMenu} />}
+		</>
+	)
+}

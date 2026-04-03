@@ -19,7 +19,7 @@ const rightLinks = [
 
 export default function TopBar() {
 	return (
-		<div className='text-sm'>
+		<div className='hidden md:block text-sm'>
 			<div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-2'>
 				<div className='flex items-center gap-6'>
 					<button className='flex items-center gap-1 text-foreground hover:text-primary transition-colors'>

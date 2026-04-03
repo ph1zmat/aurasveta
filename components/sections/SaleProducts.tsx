@@ -10,7 +10,7 @@ const saleProducts = mockProducts
 
 export default function SaleProducts() {
 	return (
-		<section className='mx-auto max-w-7xl px-4 py-8'>
+		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
 				{saleProducts.map(product => (
 					<ProductCard key={product.href} {...product} />

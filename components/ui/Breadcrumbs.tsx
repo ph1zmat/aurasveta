@@ -13,7 +13,7 @@ interface BreadcrumbsProps {
 export default function Breadcrumbs({ items }: BreadcrumbsProps) {
 	return (
 		<nav aria-label='Навигация' className='py-3'>
-			<ol className='flex items-center gap-1 text-xs text-muted-foreground'>
+			<ol className='flex items-center gap-1 overflow-x-auto text-xs text-muted-foreground scrollbar-hide whitespace-nowrap'>
 				{items.map((item, i) => (
 					<li key={i} className='flex items-center gap-1'>
 						{i > 0 && <ChevronRight className='h-3 w-3' strokeWidth={1.5} />}

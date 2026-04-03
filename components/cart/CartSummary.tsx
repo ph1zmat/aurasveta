@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Info } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
 interface CartSummaryProps {
 	itemsCount: number
@@ -19,7 +21,7 @@ export default function CartSummary({
 	const total = subtotal - discount
 
 	return (
-		<div className='rounded-sm border border-border bg-card p-6'>
+		<Card>
 			<h2 className='mb-6 text-lg font-bold uppercase tracking-wider text-foreground'>
 				Ваша корзина
 			</h2>
@@ -73,16 +75,15 @@ export default function CartSummary({
 			)}
 
 			{/* CTA */}
-			<Link
-				href='/checkout'
-				className='mt-6 block w-full rounded-sm bg-foreground py-3.5 text-center text-sm font-medium uppercase tracking-wider text-card transition-colors hover:bg-foreground/90'
-			>
-				Перейти к оформлению
-			</Link>
+			<Button asChild variant='primary' size='lg' fullWidth className='mt-6'>
+				<Link href='/checkout'>
+					Перейти к оформлению
+				</Link>
+			</Button>
 
 			<p className='mt-4 text-xs leading-relaxed text-muted-foreground'>
 				Способ и время доставки можно выбрать на следующем шаге
 			</p>
-		</div>
+		</Card>
 	)
 }

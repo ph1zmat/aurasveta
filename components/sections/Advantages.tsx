@@ -38,8 +38,8 @@ const advantages: Advantage[] = [
 
 export default function Advantages() {
 	return (
-		<section className='mx-auto max-w-7xl px-4 py-10'>
-			<h2 className='mb-8 text-lg font-bold uppercase tracking-wider text-foreground'>
+		<section className='mx-auto max-w-7xl px-4 py-6 md:py-10'>
+			<h2 className='mb-6 text-base font-bold uppercase tracking-wider text-foreground md:mb-8 md:text-lg'>
 				Наши преимущества
 			</h2>
 			<div className='grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'>

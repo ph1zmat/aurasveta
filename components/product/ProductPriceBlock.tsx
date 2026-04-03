@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Check } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
 interface ProductPriceBlockProps {
 	price: number
@@ -25,7 +27,7 @@ export default function ProductPriceBlock({
 	foundCheaper = true,
 }: ProductPriceBlockProps) {
 	return (
-		<div className='rounded-sm border border-border bg-card p-6'>
+		<Card>
 			{/* Original badge */}
 			{isOriginal && (
 				<span className='mb-4 inline-flex items-center gap-1 rounded-sm border border-border px-3 py-1 text-xs font-medium text-foreground'>
@@ -59,25 +61,23 @@ export default function ProductPriceBlock({
 
 			{/* Found cheaper */}
 			{foundCheaper && (
-				<button className='mb-4 rounded-sm border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent'>
+				<Button variant='subtle' className='mb-4'>
 					Нашли дешевле?
-				</button>
+				</Button>
 			)}
 
 			{/* CTA buttons */}
 			<div className='space-y-3'>
-				<Link
-					href={primaryAction.href}
-					className='block w-full rounded-sm bg-foreground py-3.5 text-center text-sm font-medium uppercase tracking-wider text-card transition-colors hover:bg-foreground/90'
-				>
-					{primaryAction.label}
-				</Link>
-				<Link
-					href={secondaryAction.href}
-					className='block w-full rounded-sm border border-foreground py-3.5 text-center text-sm font-medium uppercase tracking-wider text-foreground transition-colors hover:bg-foreground hover:text-card'
-				>
-					{secondaryAction.label}
-				</Link>
+				<Button asChild variant='primary' size='lg' fullWidth>
+					<Link href={primaryAction.href}>
+						{primaryAction.label}
+					</Link>
+				</Button>
+				<Button asChild variant='outline' size='lg' fullWidth>
+					<Link href={secondaryAction.href}>
+						{secondaryAction.label}
+					</Link>
+				</Button>
 			</div>
 
 			{/* Availability */}
@@ -87,6 +87,6 @@ export default function ProductPriceBlock({
 					{availability}
 				</p>
 			)}
-		</div>
+		</Card>
 	)
 }

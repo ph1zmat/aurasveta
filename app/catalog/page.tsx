@@ -22,14 +22,14 @@ const wallLampProducts = mockProducts
 export default function CatalogPage() {
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl'>
+			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
 
 				{/* Page heading */}
-				<div className='py-8'>
-					<h1 className='text-2xl font-bold uppercase tracking-wider text-foreground'>
+				<div className='py-5 md:py-8'>
+					<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-2xl'>
 						Каталог
 					</h1>
 					<p className='mt-2 text-sm text-muted-foreground'>

@@ -92,7 +92,7 @@ export default function ProductTabs({ specGroups }: ProductTabsProps) {
 	return (
 		<div>
 			{/* Tab headers */}
-			<div className='flex gap-6 border-b border-border'>
+			<div className='flex gap-4 overflow-x-auto border-b border-border scrollbar-hide md:gap-6'>
 				{tabs.map(tab => (
 					<button
 						key={tab}
