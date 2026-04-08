@@ -1,33 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Аура Света — интернет-магазин освещения
 
-## Getting Started
+E-commerce платформа на Next.js 16 с SSR, tRPC API, Prisma ORM и better-auth.
 
-First, run the development server:
+## Стек технологий
+
+| Слой | Технология |
+|------|-----------|
+| Framework | Next.js 16.2 (App Router, Turbopack) |
+| API | tRPC v11 (httpBatchStreamLink, superjson) |
+| ORM | Prisma 7 + NeonDB PostgreSQL |
+| Auth | better-auth v1.5 (email/password, GitHub, Google) |
+| State | Jotai (анонимная корзина/избранное), TanStack React Query |
+| UI | Tailwind CSS 4, shadcn/ui, Recharts |
+| Architecture | Feature-Sliced Design (FSD) |
+
+## Быстрый старт
 
 ```bash
+# 1. Установить зависимости
+npm install
+
+# 2. Настроить переменные окружения
+cp .env.example .env
+# Заполнить DATABASE_URL, BETTER_AUTH_SECRET и др.
+
+# 3. Применить миграции и заполнить БД
+npx prisma migrate deploy
+npx prisma db seed
+
+# 4. Запустить dev-сервер
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Переменные окружения
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Переменная | Описание |
+|-----------|----------|
+| `DATABASE_URL` | URL подключения к PostgreSQL (NeonDB) |
+| `BETTER_AUTH_SECRET` | Секрет для подписи сессий |
+| `NEXT_PUBLIC_BETTER_AUTH_URL` | Публичный URL приложения |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth GitHub (необяз.) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (необяз.) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Структура проекта (FSD)
 
-## Learn More
+```
+app/              — маршруты Next.js (pages, layouts, API routes)
+entities/         — бизнес-сущности (product, category, cart, spec)
+features/         — пользовательские фичи (cart, favorites, catalog-filter, compare)
+widgets/          — компоновочные виджеты (header, footer, navigation)
+shared/           — переиспользуемые UI, утилиты, типы, моки
+lib/              — инфраструктура (prisma, auth, trpc, store)
+prisma/           — схема и миграции
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Основные маршруты
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Маршрут | Описание |
+|---------|----------|
+| `/` | Главная страница |
+| `/catalog` | Каталог товаров |
+| `/catalog/[slug]` | Категория |
+| `/product/[slug]` | Карточка товара |
+| `/cart` | Корзина |
+| `/favorites` | Избранное |
+| `/compare` | Сравнение |
+| `/pages/[slug]` | Контентные страницы (О нас, Доставка и т.д.) |
+| `/login`, `/register` | Авторизация |
+| `/admin/*` | Админ-панель |
+| `/api/trpc/*` | tRPC API |
+| `/api/auth/*` | better-auth API |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Команды
+
+```bash
+npm run dev          # Запуск dev-сервера
+npm run build        # Production-сборка
+npm run start        # Запуск production
+npx prisma studio    # GUI для базы данных
+npx prisma db seed   # Заполнить БД тестовыми данными
+```
+
+## Авторизация и анонимные данные
+
+- Анонимные пользователи: корзина и избранное хранятся в localStorage (Jotai atomWithStorage)
+- При входе/регистрации анонимные данные автоматически мигрируют в аккаунт пользователя через `anonymous.migrateToUser`
+- Админ-панель защищена через Proxy (middleware) — перенаправление на `/login` без сессии
+
+## Деплой
+
+См. [docs/deployment.md](docs/deployment.md).
 
 ## Deploy on Vercel
 

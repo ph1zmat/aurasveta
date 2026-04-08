@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  EDITOR
+  ADMIN
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  phone         String?  @unique
+  image         String?
+  role          UserRole @default(USER)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sessions         Session[]
+  accounts         Account[]
+  verifications    Verification[]
+  cart             Cart?
+  favorites        Favorite[]
+  orders           Order[]
+  pages            Page[]
+  products         Product[]
+  compareItems     CompareItem[]
+  anonymousSession AnonymousSession?
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId        String    @map("provider_id")
+  providerAccountId String    @map("provider_account_id")
+  accessToken       String?   @map("access_token")
+  refreshToken      String?   @map("refresh_token")
+  expiresAt         DateTime? @map("expires_at")
+  password          String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  accountId             String
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+
+  @@unique([providerId, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ---------- Categories ----------
+
+model Category {
+  id                String     @id @default(cuid())
+  name              String
+  slug              String     @unique
+  description       String?
+  image             String?
+  imagePath         String?    @map("image_path")
+  imageOriginalName String?    @map("image_original_name")
+  parentId          String?    @map("parent_id")
+  parent            Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Category[] @relation("CategoryToCategory")
+  products          Product[]
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ---------- Dynamic Properties ----------
+
+model Property {
+  id        String       @id @default(cuid())
+  key       String       @unique
+  name      String
+  type      PropertyType @default(STRING)
+  options   Json?
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  productValues ProductPropertyValue[]
+
+  @@map("properties")
+}
+
+enum PropertyType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
+  SELECT
+}
+
+model ProductPropertyValue {
+  id         String   @id @default(cuid())
+  productId  String   @map("product_id")
+  propertyId String   @map("property_id")
+  value      String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, propertyId])
+  @@map("product_property_values")
+}
+
+model Product {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  description       String?
+  price             Float?
+  compareAtPrice    Float?    @map("compare_at_price")
+  stock             Int       @default(0)
+  sku               String?   @unique
+  images            Json      @default("[]")
+  categoryId        String?   @map("category_id")
+  category          Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isActive          Boolean   @default(true) @map("is_active")
+  brand             String?
+  brandCountry      String?   @map("brand_country")
+  rating            Float?
+  reviewsCount      Int       @default(0) @map("reviews_count")
+  badges            Json      @default("[]")
+  imagePath         String?   @map("image_path")
+  imageOriginalName String?   @map("image_original_name")
+  metaTitle         String?   @map("meta_title")
+  metaDesc          String?   @map("meta_description")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  userId            String?   @map("user_id")
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  properties   ProductPropertyValue[]
+  orderItems   OrderItem[]
+  favorites    Favorite[]
+  compareItems CompareItem[]
+
+  @@index([categoryId])
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([brand])
+  @@map("products")
+}
+
+model Page {
+  id                String        @id @default(cuid())
+  title             String
+  slug              String        @unique
+  content           String?
+  image             String?
+  imagePath         String?       @map("image_path")
+  imageOriginalName String?       @map("image_original_name")
+  metaTitle         String?       @map("meta_title")
+  metaDesc          String?       @map("meta_description")
+  isPublished       Boolean       @default(false) @map("is_published")
+  publishedAt       DateTime?     @map("published_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  authorId          String?       @map("author_id")
+  author            User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  versions          PageVersion[]
+
+  @@map("pages")
+}
+
+model PageVersion {
+  id        String   @id @default(cuid())
+  pageId    String   @map("page_id")
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  title     String
+  content   String?
+  image     String?
+  metaTitle String?  @map("meta_title")
+  metaDesc  String?  @map("meta_description")
+  version   Int
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+
+  @@unique([pageId, version])
+  @@map("page_versions")
+}
+
+model AnonymousSession {
+  id        String   @id @default(cuid())
+  sessionId String   @unique @map("session_id")
+  cart      Json     @default("{}")
+  favorites Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    String?  @unique @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("anonymous_sessions")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("carts")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String      @map("user_id")
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    OrderStatus @default(PENDING)
+  total     Float
+  address   String?
+  phone     String?
+  comment   String?
+  items     OrderItem[]
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model CompareItem {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@map("compare_items")
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  url       String
+  events    String[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("webhooks")
+}

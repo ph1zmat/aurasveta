@@ -1,38 +1,13 @@
-import TopBar from '@/components/layout/TopBar'
-import Header from '@/components/layout/Header'
-import CategoryNav from '@/components/layout/CategoryNav'
-import Footer from '@/components/layout/Footer'
-import ChatButton from '@/components/ui/ChatButton'
-import Breadcrumbs from '@/components/ui/Breadcrumbs'
-import CatalogSidebar from '@/components/catalog/CatalogSidebar'
-import MobileFilterWrapper from '@/components/catalog/MobileFilterWrapper'
-import SubcategoryCarousel from '@/components/catalog/SubcategoryCarousel'
-import ViewToggle from '@/components/catalog/ViewToggle'
-import ResultsBar from '@/components/catalog/ResultsBar'
-import TagsSection from '@/components/catalog/TagsSection'
-import CatalogProductCard from '@/components/ui/CatalogProductCard'
-import Pagination from '@/components/catalog/Pagination'
-import SEOText from '@/components/catalog/SEOText'
-import { Button } from '@/components/ui/Button'
-import { mockProducts } from '@/mocks/products'
-import { toCatalogCardProps } from '@/services/productAdapters'
-import {
-	mockCategories,
-	mockCategoryTrees,
-	mockSubcategories,
-	categorySlugToName,
-} from '@/mocks/categories'
-import { mockPopularTags, mockCollectionTags } from '@/mocks/tags'
-import { getSeoContentFor } from '@/mocks/specs'
-import { notFound } from 'next/navigation'
+import TopBar from '@/widgets/header/ui/TopBar'
+import Header from '@/widgets/header/ui/Header'
+import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
+import Footer from '@/widgets/footer/ui/Footer'
+import ChatButton from '@/shared/ui/ChatButton'
+import Breadcrumbs from '@/shared/ui/Breadcrumbs'
+import CategoryContent from './CategoryContent'
+import { Suspense } from 'react'
 
-/* ── Static params ── */
-
-export function generateStaticParams() {
-	return mockCategories.map(c => ({ slug: c.slug }))
-}
-
-/* ── Page ── */
+export const dynamic = 'force-dynamic'
 
 export default async function CategoryPage({
 	params,
@@ -41,25 +16,6 @@ export default async function CategoryPage({
 }) {
 	const { slug } = await params
 
-	const categoryName = categorySlugToName[slug]
-	if (!categoryName) notFound()
-
-	const categoryTree = mockCategoryTrees[slug] ?? []
-	const subcategories = mockSubcategories[slug] ?? []
-	const popularTags = mockPopularTags[slug] ?? []
-	const collectionTags = mockCollectionTags
-	const seoContent = getSeoContentFor(slug)
-
-	const products = mockProducts
-		.filter(p => p.category === categoryName)
-		.concat(mockProducts.filter(p => p.category !== categoryName))
-		.slice(0, 12)
-		.map(toCatalogCardProps)
-
-	const totalProducts = mockProducts.filter(
-		p => p.category === categoryName,
-	).length
-
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
 			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
@@ -67,76 +23,23 @@ export default async function CategoryPage({
 				<Header />
 				<CategoryNav />
 
-				{/* Breadcrumbs */}
 				<Breadcrumbs
 					items={[
 						{ label: 'Главная', href: '/' },
 						{ label: 'Каталог', href: '/catalog' },
-						{ label: categoryName },
+						{ label: slug },
 					]}
 				/>
 
-				{/* Two-column layout */}
-				<MobileFilterWrapper
-					categoryTree={categoryTree}
-					activeCategoryPath={`/catalog/${slug}`}
+				<Suspense
+					fallback={
+						<div className='py-12 text-center text-sm text-muted-foreground'>
+							Загрузка...
+						</div>
+					}
 				>
-				<div className='flex gap-4 md:gap-8'>
-					{/* Sidebar */}
-					<div className='hidden w-64 shrink-0 lg:block'>
-						<CatalogSidebar
-							categoryTree={categoryTree}
-							activeCategoryPath={`/catalog/${slug}`}
-						/>
-					</div>
-
-					{/* Content */}
-					<div className='min-w-0 flex-1'>
-						{/* Category heading + toggle */}
-						<div className='mb-4 flex items-start justify-between'>
-							<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-2xl'>
-								{categoryName}
-							</h1>
-							<ViewToggle />
-						</div>
-
-						{/* Subcategory carousel */}
-						<SubcategoryCarousel items={subcategories} />
-
-						{/* Results bar */}
-						<ResultsBar total={totalProducts} />
-
-						{/* Popular search tags */}
-						<TagsSection title='Часто ищут' tags={popularTags} />
-
-						{/* Collection tags */}
-						<TagsSection title='Подборки' tags={collectionTags} />
-
-						{/* Product grid — 3 columns */}
-						<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
-							{products.map(product => (
-								<CatalogProductCard key={product.href} {...product} />
-							))}
-						</div>
-
-						{/* Load more button */}
-						<div className='mt-8 flex justify-center'>
-							<Button variant='primary' size='default'>
-								Показать ещё
-							</Button>
-						</div>
-
-						{/* Pagination */}
-						<Pagination
-							currentPage={1}
-							totalPages={Math.ceil(totalProducts / 12)}
-						/>
-
-						{/* SEO text */}
-						<SEOText content={seoContent} />
-					</div>
-				</div>
-				</MobileFilterWrapper>
+					<CategoryContent slug={slug} />
+				</Suspense>
 			</main>
 
 			<Footer />

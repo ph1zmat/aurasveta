@@ -1,5 +1,0 @@
-export { Button, buttonVariants, type ButtonProps } from './Button'
-export { Input, inputVariants, type InputProps } from './Input'
-export { Checkbox, checkboxVariants, type CheckboxProps } from './Checkbox'
-export { Card, cardVariants, type CardProps } from './Card'
-export { Slider, type SliderProps, type SliderHandle, type SliderBreakpoint } from './Slider'

@@ -1,23 +1,16 @@
-import TopBar from '@/components/layout/TopBar'
-import Header from '@/components/layout/Header'
-import CategoryNav from '@/components/layout/CategoryNav'
-import Footer from '@/components/layout/Footer'
-import ChatButton from '@/components/ui/ChatButton'
-import CatalogCategoryCarousel from '@/components/catalog/CatalogCategoryCarousel'
-import CategorySection from '@/components/catalog/CategorySection'
-import { mockCategories } from '@/mocks/categories'
-import { mockProducts } from '@/mocks/products'
-import { toCatalogCardProps } from '@/services/productAdapters'
+import TopBar from '@/widgets/header/ui/TopBar'
+import Header from '@/widgets/header/ui/Header'
+import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
+import Footer from '@/widgets/footer/ui/Footer'
+import ChatButton from '@/shared/ui/ChatButton'
+import CatalogContent from './CatalogContent'
+import { Suspense } from 'react'
 
-const chandelierProducts = mockProducts
-	.filter(p => p.category === 'Люстры')
-	.slice(0, 4)
-	.map(toCatalogCardProps)
-
-const wallLampProducts = mockProducts
-	.filter(p => p.category === 'Бра')
-	.slice(0, 4)
-	.map(toCatalogCardProps)
+export const metadata = {
+	title: 'Каталог — Аура Света',
+	description:
+		'Каталог люстр и светильников. Широкий ассортимент от ведущих производителей.',
+}
 
 export default function CatalogPage() {
 	return (
@@ -27,33 +20,24 @@ export default function CatalogPage() {
 				<Header />
 				<CategoryNav />
 
-				{/* Page heading */}
 				<div className='py-5 md:py-8'>
-					<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-2xl'>
+					<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
 						Каталог
 					</h1>
-					<p className='mt-2 text-sm text-muted-foreground'>
+					<p className='mt-2 text-sm tracking-wider text-muted-foreground'>
 						Товары каталога представлены в категориях
 					</p>
 				</div>
 
-				{/* Category carousel */}
-				<CatalogCategoryCarousel categories={mockCategories} />
-
-				{/* Category sections */}
-				<CategorySection
-					title='Люстры'
-					allHref='/catalog/lustry'
-					allLabel='Все Люстры'
-					products={chandelierProducts}
-				/>
-
-				<CategorySection
-					title='Бра'
-					allHref='/catalog/bra'
-					allLabel='Все Бра'
-					products={wallLampProducts}
-				/>
+				<Suspense
+					fallback={
+						<div className='py-12 text-center text-sm text-muted-foreground'>
+							Загрузка каталога...
+						</div>
+					}
+				>
+					<CatalogContent />
+				</Suspense>
 			</main>
 
 			<Footer />

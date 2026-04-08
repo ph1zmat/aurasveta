@@ -1,33 +1,14 @@
-import TopBar from '@/components/layout/TopBar'
-import Header from '@/components/layout/Header'
-import CategoryNav from '@/components/layout/CategoryNav'
-import Footer from '@/components/layout/Footer'
-import ChatButton from '@/components/ui/ChatButton'
-import FavoritesCategoryTabs from '@/components/favorites/FavoritesCategoryTabs'
-import FavoriteProductCard from '@/components/favorites/FavoriteProductCard'
-import type { FavoritesTab } from '@/components/favorites/FavoritesCategoryTabs'
-import { mockProducts } from '@/mocks/products'
-import { toFavoriteCardProps } from '@/services/productAdapters'
-import { Button } from '@/components/ui/Button'
+import TopBar from '@/widgets/header/ui/TopBar'
+import Header from '@/widgets/header/ui/Header'
+import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
+import Footer from '@/widgets/footer/ui/Footer'
+import ChatButton from '@/shared/ui/ChatButton'
+import FavoritesContent from './FavoritesContent'
+import { Suspense } from 'react'
 
-/* ── Mock data from central store ── */
-
-const favoriteProducts = mockProducts
-	.filter(p => p.category === 'Уличные светильники')
-	.slice(0, 3)
-
-const tabs: FavoritesTab[] = [
-	{ label: 'Все', count: favoriteProducts.length, value: 'all' },
-	{
-		label: 'Уличные светильники',
-		count: favoriteProducts.length,
-		value: 'outdoor',
-	},
-]
-
-const products = favoriteProducts.map(toFavoriteCardProps)
-
-/* ── Page ── */
+export const metadata = {
+	title: 'Избранное — Аура Света',
+}
 
 export default function FavoritesPage() {
 	return (
@@ -37,30 +18,9 @@ export default function FavoritesPage() {
 				<Header />
 				<CategoryNav />
 
-				{/* Heading */}
-				<div className='flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between md:py-6'>
-					<h1 className='text-lg font-bold uppercase tracking-wider text-foreground md:text-xl'>
-						Избранное
-					</h1>
-					<Button variant='ghost' className='uppercase tracking-wider'>
-						Удалить все
-					</Button>
-				</div>
-
-				{/* Category tabs */}
-				<FavoritesCategoryTabs tabs={tabs} defaultValue='all' />
-
-				{/* Items count */}
-				<p className='py-4 text-sm text-muted-foreground'>
-					{products.length} товара
-				</p>
-
-				{/* Product grid */}
-				<div className='grid grid-cols-1 gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3'>
-					{products.map(product => (
-						<FavoriteProductCard key={product.href} {...product} />
-					))}
-				</div>
+				<Suspense fallback={<div className='py-12 text-center text-sm text-muted-foreground'>Загрузка...</div>}>
+					<FavoritesContent />
+				</Suspense>
 			</main>
 
 			<Footer />

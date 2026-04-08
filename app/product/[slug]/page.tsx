@@ -1,38 +1,56 @@
-import TopBar from '@/components/layout/TopBar'
-import Header from '@/components/layout/Header'
-import CategoryNav from '@/components/layout/CategoryNav'
-import Footer from '@/components/layout/Footer'
-import ChatButton from '@/components/ui/ChatButton'
-import Breadcrumbs from '@/components/ui/Breadcrumbs'
-import ProductGallery from '@/components/product/ProductGallery'
-import ProductPriceBlock from '@/components/product/ProductPriceBlock'
-import QuickSpecs from '@/components/product/QuickSpecs'
-import DesignProjectBanner from '@/components/product/DesignProjectBanner'
-import InterestCounter from '@/components/product/InterestCounter'
-import DeliveryAdvantages from '@/components/product/DeliveryAdvantages'
-import ProductTabs from '@/components/product/ProductTabs'
-import ProductCarousel from '@/components/product/ProductCarousel'
-import StickyProductHeader from '@/components/product/StickyProductHeader'
-import TagsSection from '@/components/catalog/TagsSection'
-import { BarChart3 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import type { SpecGroup } from '@/components/product/ProductTabs'
-import type { SpecItem } from '@/components/product/QuickSpecs'
+import type { Metadata } from 'next'
+import TopBar from '@/widgets/header/ui/TopBar'
+import Header from '@/widgets/header/ui/Header'
+import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
+import Footer from '@/widgets/footer/ui/Footer'
+import ChatButton from '@/shared/ui/ChatButton'
+import Breadcrumbs from '@/shared/ui/Breadcrumbs'
+import ProductGallery from '@/features/product-details/ui/ProductGallery'
+import ProductPriceBlock from '@/features/product-details/ui/ProductPriceBlock'
+import QuickSpecs from '@/features/product-details/ui/QuickSpecs'
+import DesignProjectBanner from '@/features/product-details/ui/DesignProjectBanner'
+import InterestCounter from '@/features/product-details/ui/InterestCounter'
+import DeliveryAdvantages from '@/features/product-details/ui/DeliveryAdvantages'
+import ProductTabs from '@/features/product-details/ui/ProductTabs'
+import ProductCarousel from '@/widgets/product-carousel/ui/ProductCarousel'
+import StickyHeaderWithTrigger from '@/features/product-details/ui/StickyHeaderWithTrigger'
+import TrackRecentlyViewed from '@/features/product-details/ui/TrackRecentlyViewed'
+import {
+	CompareButton,
+	AddToCartButton,
+} from '@/features/product-details/ui/ProductActions'
 import {
 	getProductBySlug,
 	getAllProducts,
 	getQuickSpecs,
 	getProductSpecGroups,
-} from '@/services/productService'
-import { toCatalogCardProps } from '@/services/productAdapters'
+} from '@/entities/product/api/productService'
+import { toCatalogCardProps } from '@/entities/product/model/adapters'
 import { notFound } from 'next/navigation'
-import { mockCategoryProductTags, mockInterestTags } from '@/mocks/tags'
 
 /* ── Page ── */
 
-export async function generateStaticParams() {
-	const products = await getAllProducts()
-	return products.map(p => ({ slug: p.slug }))
+export const dynamic = 'force-dynamic'
+
+export async function generateMetadata({
+	params,
+}: {
+	params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+	const { slug } = await params
+	const product = await getProductBySlug(slug)
+	if (!product) return { title: 'Товар не найден' }
+
+	return {
+		title: `${product.name} — купить в Аура Света`,
+		description:
+			product.description || `${product.name} в интернет-магазине Аура Света`,
+		openGraph: {
+			title: product.name,
+			description: product.description,
+			images: product.images.length > 0 ? [product.images[0]] : undefined,
+		},
+	}
 }
 
 export default async function ProductPage({
@@ -46,8 +64,6 @@ export default async function ProductPage({
 
 	const quickSpecs = await getQuickSpecs(product.id)
 	const specGroups = await getProductSpecGroups(product.id)
-	const categoryTags = mockCategoryProductTags[product.category] ?? []
-	const interestTags = mockInterestTags
 
 	const allProducts = await getAllProducts()
 	const similarProducts = allProducts
@@ -60,12 +76,17 @@ export default async function ProductPage({
 		.slice(0, 5)
 		.map(toCatalogCardProps)
 
-	const productImages =
-		product.images.length > 0 ? product.images : ['/bulb.svg']
+	const allImages = [
+		...(product.imagePath ? [product.imagePath] : []),
+		...product.images,
+	]
+	const productImages = allImages.length > 0 ? allImages : ['/bulb.svg']
 	return (
 		<div className='flex min-h-screen flex-col bg-background'>
+			<TrackRecentlyViewed productId={String(product.id)} />
 			{/* Sticky header on scroll */}
-			<StickyProductHeader
+			<StickyHeaderWithTrigger
+				triggerId='product-tabs'
 				name={product.name}
 				image={productImages[0]}
 				price={product.price}
@@ -90,16 +111,14 @@ export default async function ProductPage({
 
 				{/* Product title + article */}
 				<div className='mb-6'>
-					<h1 className='text-xl font-bold text-foreground lg:text-2xl'>
+					<h1 className='text-xl font-semibold tracking-widest text-foreground lg:text-2xl'>
 						{product.name}
 					</h1>
 					<div className='mt-1 flex items-center gap-4'>
 						<span className='text-xs text-muted-foreground'>
 							Артикул: {product.slug}
 						</span>
-						<Button variant='link' size='inline-xs'>
-							<BarChart3 className='h-3.5 w-3.5' strokeWidth={1.5} />В сравнение
-						</Button>
+						<CompareButton productId={String(product.id)} />
 					</div>
 				</div>
 
@@ -108,6 +127,19 @@ export default async function ProductPage({
 					{/* Left: Gallery */}
 					<div className='lg:w-[55%]'>
 						<ProductGallery images={productImages} alt={product.name} />
+						{/* Interest counter */}
+						<InterestCounter views={24} />
+
+						{/* Delivery advantages */}
+						<DeliveryAdvantages />
+
+						{/* Tabs + Specs (two-column layout with sticky sidebar) */}
+						<div id='product-tabs' className='flex gap-4 py-6 md:gap-8 md:py-8'>
+							{/* Left: Tabs content */}
+							<div className='min-w-0 flex-1'>
+								<ProductTabs specGroups={specGroups} />
+							</div>
+						</div>
 					</div>
 
 					{/* Right: Price block + specs */}
@@ -125,32 +157,16 @@ export default async function ProductPage({
 											: 'В наличии'
 										: 'Наличие уточняйте у менеджера'
 								}
+								cartAction={
+									<AddToCartButton
+										productId={String(product.id)}
+										label={product.inStock ? 'В КОРЗИНУ' : 'УТОЧНИТЬ НАЛИЧИЕ'}
+									/>
+								}
 							/>
 
 							<QuickSpecs specs={quickSpecs} />
 
-							<DesignProjectBanner />
-						</div>
-					</div>
-				</div>
-
-				{/* Interest counter */}
-				<InterestCounter views={24} />
-
-				{/* Delivery advantages */}
-				<DeliveryAdvantages />
-
-				{/* Tabs + Specs (two-column layout with sticky sidebar) */}
-				<div className='flex gap-4 py-6 md:gap-8 md:py-8'>
-					{/* Left: Tabs content */}
-					<div className='min-w-0 flex-1'>
-						<ProductTabs specGroups={specGroups} />
-					</div>
-
-					{/* Right: Sticky specs summary (desktop only) */}
-					<div className='hidden w-80 shrink-0 lg:block'>
-						<div className='sticky top-4 space-y-4'>
-							<QuickSpecs specs={quickSpecs} />
 							<DesignProjectBanner />
 						</div>
 					</div>
@@ -164,19 +180,6 @@ export default async function ProductPage({
 					title='Товары из этой коллекции'
 					products={collectionProducts}
 				/>
-
-				{/* Popular in category tags */}
-				<div className='py-8'>
-					<TagsSection
-						title='Популярные в категории «Споты»'
-						tags={categoryTags}
-					/>
-				</div>
-
-				{/* You may be interested tags */}
-				<div className='pb-8'>
-					<TagsSection title='Вам может быть интересно' tags={interestTags} />
-				</div>
 			</main>
 
 			<Footer />

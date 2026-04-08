@@ -11,12 +11,12 @@
 	--font-sans: 'Chiron GoRound TC WS', sans-serif;
 	--font-mono: 'Chiron GoRound TC WS', monospace;
 	--font-serif: 'Chiron GoRound TC WS', sans-serif;
-	--radius: 0.25rem;
-	--tracking-tighter: calc(var(--tracking-normal) - 0.05em);
-	--tracking-tight: calc(var(--tracking-normal) - 0.025em);
-	--tracking-wide: calc(var(--tracking-normal) + 0.025em);
-	--tracking-wider: calc(var(--tracking-normal) + 0.05em);
-	--tracking-widest: calc(var(--tracking-normal) + 0.1em);
+	--radius: 1.25rem;
+	--tracking-tighter: calc(var(--tracking-normal) - 0.0625em);
+	--tracking-tight: calc(var(--tracking-normal) - 0.03125em);
+	--tracking-wide: calc(var(--tracking-normal) + 0.03125em);
+	--tracking-wider: calc(var(--tracking-normal) + 0.0625em);
+	--tracking-widest: calc(var(--tracking-normal) + 0.125em);
 	--font-heading: var(--font-sans);
 	--tracking-normal: var(--tracking-normal);
 	--shadow-2xl: var(--shadow-2xl);
@@ -65,13 +65,34 @@
 	--color-popover: var(--popover);
 	--color-card-foreground: var(--card-foreground);
 	--color-card: var(--card);
-	--radius-sm: calc(var(--radius) * 0.6);
-	--radius-md: calc(var(--radius) * 0.8);
+	--radius-xs: 0.25rem;
+	--radius-sm: 0.5rem;
+	--radius-md: 0.75rem;
 	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) * 1.4);
-	--radius-2xl: calc(var(--radius) * 1.8);
-	--radius-3xl: calc(var(--radius) * 2.2);
-	--radius-4xl: calc(var(--radius) * 2.6);
+	--radius-xl: var(--radius);
+	--radius-2xl: var(--radius);
+	--radius-3xl: var(--radius);
+	--radius-4xl: var(--radius);
+
+	/* Font-size scale (−2px from defaults) */
+	--text-xs: 0.6875rem;
+	--text-xs--line-height: 1rem;
+	--text-sm: 0.75rem;
+	--text-sm--line-height: 1.125rem;
+	--text-base: 0.875rem;
+	--text-base--line-height: 1.375rem;
+	--text-lg: 1rem;
+	--text-lg--line-height: 1.5rem;
+	--text-xl: 1.125rem;
+	--text-xl--line-height: 1.625rem;
+	--text-2xl: 1.25rem;
+	--text-2xl--line-height: 1.75rem;
+	--text-3xl: 1.5rem;
+	--text-3xl--line-height: 2rem;
+	--text-4xl: 1.75rem;
+	--text-4xl--line-height: 2.25rem;
+	--text-5xl: 2.25rem;
+	--text-5xl--line-height: 2.5rem;
 }
 
 :root {
@@ -99,7 +120,7 @@
 	--chart-3: oklch(0.4983 0.0757 70.8312);
 	--chart-4: oklch(0.6898 0.0865 64.3894);
 	--chart-5: oklch(0.7369 0.0805 66.0333);
-	--radius: 0.25rem;
+	--radius: 1.25rem;
 	--sidebar: oklch(0.928 0.0263 82.3839);
 	--sidebar-foreground: oklch(0.3795 0.0309 64.7091);
 	--sidebar-primary: oklch(0.6351 0.1052 63.859);
@@ -216,4 +237,9 @@
 	html {
 		@apply font-sans;
 	}
+}
+
+/* Admin form inputs */
+.input-field {
+	@apply flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary;
 }
