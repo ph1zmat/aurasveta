@@ -5,6 +5,7 @@ import { trpc } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 import FileUploader from '@/shared/ui/FileUploader'
 import { Pencil, Trash2, Plus, ChevronRight } from 'lucide-react'
+import { generateSlug } from '@/shared/lib/generateSlug'
 
 /** Flexible recursive node used by CategoryNode (deep children may lack _count/children). */
 interface CategoryNodeData {
@@ -72,7 +73,7 @@ export default function AdminCategoriesPage() {
 		e.preventDefault()
 		const data = {
 			name: form.name,
-			slug: form.slug,
+			slug: form.slug || undefined,
 			description: form.description || undefined,
 			parentId: form.parentId || undefined,
 		}
@@ -104,7 +105,14 @@ export default function AdminCategoriesPage() {
 							placeholder='Название'
 							required
 							value={form.name}
-							onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+							onChange={e => {
+								const name = e.target.value
+								setForm(f => ({
+									...f,
+									name,
+									slug: editCat ? f.slug : generateSlug(name),
+								}))
+							}}
 							className='input-field'
 						/>
 						<input

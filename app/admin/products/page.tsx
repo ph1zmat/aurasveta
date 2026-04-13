@@ -256,8 +256,8 @@ function ProductForm({
 	}
 
 	return (
-		<div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-			<div className='max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-background p-6 shadow-xl'>
+		<div className='fixed left-0 top-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
+			<div className='max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-background/100 p-6 shadow-2xl'>
 				<h2 className='mb-6 text-lg font-semibold text-foreground'>
 					{editId ? 'Редактировать товар' : 'Новый товар'}
 				</h2>

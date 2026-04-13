@@ -43,8 +43,8 @@ export default async function ContentPage({
 	if (!page) notFound()
 
 	return (
-		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
+		<div className='flex flex-col bg-background'>
+			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />

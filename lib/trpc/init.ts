@@ -4,8 +4,31 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/auth'
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+	// Desktop app (Electron) can't reliably set/read cookies in fetch.
+	// Support passing the better-auth session token via Authorization/X-Session-Token,
+	// and translate it to a Cookie header for better-auth.
+	const effectiveHeaders = new Headers(opts.headers)
+	const tokenFromAuth =
+		effectiveHeaders
+			.get('authorization')
+			?.match(/^Bearer\s+(.+)$/i)?.[1]
+			?.trim() ??
+		effectiveHeaders.get('x-session-token')?.trim() ??
+		null
+
+	if (tokenFromAuth) {
+		const existingCookie = effectiveHeaders.get('cookie') ?? ''
+		if (!/better-auth\.session_token=/.test(existingCookie)) {
+			const cookieToAdd = `better-auth.session_token=${tokenFromAuth}`
+			effectiveHeaders.set(
+				'cookie',
+				existingCookie ? `${existingCookie}; ${cookieToAdd}` : cookieToAdd,
+			)
+		}
+	}
+
 	const session = await auth.api.getSession({
-		headers: opts.headers,
+		headers: effectiveHeaders,
 	})
 
 	return {

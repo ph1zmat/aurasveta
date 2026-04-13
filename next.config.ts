@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
 		contentDispositionType: 'inline',
 		contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
 	},
+	compiler: {
+		removeConsole: { exclude: ['error', 'warn'] },
+	},
 }
 
 export default nextConfig

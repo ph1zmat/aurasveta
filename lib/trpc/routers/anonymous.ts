@@ -1,5 +1,7 @@
 import { z } from 'zod'
+import crypto from 'crypto'
 import type { Prisma } from '@prisma/client'
+import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, baseProcedure, protectedProcedure } from '../init'
 
 interface CartItem {
@@ -7,10 +9,38 @@ interface CartItem {
 	quantity: number
 }
 
+function verifySessionId(sessionId: string, signature: string): boolean {
+	const secret = process.env.BETTER_AUTH_SECRET || 'fallback-secret'
+	const expected = crypto
+		.createHmac('sha256', secret)
+		.update(sessionId)
+		.digest('hex')
+	return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+}
+
+const signedSessionInput = z.object({
+	sessionId: z.string(),
+	signature: z.string(),
+})
+
+function validateSession(input: {
+	sessionId: string
+	signature: string
+}): string {
+	if (!verifySessionId(input.sessionId, input.signature)) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: 'Invalid session signature',
+		})
+	}
+	return input.sessionId
+}
+
 export const anonymousRouter = createTRPCRouter({
 	init: baseProcedure
-		.input(z.string())
-		.mutation(async ({ ctx, input: sessionId }) => {
+		.input(signedSessionInput)
+		.mutation(async ({ ctx, input }) => {
+			const sessionId = validateSession(input)
 			const existing = await ctx.prisma.anonymousSession.findUnique({
 				where: { sessionId },
 			})
@@ -21,24 +51,29 @@ export const anonymousRouter = createTRPCRouter({
 			})
 		}),
 
-	getSession: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.anonymousSession.findUnique({
-			where: { sessionId: input },
-		})
-	}),
+	getSession: baseProcedure
+		.input(signedSessionInput)
+		.query(async ({ ctx, input }) => {
+			const sessionId = validateSession(input)
+			return ctx.prisma.anonymousSession.findUnique({
+				where: { sessionId },
+			})
+		}),
 
 	updateCart: baseProcedure
 		.input(
 			z.object({
 				sessionId: z.string(),
+				signature: z.string(),
 				cart: z.array(
 					z.object({ productId: z.string(), quantity: z.number() }),
 				),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const sessionId = validateSession(input)
 			return ctx.prisma.anonymousSession.update({
-				where: { sessionId: input.sessionId },
+				where: { sessionId },
 				data: { cart: input.cart },
 			})
 		}),
@@ -47,12 +82,14 @@ export const anonymousRouter = createTRPCRouter({
 		.input(
 			z.object({
 				sessionId: z.string(),
+				signature: z.string(),
 				favorites: z.array(z.string()),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const sessionId = validateSession(input)
 			return ctx.prisma.anonymousSession.update({
-				where: { sessionId: input.sessionId },
+				where: { sessionId },
 				data: { favorites: input.favorites },
 			})
 		}),

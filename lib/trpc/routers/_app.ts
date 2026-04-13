@@ -11,6 +11,10 @@ import { adminRouter } from './admin'
 import { profileRouter } from './profile'
 import { anonymousRouter } from './anonymous'
 import { webhooksRouter } from './webhooks'
+import { searchRouter } from './search'
+import { recommendationsRouter } from './recommendations'
+import { seoRouter } from './seo'
+import { pushRouter } from './push'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -25,6 +29,10 @@ export const appRouter = createTRPCRouter({
 	profile: profileRouter,
 	anonymous: anonymousRouter,
 	webhooks: webhooksRouter,
+	search: searchRouter,
+	recommendations: recommendationsRouter,
+	seo: seoRouter,
+	push: pushRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -1,7 +1,10 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/shared/ui/Button'
+import { trpc } from '@/lib/trpc/client'
 
-const queries = [
+const fallbackQueries = [
 	'люстра для кухни',
 	'уличные светодиодные светильники',
 	'люстра для детской',
@@ -15,6 +18,16 @@ const queries = [
 ]
 
 export default function PopularQueries() {
+	const { data: popularSearches } = trpc.recommendations.getPopularSearches.useQuery(
+		{ limit: 10 },
+		{ staleTime: 10 * 60 * 1000 },
+	)
+
+	const queries =
+		popularSearches && popularSearches.length > 0
+			? popularSearches.map(s => s.query)
+			: fallbackQueries
+
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<h2 className='mb-3 text-base font-semibold uppercase tracking-widest text-foreground md:mb-4 md:text-lg'>

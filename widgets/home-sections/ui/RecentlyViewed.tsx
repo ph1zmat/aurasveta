@@ -1,16 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import ProductCard from '@/entities/product/ui/ProductCard'
 import { trpc } from '@/lib/trpc/client'
 import { getRecentlyViewedIds } from '@/shared/lib/recentlyViewed'
 
-export default function RecentlyViewed() {
-	const [ids, setIds] = useState<string[]>([])
+const emptyIds: string[] = []
+let cachedSnapshot: string[] | null = null
 
-	useEffect(() => {
-		setIds(getRecentlyViewedIds())
-	}, [])
+function subscribe(callback: () => void) {
+	window.addEventListener('storage', callback)
+	return () => window.removeEventListener('storage', callback)
+}
+
+function getSnapshot() {
+	const next = getRecentlyViewedIds()
+	// useSyncExternalStore requires stable snapshots to avoid infinite loops.
+	if (
+		cachedSnapshot &&
+		cachedSnapshot.length === next.length &&
+		cachedSnapshot.every((v, i) => v === next[i])
+	) {
+		return cachedSnapshot
+	}
+	cachedSnapshot = next
+	return next
+}
+
+function getServerSnapshot() {
+	return emptyIds
+}
+
+export default function RecentlyViewed() {
+	const ids = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
 	const { data: products } = trpc.products.getByIds.useQuery(ids, {
 		enabled: ids.length > 0,
@@ -21,7 +43,10 @@ export default function RecentlyViewed() {
 	const cards = products.slice(0, 4).map(p => ({
 		name: p.name,
 		href: `/product/${p.slug}`,
-		image: (p as { imagePath?: string | null }).imagePath ?? (Array.isArray(p.images) ? p.images[0] : undefined) as string ?? '/bulb.svg',
+		image:
+			(p as { imagePath?: string | null }).imagePath ??
+			((Array.isArray(p.images) ? p.images[0] : undefined) as string) ??
+			'/bulb.svg',
 		price: p.price ? Number(p.price) : 0,
 		oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
 	}))
