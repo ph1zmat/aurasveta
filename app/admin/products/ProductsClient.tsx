@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
@@ -185,6 +185,7 @@ function ProductFormModal({
 
 	return (
 		<ProductForm
+			key={editId ?? 'new'}
 			editId={editId}
 			product={product ?? null}
 			onClose={onClose}
@@ -244,12 +245,6 @@ function ProductForm({
 		isActive: product?.isActive ?? true,
 	})
 	const [slugTouched, setSlugTouched] = useState(!!product?.slug)
-
-	useEffect(() => {
-		// When editing another product, reset slugTouched correctly
-		setSlugTouched(!!product?.slug)
-		setPendingImage(null)
-	}, [product?.slug])
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()

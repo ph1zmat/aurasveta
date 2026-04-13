@@ -43,24 +43,20 @@ export default function SearchBar() {
 		[popularSearches],
 	)
 
-	const [recentQueries, setRecentQueries] = useState<string[]>([])
-	useEffect(() => {
-		if (!isOpen) return
+	const [recentQueries, setRecentQueries] = useState<string[]>(() => {
+		if (typeof window === 'undefined') return []
 		try {
 			const raw = localStorage.getItem(RECENT_KEY)
 			const parsed = raw ? (JSON.parse(raw) as unknown) : []
-			if (Array.isArray(parsed)) {
-				setRecentQueries(
-					parsed
-						.map(v => String(v))
-						.filter(Boolean)
-						.slice(0, 6),
-				)
-			}
+			if (!Array.isArray(parsed)) return []
+			return parsed
+				.map(v => String(v))
+				.filter(Boolean)
+				.slice(0, 6)
 		} catch {
-			setRecentQueries([])
+			return []
 		}
-	}, [isOpen])
+	})
 
 	const clearRecentQueries = useCallback(() => {
 		try {

@@ -11,7 +11,14 @@ const eslintConfig = defineConfig([
 		'.next/**',
 		'out/**',
 		'build/**',
+		'**/node_modules/**',
 		'next-env.d.ts',
+		// Desktop build artifacts (can be huge and not source-controlled)
+		'desktop/**',
+		'**/desktop/**',
+		// Mobile is a separate app with its own linting needs
+		'mobile/**',
+		'**/mobile/**',
 	]),
 	// Ban mock imports in production code
 	{

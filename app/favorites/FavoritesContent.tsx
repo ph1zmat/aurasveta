@@ -6,7 +6,6 @@ import { useCompare } from '@/features/compare/useCompare'
 import { useCart } from '@/features/cart/useCart'
 import FavoriteProductCard from '@/features/favorites/ui/FavoriteProductCard'
 import { Button } from '@/shared/ui/Button'
-import Link from 'next/link'
 import EmptyState from '@/shared/ui/EmptyState'
 
 export default function FavoritesContent() {
