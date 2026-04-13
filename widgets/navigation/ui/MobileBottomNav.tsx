@@ -59,6 +59,7 @@ export default function MobileBottomNav() {
 										router.push('/')
 									}}
 									className='flex w-full flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors'
+									aria-label='Выйти'
 								>
 									<tab.icon className='h-5 w-5' strokeWidth={1.5} />
 									<span>{tab.label}</span>
@@ -74,7 +75,7 @@ export default function MobileBottomNav() {
 								className={cn(
 									'flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors',
 									isActive
-										? 'text-destructive font-medium'
+										? 'text-primary font-medium'
 										: 'text-muted-foreground',
 								)}
 							>
