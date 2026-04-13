@@ -4,6 +4,7 @@ import MobileHeader from '@/widgets/header/ui/MobileHeader'
 import MobileBottomNav from '@/widgets/navigation/ui/MobileBottomNav'
 import { TRPCProvider } from '@/lib/trpc/client'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
+import Toaster from '@/shared/ui/Toaster'
 
 export const metadata: Metadata = {
 	title: 'Интернет-магазин люстр и светильников в Мозыре - Аура света',
@@ -40,6 +41,7 @@ export default async function RootLayout({
 			<body className='font-sans antialiased'>
 				<TRPCProvider>
 					<HydrateClient>
+						<Toaster />
 						<MobileHeader />
 						{children}
 						<MobileBottomNav />
