@@ -3,25 +3,31 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import {
 	Menu,
-	Search,
 	BarChart3,
 	Heart,
 	User,
 	ShoppingCart,
+	LogOut,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/shared/ui/Button'
-import { Input } from '@/shared/ui/Input'
+import SearchBar from '@/widgets/header/ui/SearchBar'
 import CatalogDropdown from '@/widgets/header/ui/CatalogDropdown'
 import MiniCart from '@/widgets/header/ui/MiniCart'
 import CountBadge from '@/shared/ui/CountBadge'
 import { trpc } from '@/lib/trpc/client'
+import { authClient } from '@/lib/auth/auth-client'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 import type { CartItemData } from '@/shared/types/cart'
 
 export default function Header() {
+	const pathname = usePathname()
+	const router = useRouter()
+	const { data: session } = authClient.useSession()
+
 	const [catalogOpen, setCatalogOpen] = useState(false)
 	const toggleCatalog = useCallback(() => setCatalogOpen(prev => !prev), [])
 	const closeCatalog = useCallback(() => setCatalogOpen(false), [])
@@ -56,16 +62,35 @@ export default function Header() {
 			label: 'Сравнение',
 			href: '/compare',
 			badge: compareCount,
+			hidden: pathname === '/compare',
 		},
 		{
 			icon: Heart,
 			label: 'Избранное',
 			href: '/favorites',
 			badge: favoritesCount,
+			hidden: pathname === '/favorites',
 		},
-		{ icon: User, label: 'Войти', href: '/login', badge: 0 },
-		{ icon: ShoppingCart, label: 'Корзина', href: '/cart', badge: cartCount },
+		{
+			icon: User,
+			label: session ? 'Профиль' : 'Войти',
+			href: session ? '/admin' : '/login',
+			badge: 0,
+			hidden: false,
+		},
+		{
+			icon: ShoppingCart,
+			label: 'Корзина',
+			href: '/cart',
+			badge: cartCount,
+			hidden: pathname === '/cart',
+		},
 	]
+
+	const handleSignOut = useCallback(async () => {
+		await authClient.signOut()
+		router.push('/')
+	}, [router])
 
 	const openCart = useCallback(() => {
 		if (cartTimeout.current) clearTimeout(cartTimeout.current)
@@ -103,48 +128,59 @@ export default function Header() {
 				</Button>
 
 				{/* Search */}
-				<div className='relative flex-1 max-w-xl '>
-					<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-					<Input variant='search' placeholder='Найти' />
-				</div>
+				<SearchBar />
 
 				{/* Actions */}
 				<div className='flex items-center gap-4 lg:gap-6'>
-					{headerActions.map(action => {
-						const isCart = action.href === '/cart'
+					{headerActions
+						.filter(action => !action.hidden)
+						.map(action => {
+							const isCart = action.href === '/cart'
 
-						const linkEl = (
-							<Link
-								key={action.href}
-								href={action.href}
-								className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
-							>
-								<div className='relative'>
-									<action.icon className='h-6 w-6' />
-									<CountBadge count={action.badge} />
-								</div>
-								<span className='hidden lg:block text-xs'>{action.label}</span>
-							</Link>
-						)
-
-						if (!isCart) return linkEl
-
-						return (
-							<div
-								key={action.href}
-								className='relative'
-								onMouseEnter={openCart}
-								onMouseLeave={closeCartDelayed}
-							>
-								{linkEl}
-								{cartOpen && (
-									<div className='absolute -right-4 top-full z-50 mt-2  rounded-md border border-border bg-card shadow-lg w-120'>
-										<MiniCart items={cartItems} />
+							const linkEl = (
+								<Link
+									key={action.href}
+									href={action.href}
+									className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+								>
+									<div className='relative'>
+										<action.icon className='h-6 w-6' />
+										<CountBadge count={action.badge} />
 									</div>
-								)}
-							</div>
-						)
-					})}
+									<span className='hidden lg:block text-xs'>
+										{action.label}
+									</span>
+								</Link>
+							)
+
+							if (!isCart) return linkEl
+
+							return (
+								<div
+									key={action.href}
+									className='relative'
+									onMouseEnter={openCart}
+									onMouseLeave={closeCartDelayed}
+								>
+									{linkEl}
+									{cartOpen && (
+										<div className='absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border border-border bg-background shadow-xl'>
+											<MiniCart items={cartItems} />
+										</div>
+									)}
+								</div>
+							)
+						})}
+
+					{session && (
+						<button
+							onClick={handleSignOut}
+							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+						>
+							<LogOut className='h-6 w-6' />
+							<span className='hidden lg:block text-xs'>Выйти</span>
+						</button>
+					)}
 				</div>
 			</div>
 

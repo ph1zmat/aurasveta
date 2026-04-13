@@ -15,18 +15,23 @@ import ProductTabs from '@/features/product-details/ui/ProductTabs'
 import ProductCarousel from '@/widgets/product-carousel/ui/ProductCarousel'
 import StickyHeaderWithTrigger from '@/features/product-details/ui/StickyHeaderWithTrigger'
 import TrackRecentlyViewed from '@/features/product-details/ui/TrackRecentlyViewed'
+import ProductStructuredData from '@/shared/ui/ProductStructuredData'
 import {
 	CompareButton,
 	AddToCartButton,
 } from '@/features/product-details/ui/ProductActions'
 import {
 	getProductBySlug,
-	getAllProducts,
 	getQuickSpecs,
 	getProductSpecGroups,
 } from '@/entities/product/api/productService'
-import { toCatalogCardProps } from '@/entities/product/model/adapters'
+import {
+	toCatalogCardProps,
+	toFrontendProduct,
+} from '@/entities/product/model/adapters'
 import { notFound } from 'next/navigation'
+import { trpc } from '@/lib/trpc/server'
+import { getMetadataForProduct, seoToMetadata } from '@/lib/seo/getMetadata'
 
 /* ── Page ── */
 
@@ -41,16 +46,16 @@ export async function generateMetadata({
 	const product = await getProductBySlug(slug)
 	if (!product) return { title: 'Товар не найден' }
 
-	return {
-		title: `${product.name} — купить в Аура Света`,
-		description:
-			product.description || `${product.name} в интернет-магазине Аура Света`,
-		openGraph: {
-			title: product.name,
-			description: product.description,
-			images: product.images.length > 0 ? [product.images[0]] : undefined,
-		},
-	}
+	const seo = await getMetadataForProduct({
+		id: String(product.id),
+		name: product.name,
+		description: product.description,
+		price: product.price,
+		images: product.images,
+		imagePath: product.imagePath,
+		brand: product.brand,
+	})
+	return seoToMetadata(seo)
 }
 
 export default async function ProductPage({
@@ -65,16 +70,20 @@ export default async function ProductPage({
 	const quickSpecs = await getQuickSpecs(product.id)
 	const specGroups = await getProductSpecGroups(product.id)
 
-	const allProducts = await getAllProducts()
-	const similarProducts = allProducts
-		.filter(p => p.category === product.category && p.id !== product.id)
-		.slice(0, 5)
-		.map(toCatalogCardProps)
+	const productId = String(product.id)
 
-	const collectionProducts = allProducts
-		.filter(p => p.brand === product.brand && p.id !== product.id)
-		.slice(0, 5)
-		.map(toCatalogCardProps)
+	// Fetch recommendation data in parallel via tRPC server caller
+	const [similarRaw, brandRaw] = await Promise.all([
+		trpc.recommendations.getSimilarProducts({ productId, limit: 5 }),
+		trpc.recommendations.getProductsFromBrand({ productId, limit: 5 }),
+	])
+
+	const similarProducts = similarRaw.map(p =>
+		toCatalogCardProps(toFrontendProduct(p)),
+	)
+	const collectionProducts = brandRaw.map(p =>
+		toCatalogCardProps(toFrontendProduct(p)),
+	)
 
 	const allImages = [
 		...(product.imagePath ? [product.imagePath] : []),
@@ -82,8 +91,20 @@ export default async function ProductPage({
 	]
 	const productImages = allImages.length > 0 ? allImages : ['/bulb.svg']
 	return (
-		<div className='flex min-h-screen flex-col bg-background'>
+		<div className='flex flex-col bg-background'>
 			<TrackRecentlyViewed productId={String(product.id)} />
+			<ProductStructuredData
+				name={product.name}
+				description={product.description}
+				price={product.price}
+				images={allImages}
+				sku={product.slug}
+				brand={product.brand}
+				inStock={product.inStock}
+				rating={product.rating}
+				reviewsCount={product.reviewsCount}
+				url={`https://aurasveta.by/product/${product.slug}`}
+			/>
 			{/* Sticky header on scroll */}
 			<StickyHeaderWithTrigger
 				triggerId='product-tabs'
@@ -94,7 +115,7 @@ export default async function ProductPage({
 				bonusAmount={product.bonusAmount}
 			/>
 
-			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
+			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />

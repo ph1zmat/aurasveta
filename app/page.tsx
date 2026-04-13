@@ -12,6 +12,7 @@ import BrandsCarousel from '@/widgets/home-sections/ui/BrandsCarousel'
 import Advantages from '@/widgets/home-sections/ui/Advantages'
 import AboutSection from '@/widgets/home-sections/ui/AboutSection'
 import RecentlyViewed from '@/widgets/home-sections/ui/RecentlyViewed'
+import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
 import ChatButton from '@/shared/ui/ChatButton'
 import { prisma } from '@/lib/prisma'
 
@@ -30,8 +31,8 @@ export default async function Home() {
 		}))
 
 	return (
-		<div className='flex min-h-screen flex-col bg-background'>
-			<main className='flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
+		<div className='flex flex-col bg-background'>
+			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
 				<Header />
 				<CategoryNav />
@@ -41,6 +42,7 @@ export default async function Home() {
 				<SaleProducts />
 				<RoomCategories />
 				<NewProducts />
+				<PopularProducts />
 				<BrandsCarousel brands={brands} />
 				<Advantages />
 				<AboutSection />

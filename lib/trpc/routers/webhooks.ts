@@ -1,5 +1,17 @@
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, adminProcedure } from '../init'
+import { validateWebhookUrl } from '@/shared/lib/validateUrl'
+
+function assertSafeUrl(url: string) {
+	const result = validateWebhookUrl(url)
+	if (!result.valid) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: result.reason ?? 'Невалидный URL',
+		})
+	}
+}
 
 export const webhooksRouter = createTRPCRouter({
 	getAll: adminProcedure.query(async ({ ctx }) => {
@@ -16,6 +28,7 @@ export const webhooksRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			assertSafeUrl(input.url)
 			return ctx.prisma.webhook.create({ data: input })
 		}),
 
@@ -28,6 +41,7 @@ export const webhooksRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (input.url) assertSafeUrl(input.url)
 			const { id, ...data } = input
 			return ctx.prisma.webhook.update({ where: { id }, data })
 		}),
@@ -41,6 +55,8 @@ export const webhooksRouter = createTRPCRouter({
 			where: { id: input },
 		})
 		if (!webhook) return { success: false, error: 'Webhook not found' }
+
+		assertSafeUrl(webhook.url)
 
 		try {
 			const res = await fetch(webhook.url, {

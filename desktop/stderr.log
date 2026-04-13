@@ -1,0 +1,2 @@
+[10900:0410/183206.311:WARNING:electron\shell\common\api\electron_api_native_image.cc:201] Failed to load image from path 'C:\webcum\aurasveta\desktop\release\win-unpacked\resources\app.asar\public\icon.png'
+[10900:0410/183206.679:INFO:CONSOLE:196] "Uncaught ReferenceError: require is not defined", source: file:///C:/webcum/aurasveta/desktop/release/win-unpacked/resources/app.asar/dist/assets/index-BFU67kca.js (196)

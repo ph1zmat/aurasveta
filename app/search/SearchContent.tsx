@@ -1,0 +1,243 @@
+'use client'
+
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Loader2, SlidersHorizontal } from 'lucide-react'
+import { trpc } from '@/lib/trpc/client'
+import { useDebounce } from '@/shared/lib/useDebounce'
+import { getTrackingSessionId } from '@/shared/lib/trackingSession'
+import {
+	toFrontendProduct,
+	toCatalogCardProps,
+} from '@/entities/product/model/adapters'
+import type { DbProduct } from '@/entities/product/model/adapters'
+import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
+
+type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+	{ value: 'relevance', label: 'По релевантности' },
+	{ value: 'price_asc', label: 'Цена ↑' },
+	{ value: 'price_desc', label: 'Цена ↓' },
+	{ value: 'newest', label: 'Сначала новые' },
+]
+
+export default function SearchContent() {
+	const searchParams = useSearchParams()
+	const router = useRouter()
+	const initialQuery = searchParams.get('q') ?? ''
+
+	const [searchTerm] = useState(initialQuery)
+	const [sortBy, setSortBy] = useState<SortOption>('relevance')
+	const [inStock, setInStock] = useState(false)
+	const debouncedSearch = useDebounce(searchTerm, 400)
+
+	const observerRef = useRef<HTMLDivElement>(null)
+
+	// Sync URL when search changes
+	useEffect(() => {
+		if (debouncedSearch && debouncedSearch !== searchParams.get('q')) {
+			router.replace(`/search?q=${encodeURIComponent(debouncedSearch)}`, {
+				scroll: false,
+			})
+		}
+	}, [debouncedSearch, router, searchParams])
+
+	// Log search query for "Popular searches" feature
+	const logSearch = trpc.recommendations.logSearchQuery.useMutation()
+	useEffect(() => {
+		if (debouncedSearch.length >= 2) {
+			const sessionId = getTrackingSessionId()
+			if (sessionId) {
+				logSearch.mutate({ query: debouncedSearch, sessionId })
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debouncedSearch])
+
+	const {
+		data,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+		isLoading,
+		isError,
+	} = trpc.search.search.useInfiniteQuery(
+		{
+			query: debouncedSearch,
+			limit: 12,
+			sortBy,
+			filters: inStock ? { inStock: true } : undefined,
+		},
+		{
+			enabled: debouncedSearch.length >= 2,
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 1000 * 60 * 2,
+		},
+	)
+
+	// Infinite scroll via IntersectionObserver
+	useEffect(() => {
+		const el = observerRef.current
+		if (!el) return
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+					void fetchNextPage()
+				}
+			},
+			{ threshold: 0.1 },
+		)
+		observer.observe(el)
+		return () => observer.disconnect()
+	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+	const allItems =
+		data?.pages.flatMap((page) =>
+			page.items.map((item) => {
+				const dbProduct: DbProduct = {
+					id: item.id,
+					slug: item.slug,
+					name: item.name,
+					description: item.description,
+					price: item.price,
+					compareAtPrice: item.compareAtPrice,
+					stock: item.stock,
+					images: item.images,
+					imagePath: item.imagePath,
+					brand: item.brand,
+					brandCountry: item.brandCountry,
+					rating: item.rating,
+					reviewsCount: item.reviewsCount,
+					badges: item.badges,
+					createdAt: item.createdAt,
+					category: item.category,
+				}
+				return toCatalogCardProps(toFrontendProduct(dbProduct))
+			}),
+		) ?? []
+
+	const total = data?.pages[0]?.total ?? 0
+
+	const handleSortChange = useCallback(
+		(e: React.ChangeEvent<HTMLSelectElement>) => {
+			setSortBy(e.target.value as SortOption)
+		},
+		[],
+	)
+
+	return (
+		<div className='mx-auto max-w-7xl px-4 py-6'>
+			{/* Header */}
+			<div className='mb-6'>
+				<h1 className='text-2xl font-semibold text-foreground'>
+					{debouncedSearch.length >= 2
+						? `Результаты поиска: «${debouncedSearch}»`
+						: 'Поиск товаров'}
+				</h1>
+				{debouncedSearch.length >= 2 && !isLoading && (
+					<p className='mt-1 text-sm text-muted-foreground'>
+						{total > 0
+							? `Найдено ${total} ${pluralize(total, 'товар', 'товара', 'товаров')}`
+							: 'Ничего не найдено'}
+					</p>
+				)}
+			</div>
+
+			{/* Filters bar */}
+			{debouncedSearch.length >= 2 && (
+				<div className='mb-6 flex flex-wrap items-center gap-4'>
+					<div className='flex items-center gap-2'>
+						<SlidersHorizontal className='h-4 w-4 text-muted-foreground' />
+						<select
+							value={sortBy}
+							onChange={handleSortChange}
+							className='rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground'
+						>
+							{SORT_OPTIONS.map((opt) => (
+								<option key={opt.value} value={opt.value}>
+									{opt.label}
+								</option>
+							))}
+						</select>
+					</div>
+
+					<label className='flex items-center gap-2 text-sm text-foreground cursor-pointer'>
+						<input
+							type='checkbox'
+							checked={inStock}
+							onChange={(e) => setInStock(e.target.checked)}
+							className='rounded border-border'
+						/>
+						Только в наличии
+					</label>
+				</div>
+			)}
+
+			{/* Loading state */}
+			{isLoading && debouncedSearch.length >= 2 && (
+				<div className='flex items-center justify-center gap-2 py-20 text-muted-foreground'>
+					<Loader2 className='h-5 w-5 animate-spin' />
+					<span>Поиск товаров...</span>
+				</div>
+			)}
+
+			{/* Error state */}
+			{isError && (
+				<div className='py-20 text-center text-sm text-destructive'>
+					Произошла ошибка при поиске. Попробуйте изменить запрос.
+				</div>
+			)}
+
+			{/* Empty state */}
+			{!isLoading &&
+				!isError &&
+				debouncedSearch.length >= 2 &&
+				allItems.length === 0 && (
+					<div className='py-20 text-center'>
+						<p className='text-lg font-medium text-foreground'>
+							Ничего не найдено
+						</p>
+						<p className='mt-2 text-sm text-muted-foreground'>
+							Попробуйте изменить запрос или проверьте правильность написания
+						</p>
+					</div>
+				)}
+
+			{/* Empty query state */}
+			{debouncedSearch.length < 2 && (
+				<div className='py-20 text-center text-sm text-muted-foreground'>
+					Введите запрос для поиска (минимум 2 символа)
+				</div>
+			)}
+
+			{/* Results grid */}
+			{allItems.length > 0 && (
+				<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
+					{allItems.map((card) => (
+						<InteractiveCatalogCard key={card.productId} {...card} />
+					))}
+				</div>
+			)}
+
+			{/* Infinite scroll sentinel */}
+			<div ref={observerRef} className='h-10' />
+
+			{isFetchingNextPage && (
+				<div className='flex items-center justify-center gap-2 py-6 text-muted-foreground'>
+					<Loader2 className='h-4 w-4 animate-spin' />
+					<span className='text-sm'>Загрузка...</span>
+				</div>
+			)}
+		</div>
+	)
+}
+
+function pluralize(n: number, one: string, few: string, many: string): string {
+	const mod10 = n % 10
+	const mod100 = n % 100
+	if (mod10 === 1 && mod100 !== 11) return one
+	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few
+	return many
+}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { trpc } from '@/lib/trpc/client'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import MobileFilterWrapper from '@/features/catalog-filter/ui/MobileFilterWrapper'
@@ -9,6 +10,7 @@ import ViewToggle from '@/features/catalog-filter/ui/ViewToggle'
 import ResultsBar from '@/features/catalog-filter/ui/ResultsBar'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
 import Pagination from '@/features/catalog-filter/ui/Pagination'
+import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { Button } from '@/shared/ui/Button'
 import type { Product } from '@/shared/types/product'
 
@@ -89,6 +91,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 
 	const { data: productsData, isLoading } = trpc.products.getMany.useQuery({
 		categorySlug: slug,
+		includeChildren: true,
 		page: currentPage,
 		limit: 12,
 		search: search || undefined,
@@ -98,6 +101,21 @@ export default function CategoryContent({ slug }: { slug: string }) {
 	})
 
 	const categoryName = category?.name ?? slug
+	const parentCategory = category?.parent
+	const subcategories = category?.children ?? []
+
+	// Build breadcrumbs
+	const breadcrumbItems: { label: string; href?: string }[] = [
+		{ label: 'Главная', href: '/' },
+		{ label: 'Каталог', href: '/catalog' },
+	]
+	if (parentCategory) {
+		breadcrumbItems.push({
+			label: parentCategory.name,
+			href: `/catalog/${parentCategory.slug}`,
+		})
+	}
+	breadcrumbItems.push({ label: categoryName })
 
 	const categoryTree = (categoriesTree ?? []).map(cat => ({
 		name: cat.name,
@@ -127,130 +145,156 @@ export default function CategoryContent({ slug }: { slug: string }) {
 	}
 
 	return (
-		<MobileFilterWrapper
-			categoryTree={categoryTree}
-			activeCategoryPath={`/catalog/${slug}`}
-		>
-			<div className='flex gap-4 md:gap-8'>
-				<div className='hidden w-64 shrink-0 lg:block'>
-					<CatalogSidebar
-						categoryTree={categoryTree}
-						activeCategoryPath={`/catalog/${slug}`}
-					/>
+		<>
+			<Breadcrumbs items={breadcrumbItems} />
 
-					{/* Price filter */}
-					<div className='mt-6 space-y-3'>
-						<p className='text-sm font-semibold uppercase tracking-widest text-foreground'>
-							Цена
-						</p>
-						<div className='flex gap-2'>
-							<input
-								type='number'
-								placeholder='От'
-								defaultValue={minPrice}
-								onBlur={e =>
-									updateParams({
-										minPrice: e.target.value || undefined,
-										page: '1',
-									})
+			<MobileFilterWrapper
+				categoryTree={categoryTree}
+				activeCategoryPath={`/catalog/${slug}`}
+			>
+				<div className='flex gap-4 md:gap-8'>
+					<div className='hidden w-64 shrink-0 lg:block'>
+						<CatalogSidebar
+							categoryTree={categoryTree}
+							activeCategoryPath={`/catalog/${slug}`}
+						/>
+
+						{/* Price filter */}
+						<div className='mt-6 space-y-3'>
+							<p className='text-sm font-semibold uppercase tracking-widest text-foreground'>
+								Цена
+							</p>
+							<div className='flex gap-2'>
+								<input
+									type='number'
+									placeholder='От'
+									defaultValue={minPrice}
+									onBlur={e =>
+										updateParams({
+											minPrice: e.target.value || undefined,
+											page: '1',
+										})
+									}
+									className='h-9 w-full rounded-lg border border-border bg-background px-2 text-sm'
+								/>
+								<input
+									type='number'
+									placeholder='До'
+									defaultValue={maxPrice}
+									onBlur={e =>
+										updateParams({
+											maxPrice: e.target.value || undefined,
+											page: '1',
+										})
+									}
+									className='h-9 w-full rounded-lg border border-border bg-background px-2 text-sm'
+								/>
+							</div>
+						</div>
+
+						{/* Sort */}
+						<div className='mt-6 space-y-3'>
+							<p className='text-sm font-semibold uppercase tracking-widest text-foreground'>
+								Сортировка
+							</p>
+							<select
+								value={sortBy}
+								onChange={e =>
+									updateParams({ sort: e.target.value, page: '1' })
 								}
 								className='h-9 w-full rounded-lg border border-border bg-background px-2 text-sm'
-							/>
-							<input
-								type='number'
-								placeholder='До'
-								defaultValue={maxPrice}
-								onBlur={e =>
-									updateParams({
-										maxPrice: e.target.value || undefined,
-										page: '1',
-									})
-								}
-								className='h-9 w-full rounded-lg border border-border bg-background px-2 text-sm'
-							/>
+							>
+								<option value='newest'>Новинки</option>
+								<option value='price-asc'>Цена ↑</option>
+								<option value='price-desc'>Цена ↓</option>
+								<option value='name'>По названию</option>
+								<option value='rating'>По рейтингу</option>
+							</select>
 						</div>
 					</div>
 
-					{/* Sort */}
-					<div className='mt-6 space-y-3'>
-						<p className='text-sm font-semibold uppercase tracking-widest text-foreground'>
-							Сортировка
-						</p>
-						<select
-							value={sortBy}
-							onChange={e => updateParams({ sort: e.target.value, page: '1' })}
-							className='h-9 w-full rounded-lg border border-border bg-background px-2 text-sm'
-						>
-							<option value='newest'>Новинки</option>
-							<option value='price-asc'>Цена ↑</option>
-							<option value='price-desc'>Цена ↓</option>
-							<option value='name'>По названию</option>
-							<option value='rating'>По рейтингу</option>
-						</select>
-					</div>
-				</div>
+					<div className='min-w-0 flex-1'>
+						<div className='mb-4 flex items-start justify-between'>
+							<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
+								{categoryName}
+							</h1>
+							<ViewToggle />
+						</div>
 
-				<div className='min-w-0 flex-1'>
-					<div className='mb-4 flex items-start justify-between'>
-						<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
-							{categoryName}
-						</h1>
-						<ViewToggle />
-					</div>
+						{/* Subcategory chips */}
+						{subcategories.length > 0 && (
+							<div className='mb-4 flex flex-wrap gap-2'>
+								{subcategories.map(
+									(sub: { id: string; name: string; slug: string }) => (
+										<Link
+											key={sub.id}
+											href={`/catalog/${sub.slug}`}
+											className='rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground'
+										>
+											{sub.name}
+										</Link>
+									),
+								)}
+							</div>
+						)}
 
-					{/* Search */}
-					<div className='mb-4 flex gap-2'>
-						<input
-							type='search'
-							placeholder='Поиск в категории...'
-							value={searchInput}
-							onChange={e => setSearchInput(e.target.value)}
-							onKeyDown={e => {
-								if (e.key === 'Enter') {
+						{/* Search */}
+						<div className='mb-4 flex gap-2'>
+							<input
+								type='search'
+								placeholder='Поиск в категории...'
+								value={searchInput}
+								onChange={e => setSearchInput(e.target.value)}
+								onKeyDown={e => {
+									if (e.key === 'Enter') {
+										updateParams({
+											search: searchInput || undefined,
+											page: '1',
+										})
+									}
+								}}
+								className='flex h-9 flex-1 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+							/>
+							<Button
+								variant='primary'
+								size='sm'
+								onClick={() =>
 									updateParams({ search: searchInput || undefined, page: '1' })
 								}
-							}}
-							className='flex h-9 flex-1 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+							>
+								Найти
+							</Button>
+						</div>
+
+						<ResultsBar total={totalProducts} />
+
+						{isLoading ? (
+							<div className='py-12 text-center text-sm text-muted-foreground'>
+								Загрузка товаров...
+							</div>
+						) : products.length === 0 ? (
+							<div className='py-12 text-center text-sm text-muted-foreground'>
+								Товары не найдены
+							</div>
+						) : (
+							<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
+								{products.map(product => (
+									<InteractiveCatalogCard
+										key={product.slug}
+										{...toCatalogCard(product)}
+									/>
+								))}
+							</div>
+						)}
+
+						<Pagination
+							currentPage={currentPage}
+							totalPages={totalPages}
+							onPageChange={page => updateParams({ page: String(page) })}
 						/>
-						<Button
-							variant='primary'
-							size='sm'
-							onClick={() =>
-								updateParams({ search: searchInput || undefined, page: '1' })
-							}
-						>
-							Найти
-						</Button>
 					</div>
-
-					<ResultsBar total={totalProducts} />
-
-					{isLoading ? (
-						<div className='py-12 text-center text-sm text-muted-foreground'>
-							Загрузка товаров...
-						</div>
-					) : products.length === 0 ? (
-						<div className='py-12 text-center text-sm text-muted-foreground'>
-							Товары не найдены
-						</div>
-					) : (
-						<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
-							{products.map(product => (
-								<InteractiveCatalogCard
-									key={product.slug}
-									{...toCatalogCard(product)}
-								/>
-							))}
-						</div>
-					)}
-
-					<Pagination
-						currentPage={currentPage}
-						totalPages={totalPages}
-						onPageChange={page => updateParams({ page: String(page) })}
-					/>
 				</div>
-			</div>
-		</MobileFilterWrapper>
+			</MobileFilterWrapper>
+		</>
 	)
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "996776265973",
+    "project_id": "auracms",
+    "storage_bucket": "auracms.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:996776265973:android:69deebb2a5d8cb87265dbc",
+        "android_client_info": {
+          "package_name": "ru.aurasveta.cms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA53ZXPAQ4bQJp-KdGgtOigQE6YH-vK_A4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

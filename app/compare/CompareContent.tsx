@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, X } from 'lucide-react'
@@ -353,9 +353,9 @@ export default function CompareContent() {
 						{/* ── Spec rows ── */}
 						<tbody>
 							{groupedRows.map(group => (
-								<>
+								<Fragment key={`group-${group.name}`}>
 									{/* Group header */}
-									<tr key={`group-${group.name}`}>
+									<tr>
 										<td
 											colSpan={products.length + 1}
 											className='border-t border-border bg-muted/30 px-2 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground'
@@ -377,7 +377,7 @@ export default function CompareContent() {
 											))}
 										</tr>
 									))}
-								</>
+								</Fragment>
 							))}
 						</tbody>
 					</table>

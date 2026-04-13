@@ -1,5 +1,11 @@
+import type { Metadata } from 'next'
 import { requireUnauth } from '@/lib/auth/auth-utils'
 import RegisterForm from './RegisterForm'
+
+export const metadata: Metadata = {
+	title: 'Регистрация — Аура Света',
+	description: 'Создайте аккаунт в интернет-магазине Аура Света',
+}
 
 export default async function RegisterPage() {
 	await requireUnauth()

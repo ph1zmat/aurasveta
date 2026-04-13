@@ -33,6 +33,7 @@ model User {
   products         Product[]
   compareItems     CompareItem[]
   anonymousSession AnonymousSession?
+  pushDevices      PushDevice[]
 
   @@map("users")
 }
@@ -57,7 +58,7 @@ model Account {
   userId            String    @map("user_id")
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   providerId        String    @map("provider_id")
-  providerAccountId String    @map("provider_account_id")
+  providerAccountId String?   @map("provider_account_id")
   accessToken       String?   @map("access_token")
   refreshToken      String?   @map("refresh_token")
   expiresAt         DateTime? @map("expires_at")
@@ -151,40 +152,43 @@ model ProductPropertyValue {
 }
 
 model Product {
-  id                String    @id @default(cuid())
+  id                String                   @id @default(cuid())
   name              String
-  slug              String    @unique
+  slug              String                   @unique
   description       String?
   price             Float?
-  compareAtPrice    Float?    @map("compare_at_price")
-  stock             Int       @default(0)
-  sku               String?   @unique
-  images            Json      @default("[]")
-  categoryId        String?   @map("category_id")
-  category          Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  isActive          Boolean   @default(true) @map("is_active")
+  compareAtPrice    Float?                   @map("compare_at_price")
+  stock             Int                      @default(0)
+  sku               String?                  @unique
+  images            Json                     @default("[]")
+  categoryId        String?                  @map("category_id")
+  category          Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isActive          Boolean                  @default(true) @map("is_active")
   brand             String?
-  brandCountry      String?   @map("brand_country")
+  brandCountry      String?                  @map("brand_country")
   rating            Float?
-  reviewsCount      Int       @default(0) @map("reviews_count")
-  badges            Json      @default("[]")
-  imagePath         String?   @map("image_path")
-  imageOriginalName String?   @map("image_original_name")
-  metaTitle         String?   @map("meta_title")
-  metaDesc          String?   @map("meta_description")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  userId            String?   @map("user_id")
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reviewsCount      Int                      @default(0) @map("reviews_count")
+  badges            Json                     @default("[]")
+  imagePath         String?                  @map("image_path")
+  imageOriginalName String?                  @map("image_original_name")
+  metaTitle         String?                  @map("meta_title")
+  metaDesc          String?                  @map("meta_description")
+  searchVector      Unsupported("tsvector")? @map("search_vector")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  userId            String?                  @map("user_id")
+  user              User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   properties   ProductPropertyValue[]
   orderItems   OrderItem[]
   favorites    Favorite[]
   compareItems CompareItem[]
+  productViews ProductView[]
 
   @@index([categoryId])
   @@index([isActive, createdAt(sort: Desc)])
   @@index([brand])
+  @@index([searchVector], type: Gin)
   @@map("products")
 }
 
@@ -319,4 +323,79 @@ model Webhook {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("webhooks")
+}
+
+// ---------- SEO Metadata ----------
+
+model SeoMetadata {
+  id            String   @id @default(cuid())
+  targetType    String   @map("target_type")
+  targetId      String   @map("target_id")
+  title         String?
+  description   String?
+  keywords      String?
+  ogTitle       String?  @map("og_title")
+  ogDescription String?  @map("og_description")
+  ogImage       String?  @map("og_image")
+  canonicalUrl  String?  @map("canonical_url")
+  noIndex       Boolean  @default(false) @map("no_index")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([targetType, targetId])
+  @@index([targetType])
+  @@map("seo_metadata")
+}
+
+// ---------- Recommendation system ----------
+
+model ProductView {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  sessionId String   @map("session_id")
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  @@unique([sessionId, productId])
+  @@index([userId, viewedAt])
+  @@index([sessionId, viewedAt])
+  @@index([productId, viewedAt])
+  @@map("product_views")
+}
+
+model SearchQuery {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  sessionId String   @map("session_id")
+  query     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([query, createdAt])
+  @@map("search_queries")
+}
+
+// ---------- Push Notifications ----------
+
+enum PushPlatform {
+  FCM
+  WEB_PUSH
+}
+
+model PushDevice {
+  id        String       @id @default(cuid())
+  userId    String       @map("user_id")
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  PushPlatform
+  token     String       @unique
+  endpoint  String?
+  p256dh    String?
+  authKey   String?      @map("auth_key")
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([platform])
+  @@map("push_devices")
 }

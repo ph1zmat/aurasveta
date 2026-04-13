@@ -3,9 +3,12 @@ import { unlink } from 'fs/promises'
 import path from 'path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
+import { generateSlug } from '@/shared/lib/generateSlug'
+import { validateWebhookUrl } from '@/shared/lib/validateUrl'
 
 const productFilters = z.object({
 	categorySlug: z.string().optional(),
+	includeChildren: z.boolean().default(true),
 	search: z.string().optional(),
 	minPrice: z.number().optional(),
 	maxPrice: z.number().optional(),
@@ -25,6 +28,7 @@ export const productsRouter = createTRPCRouter({
 			page,
 			limit,
 			categorySlug,
+			includeChildren,
 			search,
 			minPrice,
 			maxPrice,
@@ -39,9 +43,17 @@ export const productsRouter = createTRPCRouter({
 		if (categorySlug) {
 			const category = await ctx.prisma.category.findUnique({
 				where: { slug: categorySlug },
-				select: { id: true },
+				select: { id: true, children: { select: { id: true } } },
 			})
-			if (category) where.categoryId = category.id
+			if (category) {
+				if (includeChildren && category.children.length > 0) {
+					where.categoryId = {
+						in: [category.id, ...category.children.map(c => c.id)],
+					}
+				} else {
+					where.categoryId = category.id
+				}
+			}
 		}
 
 		if (search) {
@@ -165,7 +177,7 @@ export const productsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				name: z.string().min(1),
-				slug: z.string().min(1),
+				slug: z.string().optional(),
 				description: z.string().optional(),
 				price: z.number().positive().optional(),
 				compareAtPrice: z.number().positive().optional(),
@@ -192,9 +204,17 @@ export const productsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const { properties, ...productData } = input
 
+			let slug = productData.slug?.trim() || generateSlug(productData.name)
+			let suffix = 0
+			while (await ctx.prisma.product.findUnique({ where: { slug } })) {
+				suffix++
+				slug = `${generateSlug(productData.name)}-${suffix}`
+			}
+
 			const product = await ctx.prisma.product.create({
 				data: {
 					...productData,
+					slug,
 					userId: ctx.userId,
 					properties: {
 						create: properties.map(p => ({
@@ -220,7 +240,7 @@ export const productsRouter = createTRPCRouter({
 			z.object({
 				id: z.string(),
 				name: z.string().min(1).optional(),
-				slug: z.string().min(1).optional(),
+				slug: z.string().optional(),
 				description: z.string().optional(),
 				price: z.number().positive().optional(),
 				compareAtPrice: z.number().positive().nullable().optional(),
@@ -246,6 +266,20 @@ export const productsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { id, properties, ...data } = input
+
+			if (data.name && !data.slug) {
+				let slug = generateSlug(data.name)
+				let suffix = 0
+				while (
+					await ctx.prisma.product.findFirst({
+						where: { slug, id: { not: id } },
+					})
+				) {
+					suffix++
+					slug = `${generateSlug(data.name)}-${suffix}`
+				}
+				data.slug = slug
+			}
 
 			if (properties) {
 				await ctx.prisma.productPropertyValue.deleteMany({
@@ -452,17 +486,19 @@ async function fireWebhooks(db: PrismaClient, event: string, data: unknown) {
 			where: { events: { has: event } },
 		})
 		await Promise.allSettled(
-			webhooks.map(wh =>
-				fetch(wh.url, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						event,
-						data,
-						timestamp: new Date().toISOString(),
+			webhooks
+				.filter(wh => validateWebhookUrl(wh.url).valid)
+				.map(wh =>
+					fetch(wh.url, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							event,
+							data,
+							timestamp: new Date().toISOString(),
+						}),
 					}),
-				}),
-			),
+				),
 		)
 	} catch {
 		// Silently fail webhook delivery

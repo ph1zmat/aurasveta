@@ -1028,6 +1028,94 @@ async function main() {
 	})
 
 	console.log('✅ Test webhook created')
+
+	// ── Seed recommendation data (ProductView + SearchQuery) ──
+	const allProductsForSeed = await prisma.product.findMany({ select: { id: true } })
+	const testSessionId = 'seed-session-001'
+
+	// Generate product views (simulate browsing)
+	for (let i = 0; i < Math.min(allProductsForSeed.length, 15); i++) {
+		const prod = allProductsForSeed[i]
+		const daysAgo = Math.floor(Math.random() * 14)
+		const viewedAt = new Date()
+		viewedAt.setDate(viewedAt.getDate() - daysAgo)
+
+		await prisma.productView.upsert({
+			where: {
+				sessionId_productId: {
+					sessionId: testSessionId,
+					productId: prod.id,
+				},
+			},
+			update: { viewedAt },
+			create: {
+				sessionId: testSessionId,
+				userId: user.id,
+				productId: prod.id,
+				viewedAt,
+			},
+		})
+	}
+
+	// Add more views from different "sessions" to create popularity
+	const popularProductIds = allProductsForSeed.slice(0, 5).map(p => p.id)
+	for (let s = 2; s <= 10; s++) {
+		for (const productId of popularProductIds) {
+			const viewedAt = new Date()
+			viewedAt.setDate(viewedAt.getDate() - Math.floor(Math.random() * 7))
+			await prisma.productView.upsert({
+				where: {
+					sessionId_productId: {
+						sessionId: `seed-session-${String(s).padStart(3, '0')}`,
+						productId,
+					},
+				},
+				update: { viewedAt },
+				create: {
+					sessionId: `seed-session-${String(s).padStart(3, '0')}`,
+					productId,
+					viewedAt,
+				},
+			})
+		}
+	}
+
+	console.log('✅ Product views seeded')
+
+	// Seed search queries
+	const searchQueries = [
+		'люстра для кухни',
+		'светодиодная лента',
+		'бра настенное',
+		'торшер напольный',
+		'споты потолочные',
+		'люстра хрустальная',
+		'led светильник',
+		'уличный фонарь',
+		'настольная лампа',
+		'трековый светильник',
+		'maytoni люстра',
+		'люстра лофт',
+	]
+
+	for (const query of searchQueries) {
+		const count = Math.floor(Math.random() * 8) + 2
+		for (let i = 0; i < count; i++) {
+			const createdAt = new Date()
+			createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 7))
+			createdAt.setHours(Math.floor(Math.random() * 24))
+
+			await prisma.searchQuery.create({
+				data: {
+					sessionId: `seed-session-${String(Math.floor(Math.random() * 50)).padStart(3, '0')}`,
+					query,
+					createdAt,
+				},
+			})
+		}
+	}
+
+	console.log('✅ Search queries seeded')
 	console.log('🎉 Seeding complete!')
 }
 
