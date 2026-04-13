@@ -32,6 +32,9 @@ yarn-error.log*
 
 # desktop
 /desktop/node_modules
+/desktop/release
+/desktop/dist
+/desktop/out
 
 # mobile
 /mobile/node_modules
