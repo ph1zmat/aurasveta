@@ -1,11 +1,3 @@
-import { requireAdmin } from '@/lib/auth/auth-utils'
-import ProductsClient from './ProductsClient'
-
-export default async function AdminProductsPage() {
-	await requireAdmin()
-	return <ProductsClient />
-}
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -16,7 +8,7 @@ import FileUploader from '@/shared/ui/FileUploader'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import { generateSlug } from '@/shared/lib/generateSlug'
 
-export default function AdminProductsPage() {
+export default function ProductsClient() {
 	const [page, setPage] = useState(1)
 	const [search, setSearch] = useState('')
 
@@ -457,7 +449,11 @@ function ProductForm({
 						<Button
 							variant='primary'
 							type='submit'
-							disabled={createMut.isPending || updateMut.isPending || updateImageMut.isPending}
+							disabled={
+								createMut.isPending ||
+								updateMut.isPending ||
+								updateImageMut.isPending
+							}
 						>
 							{createMut.isPending || updateMut.isPending
 								? 'Сохранение...'
@@ -489,3 +485,4 @@ function FormField({
 		</div>
 	)
 }
+
