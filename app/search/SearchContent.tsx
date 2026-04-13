@@ -6,6 +6,8 @@ import { Loader2, SlidersHorizontal } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import { useDebounce } from '@/shared/lib/useDebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingSession'
+import EmptyState from '@/shared/ui/EmptyState'
+import Skeleton from '@/shared/ui/Skeleton'
 import {
 	toFrontendProduct,
 	toCatalogCardProps,
@@ -177,9 +179,24 @@ export default function SearchContent() {
 
 			{/* Loading state */}
 			{isLoading && debouncedSearch.length >= 2 && (
-				<div className='flex items-center justify-center gap-2 py-20 text-muted-foreground'>
-					<Loader2 className='h-5 w-5 animate-spin' />
-					<span>Поиск товаров...</span>
+				<div className='py-6'>
+					<div className='mb-6 flex items-center justify-center gap-2 text-muted-foreground'>
+						<Loader2 className='h-5 w-5 animate-spin' />
+						<span>Ищем товары...</span>
+					</div>
+					<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
+						{Array.from({ length: 8 }).map((_, i) => (
+							<div
+								key={i}
+								className='rounded-2xl border border-border p-4 space-y-3'
+							>
+								<Skeleton className='h-36 w-full rounded-xl' />
+								<Skeleton className='h-4 w-4/5' />
+								<Skeleton className='h-4 w-1/2' />
+								<Skeleton className='h-10 w-full rounded-lg' />
+							</div>
+						))}
+					</div>
 				</div>
 			)}
 
@@ -195,21 +212,20 @@ export default function SearchContent() {
 				!isError &&
 				debouncedSearch.length >= 2 &&
 				allItems.length === 0 && (
-					<div className='py-20 text-center'>
-						<p className='text-lg font-medium text-foreground'>
-							Ничего не найдено
-						</p>
-						<p className='mt-2 text-sm text-muted-foreground'>
-							Попробуйте изменить запрос или проверьте правильность написания
-						</p>
-					</div>
+					<EmptyState
+						title='Ничего не найдено'
+						description='Попробуйте изменить запрос или проверьте правильность написания.'
+						primaryAction={{ label: 'Открыть каталог', href: '/catalog' }}
+					/>
 				)}
 
 			{/* Empty query state */}
 			{debouncedSearch.length < 2 && (
-				<div className='py-20 text-center text-sm text-muted-foreground'>
-					Введите запрос для поиска (минимум 2 символа)
-				</div>
+				<EmptyState
+					title='Поиск по каталогу'
+					description='Введите запрос (минимум 2 символа), например: “люстра”, “бра”, “LED”.'
+					primaryAction={{ label: 'Перейти в каталог', href: '/catalog' }}
+				/>
 			)}
 
 			{/* Results grid */}

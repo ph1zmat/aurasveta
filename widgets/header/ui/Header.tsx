@@ -176,6 +176,7 @@ export default function Header() {
 						<button
 							onClick={handleSignOut}
 							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+							aria-label='Выйти'
 						>
 							<LogOut className='h-6 w-6' />
 							<span className='hidden lg:block text-xs'>Выйти</span>
