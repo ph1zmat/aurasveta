@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth/auth-utils'
+import { requireCmsAccess } from '@/lib/auth/auth-utils'
 import Link from 'next/link'
 import {
 	LayoutDashboard,
@@ -11,23 +11,28 @@ import {
 	Webhook,
 } from 'lucide-react'
 
-const navItems = [
-	{ href: '/admin', label: 'Дашборд', icon: LayoutDashboard },
-	{ href: '/admin/products', label: 'Товары', icon: Package },
-	{ href: '/admin/categories', label: 'Категории', icon: FolderTree },
-	{ href: '/admin/properties', label: 'Свойства', icon: SlidersHorizontal },
-	{ href: '/admin/pages', label: 'Страницы', icon: FileText },
-	{ href: '/admin/orders', label: 'Заказы', icon: ShoppingCart },
-	{ href: '/admin/import-export', label: 'Импорт/Экспорт', icon: Download },
-	{ href: '/admin/webhooks', label: 'Вебхуки', icon: Webhook },
-]
+const navItems = {
+	admin: [
+		{ href: '/admin', label: 'Дашборд', icon: LayoutDashboard },
+		{ href: '/admin/products', label: 'Товары', icon: Package },
+		{ href: '/admin/categories', label: 'Категории', icon: FolderTree },
+		{ href: '/admin/properties', label: 'Свойства', icon: SlidersHorizontal },
+		{ href: '/admin/pages', label: 'Страницы', icon: FileText },
+		{ href: '/admin/orders', label: 'Заказы', icon: ShoppingCart },
+		{ href: '/admin/import-export', label: 'Импорт/Экспорт', icon: Download },
+		{ href: '/admin/webhooks', label: 'Вебхуки', icon: Webhook },
+		{ href: '/admin/seo', label: 'SEO', icon: FileText },
+	],
+	editor: [{ href: '/admin/pages', label: 'Страницы', icon: FileText }],
+} as const
 
 export default async function AdminLayout({
 	children,
 }: {
 	children: React.ReactNode
 }) {
-	await requireAdmin()
+	const { role } = await requireCmsAccess()
+	const items = role === 'ADMIN' ? navItems.admin : navItems.editor
 
 	return (
 		<div className='flex min-h-screen bg-background'>
@@ -42,7 +47,7 @@ export default async function AdminLayout({
 					</Link>
 				</div>
 				<nav className='mt-4 space-y-1 px-3'>
-					{navItems.map(item => (
+					{items.map(item => (
 						<Link
 							key={item.href}
 							href={item.href}
