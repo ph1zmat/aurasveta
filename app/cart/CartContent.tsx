@@ -8,7 +8,6 @@ import CartSummary from '@/features/cart/ui/CartSummary'
 import type { CartItemData } from '@/entities/cart/model/types'
 import { Button } from '@/shared/ui/Button'
 import { Link2 } from 'lucide-react'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
 

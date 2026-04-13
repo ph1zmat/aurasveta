@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
@@ -43,11 +43,6 @@ export default function PagesClient() {
 		path: string
 		originalName: string
 	} | null>(null)
-
-	useEffect(() => {
-		setSlugTouched(!!editPage?.slug)
-		setPendingImage(null)
-	}, [editPage?.id, editPage?.slug])
 
 	const createMut = trpc.pages.create.useMutation({
 		onSuccess: (created) => {

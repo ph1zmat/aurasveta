@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 import FileUploader from '@/shared/ui/FileUploader'
@@ -56,11 +56,6 @@ export default function CategoriesClient() {
 		path: string
 		originalName: string
 	} | null>(null)
-
-	useEffect(() => {
-		setSlugTouched(!!editCat?.slug)
-		setPendingImage(null)
-	}, [editCat?.id, editCat?.slug])
 
 	function openCreate(parentId?: string) {
 		setEditCat(null)
