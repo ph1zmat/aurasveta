@@ -4,7 +4,6 @@ import Header from '@/widgets/header/ui/Header'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
-import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import ProductGallery from '@/features/product-details/ui/ProductGallery'
 import ProductPriceBlock from '@/features/product-details/ui/ProductPriceBlock'
 import QuickSpecs from '@/features/product-details/ui/QuickSpecs'
@@ -16,6 +15,8 @@ import ProductCarousel from '@/widgets/product-carousel/ui/ProductCarousel'
 import StickyHeaderWithTrigger from '@/features/product-details/ui/StickyHeaderWithTrigger'
 import TrackRecentlyViewed from '@/features/product-details/ui/TrackRecentlyViewed'
 import ProductStructuredData from '@/shared/ui/ProductStructuredData'
+import BackToListLink from '@/shared/ui/BackToListLink'
+import ProductBreadcrumbs from '@/features/product-details/ui/ProductBreadcrumbs'
 import {
 	CompareButton,
 	AddToCartButton,
@@ -120,14 +121,17 @@ export default async function ProductPage({
 				<Header />
 				<CategoryNav />
 
+				<div className='pt-4'>
+					<BackToListLink fallbackHref='/catalog' label='Назад к списку' />
+				</div>
+
 				{/* Breadcrumbs */}
-				<Breadcrumbs
-					items={[
-						{ label: 'Главная', href: '/' },
-						{ label: 'Каталог', href: '/catalog' },
-						{ label: product.category, href: '/catalog' },
-						{ label: product.name },
-					]}
+				<ProductBreadcrumbs
+					productName={product.name}
+					categoryName={product.category}
+					categoryHref={
+						product.categorySlug ? `/catalog/${product.categorySlug}` : undefined
+					}
 				/>
 
 				{/* Product title + article */}

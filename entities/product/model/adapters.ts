@@ -41,6 +41,7 @@ export function toFrontendProduct(p: DbProduct): Product {
 				: undefined,
 		bonusAmount: p.price ? Math.round(Number(p.price) * 0.06) : undefined,
 		category: p.category?.name ?? '',
+		categorySlug: p.category?.slug ?? undefined,
 		brand: p.brand ?? undefined,
 		brandCountry: p.brandCountry ?? undefined,
 		images: Array.isArray(p.images) ? (p.images as string[]) : [],
