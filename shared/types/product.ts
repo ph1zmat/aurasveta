@@ -8,6 +8,7 @@ export interface Product {
 	discountPercent?: number
 	bonusAmount?: number
 	category: string
+	categorySlug?: string
 	brand?: string
 	brandCountry?: string
 	images: string[]
