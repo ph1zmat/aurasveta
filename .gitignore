@@ -30,6 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# desktop
+/desktop/node_modules
+
+# mobile
+/mobile/node_modules
+
 # env files (can opt-in for committing if needed)
 .env*
 
