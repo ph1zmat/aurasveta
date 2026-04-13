@@ -5,6 +5,7 @@ import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import CatalogContent from './CatalogContent'
 import { Suspense } from 'react'
+import Skeleton from '@/shared/ui/Skeleton'
 
 export const metadata = {
 	title: 'Каталог — Аура Света',
@@ -31,8 +32,16 @@ export default function CatalogPage() {
 
 				<Suspense
 					fallback={
-						<div className='py-12 text-center text-sm text-muted-foreground'>
-							Загрузка каталога...
+						<div className='py-8'>
+							<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+								{Array.from({ length: 8 }).map((_, i) => (
+									<div key={i} className='space-y-3'>
+										<Skeleton className='h-28 w-full rounded-xl' />
+										<Skeleton className='h-4 w-3/4' />
+										<Skeleton className='h-3 w-1/2' />
+									</div>
+								))}
+							</div>
 						</div>
 					}
 				>

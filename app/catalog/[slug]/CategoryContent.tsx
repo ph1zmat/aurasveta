@@ -12,6 +12,7 @@ import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard
 import Pagination from '@/features/catalog-filter/ui/Pagination'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { Button } from '@/shared/ui/Button'
+import { X } from 'lucide-react'
 import type { Product } from '@/shared/types/product'
 
 function dbProductToFrontend(p: Record<string, unknown>): Product {
@@ -144,6 +145,21 @@ export default function CategoryContent({ slug }: { slug: string }) {
 		router.push(`${pathname}?${params.toString()}`)
 	}
 
+	const hasActiveFilters =
+		!!search ||
+		!!minPrice ||
+		!!maxPrice ||
+		sortBy !== 'newest' ||
+		currentPage !== 1
+
+	const sortLabel: Record<typeof sortBy, string> = {
+		'price-asc': 'Цена ↑',
+		'price-desc': 'Цена ↓',
+		name: 'По названию',
+		newest: 'Новинки',
+		rating: 'По рейтингу',
+	}
+
 	return (
 		<>
 			<Breadcrumbs items={breadcrumbItems} />
@@ -264,9 +280,89 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							>
 								Найти
 							</Button>
+							{hasActiveFilters && (
+								<Button
+									variant='ghost'
+									size='sm'
+									onClick={() =>
+										updateParams({
+											search: undefined,
+											minPrice: undefined,
+											maxPrice: undefined,
+											sort: undefined,
+											page: '1',
+										})
+									}
+								>
+									Сбросить
+								</Button>
+							)}
 						</div>
 
 						<ResultsBar total={totalProducts} />
+
+						{/* Active filter chips */}
+						{hasActiveFilters && (
+							<div className='mb-4 flex flex-wrap gap-2'>
+								{search && (
+									<Button
+										variant='subtle'
+										size='compact'
+										onClick={() => {
+											setSearchInput('')
+											updateParams({ search: undefined, page: '1' })
+										}}
+									>
+										<span className='max-w-[220px] truncate'>
+											Поиск: {search}
+										</span>
+										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
+									</Button>
+								)}
+
+								{(minPrice !== undefined || maxPrice !== undefined) && (
+									<Button
+										variant='subtle'
+										size='compact'
+										onClick={() =>
+											updateParams({
+												minPrice: undefined,
+												maxPrice: undefined,
+												page: '1',
+											})
+										}
+									>
+										<span>
+											Цена:{' '}
+											{minPrice !== undefined ? minPrice : '—'}–{maxPrice !== undefined ? maxPrice : '—'}
+										</span>
+										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
+									</Button>
+								)}
+
+								{sortBy !== 'newest' && (
+									<Button
+										variant='subtle'
+										size='compact'
+										onClick={() => updateParams({ sort: undefined, page: '1' })}
+									>
+										<span>Сортировка: {sortLabel[sortBy]}</span>
+										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
+									</Button>
+								)}
+
+								{currentPage !== 1 && (
+									<Button
+										variant='subtle'
+										size='compact'
+										onClick={() => updateParams({ page: '1' })}
+									>
+										<span>Страница: {currentPage}</span>
+										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
+									</Button>
+								)}
+							</div>
+						)}
 
 						{isLoading ? (
 							<div className='py-12 text-center text-sm text-muted-foreground'>

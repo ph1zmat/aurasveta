@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { useFilterDrawer } from '@/features/catalog-filter/ui/MobileFilterWrapper'
+import { useSearchParams } from 'next/navigation'
+import CountBadge from '@/shared/ui/CountBadge'
 
 interface ResultsBarProps {
 	total: number
@@ -25,6 +27,16 @@ export default function ResultsBar({
 	const [sort, setSort] = useState(defaultSort)
 	const [open, setOpen] = useState(false)
 	const onMobileFilterOpen = useFilterDrawer()
+	const searchParams = useSearchParams()
+
+	const filterCount = [
+		searchParams.get('search'),
+		searchParams.get('minPrice'),
+		searchParams.get('maxPrice'),
+		searchParams.get('sort') && searchParams.get('sort') !== 'newest'
+			? searchParams.get('sort')
+			: null,
+	].filter(Boolean).length
 
 	return (
 		<div className='mb-4 flex items-center justify-between border-b border-border pb-3'>
@@ -43,7 +55,10 @@ export default function ResultsBar({
 						className='lg:hidden'
 						onClick={onMobileFilterOpen}
 					>
-						<SlidersHorizontal className='h-3.5 w-3.5' strokeWidth={1.5} />
+						<span className='relative'>
+							<SlidersHorizontal className='h-3.5 w-3.5' strokeWidth={1.5} />
+							<CountBadge count={filterCount} className='-right-2 -top-2 text-[9px]' />
+						</span>
 						Фильтры
 					</Button>
 				)}
