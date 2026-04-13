@@ -7,6 +7,7 @@ import { useCart } from '@/features/cart/useCart'
 import FavoriteProductCard from '@/features/favorites/ui/FavoriteProductCard'
 import { Button } from '@/shared/ui/Button'
 import Link from 'next/link'
+import EmptyState from '@/shared/ui/EmptyState'
 
 export default function FavoritesContent() {
 	const { productIds, remove, clear, isAuth, serverFavorites } = useFavorites()
@@ -99,14 +100,11 @@ export default function FavoritesContent() {
 
 	if (products.length === 0) {
 		return (
-			<div className='py-12 text-center'>
-				<p className='text-lg text-muted-foreground'>Избранное пусто</p>
-				<Link href='/catalog'>
-					<Button variant='primary' className='mt-4'>
-						Перейти в каталог
-					</Button>
-				</Link>
-			</div>
+			<EmptyState
+				title='Избранное пусто'
+				description='Сохраняйте товары, чтобы быстро вернуться к ним позже.'
+				primaryAction={{ label: 'Перейти в каталог', href: '/catalog' }}
+			/>
 		)
 	}
 

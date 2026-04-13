@@ -10,6 +10,7 @@ import { useCompare } from '@/features/compare/useCompare'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCart } from '@/features/cart/useCart'
 import { Button } from '@/shared/ui/Button'
+import EmptyState from '@/shared/ui/EmptyState'
 
 /* ─────── types ─────── */
 
@@ -185,14 +186,11 @@ export default function CompareContent() {
 	/* ─────── empty state ─────── */
 	if (productIds.length === 0) {
 		return (
-			<div className='py-12 text-center'>
-				<p className='text-lg text-muted-foreground'>Список сравнения пуст</p>
-				<Link href='/catalog'>
-					<Button variant='primary' className='mt-4'>
-						Перейти в каталог
-					</Button>
-				</Link>
-			</div>
+			<EmptyState
+				title='Список сравнения пуст'
+				description='Добавьте товары в сравнение, чтобы увидеть отличия по характеристикам.'
+				primaryAction={{ label: 'Перейти в каталог', href: '/catalog' }}
+			/>
 		)
 	}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { useCart } from '@/features/cart/useCart'
 import CartItem from '@/features/cart/ui/CartItem'
@@ -9,6 +9,8 @@ import type { CartItemData } from '@/entities/cart/model/types'
 import { Button } from '@/shared/ui/Button'
 import { Link2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
+import EmptyState from '@/shared/ui/EmptyState'
 
 export default function CartContent() {
 	const { items: rawItems, remove, updateQuantity, clear, isAuth } = useCart()
@@ -57,17 +59,41 @@ export default function CartContent() {
 	const [address, setAddress] = useState('')
 	const [phone, setPhone] = useState('')
 	const [comment, setComment] = useState('')
+
+	const addressError = useMemo(() => {
+		const v = address.trim()
+		if (v.length === 0) return 'Укажите адрес доставки'
+		if (v.length < 8) return 'Слишком короткий адрес'
+		return ''
+	}, [address])
+
+	const phoneError = useMemo(() => {
+		const v = phone.trim()
+		if (v.length === 0) return 'Укажите номер телефона'
+		const digits = v.replace(/[^\d+]/g, '').replace(/\+/g, '')
+		if (digits.length < 10) return 'Телефон слишком короткий'
+		if (digits.length > 15) return 'Телефон слишком длинный'
+		return ''
+	}, [phone])
+
+	const isCheckoutValid = addressError === '' && phoneError === ''
+
 	const createOrderMut = trpc.orders.create.useMutation({
 		onSuccess: () => {
 			setShowCheckout(false)
 			clear()
-			alert('Заказ успешно оформлен!')
+			toast.success('Заказ успешно оформлен')
+		},
+		onError: (err) => {
+			toast.error(err.message || 'Не удалось оформить заказ')
 		},
 	})
 
 	function handleCheckout() {
 		if (!isAuth) {
-			alert('Для оформления заказа необходимо войти в аккаунт')
+			toast.error('Для оформления заказа необходимо войти в аккаунт', {
+				action: { label: 'Войти', onClick: () => (window.location.href = '/login') },
+			})
 			return
 		}
 		setShowCheckout(true)
@@ -75,6 +101,10 @@ export default function CartContent() {
 
 	function handleCreateOrder(e: React.FormEvent) {
 		e.preventDefault()
+		if (!isCheckoutValid) {
+			toast.error('Проверьте данные доставки')
+			return
+		}
 		createOrderMut.mutate({
 			address,
 			phone,
@@ -93,14 +123,12 @@ export default function CartContent() {
 
 	if (itemsCount === 0) {
 		return (
-			<div className='py-12 text-center'>
-				<p className='text-lg text-muted-foreground'>Корзина пуста</p>
-				<Link href='/catalog'>
-					<Button variant='primary' className='mt-4'>
-						Перейти в каталог
-					</Button>
-				</Link>
-			</div>
+			<EmptyState
+				title='Корзина пуста'
+				description='Добавьте товары в корзину, чтобы перейти к оформлению заказа.'
+				primaryAction={{ label: 'Перейти в каталог', href: '/catalog' }}
+				secondaryAction={{ label: 'На главную', href: '/' }}
+			/>
 		)
 	}
 
@@ -155,9 +183,19 @@ export default function CartContent() {
 									required
 									value={address}
 									onChange={e => setAddress(e.target.value)}
-									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm'
+									aria-invalid={addressError ? true : undefined}
+									aria-describedby={addressError ? 'checkout-address-error' : undefined}
+									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 									placeholder='г. Мозырь, ул. ...'
 								/>
+								{addressError && (
+									<p
+										id='checkout-address-error'
+										className='text-xs text-destructive'
+									>
+										{addressError}
+									</p>
+								)}
 							</div>
 							<div className='space-y-1'>
 								<label className='text-sm font-medium'>Телефон</label>
@@ -165,9 +203,18 @@ export default function CartContent() {
 									required
 									value={phone}
 									onChange={e => setPhone(e.target.value)}
-									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm'
+									inputMode='tel'
+									autoComplete='tel'
+									aria-invalid={phoneError ? true : undefined}
+									aria-describedby={phoneError ? 'checkout-phone-error' : undefined}
+									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 									placeholder='+375 29 123-45-67'
 								/>
+								{phoneError && (
+									<p id='checkout-phone-error' className='text-xs text-destructive'>
+										{phoneError}
+									</p>
+								)}
 							</div>
 							<div className='space-y-1'>
 								<label className='text-sm font-medium'>Комментарий</label>
@@ -175,7 +222,7 @@ export default function CartContent() {
 									value={comment}
 									onChange={e => setComment(e.target.value)}
 									rows={3}
-									className='flex w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none'
+									className='flex w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary'
 								/>
 							</div>
 							<div className='rounded-lg bg-muted/50 p-3 text-sm'>
@@ -194,7 +241,7 @@ export default function CartContent() {
 								<Button
 									type='submit'
 									variant='primary'
-									disabled={createOrderMut.isPending}
+									disabled={createOrderMut.isPending || !isCheckoutValid}
 								>
 									{createOrderMut.isPending
 										? 'Оформление...'
