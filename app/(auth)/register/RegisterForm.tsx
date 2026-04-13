@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSetAtom } from 'jotai'
 import { authClient } from '@/lib/auth/auth-client'
 import { Button } from '@/shared/ui/Button'
@@ -16,6 +16,7 @@ import {
 
 export default function RegisterForm() {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 	const [name, setName] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
@@ -84,7 +85,8 @@ export default function RegisterForm() {
 					setAnonCompare([])
 				}
 
-				router.push('/')
+				const callbackUrl = searchParams.get('callbackUrl')
+				router.push(callbackUrl || '/')
 				router.refresh()
 			}
 		} catch {
@@ -177,7 +179,16 @@ export default function RegisterForm() {
 
 			<p className='text-center text-sm text-muted-foreground'>
 				Уже есть аккаунт?{' '}
-				<Link href='/login' className='text-primary hover:underline'>
+				<Link
+					href={
+						searchParams.get('callbackUrl')
+							? `/login?callbackUrl=${encodeURIComponent(
+									searchParams.get('callbackUrl')!,
+								)}`
+							: '/login'
+					}
+					className='text-primary hover:underline'
+				>
 					Войти
 				</Link>
 			</p>

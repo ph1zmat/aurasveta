@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSetAtom } from 'jotai'
 import { authClient } from '@/lib/auth/auth-client'
 import { Button } from '@/shared/ui/Button'
@@ -16,6 +16,7 @@ import {
 
 export default function LoginForm() {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [error, setError] = useState('')
@@ -73,9 +74,7 @@ export default function LoginForm() {
 				}
 
 				// Redirect admin to CMS, regular users to homepage
-				const callbackUrl = new URLSearchParams(window.location.search).get(
-					'callbackUrl',
-				)
+				const callbackUrl = searchParams.get('callbackUrl')
 				const user = result.data?.user as { role?: string } | undefined
 				if (callbackUrl) {
 					router.push(callbackUrl)
@@ -147,7 +146,16 @@ export default function LoginForm() {
 
 			<p className='text-center text-sm text-muted-foreground'>
 				Нет аккаунта?{' '}
-				<Link href='/register' className='text-primary hover:underline'>
+				<Link
+					href={
+						searchParams.get('callbackUrl')
+							? `/register?callbackUrl=${encodeURIComponent(
+									searchParams.get('callbackUrl')!,
+								)}`
+							: '/register'
+					}
+					className='text-primary hover:underline'
+				>
 					Зарегистрироваться
 				</Link>
 			</p>
