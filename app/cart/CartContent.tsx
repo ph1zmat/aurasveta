@@ -58,6 +58,7 @@ export default function CartContent() {
 	const [address, setAddress] = useState('')
 	const [phone, setPhone] = useState('')
 	const [comment, setComment] = useState('')
+	const [testPushLoading, setTestPushLoading] = useState(false)
 
 	const addressError = useMemo(() => {
 		const v = address.trim()
@@ -98,6 +99,23 @@ export default function CartContent() {
 		setShowCheckout(true)
 	}
 
+	async function handleTestPush() {
+		setTestPushLoading(true)
+		try {
+			const res = await fetch('/api/desktop/test-push', { method: 'POST' })
+			if (res.ok) {
+				toast.success('Тестовое уведомление отправлено')
+			} else {
+				const data = await res.json().catch(() => ({}))
+				toast.error(data.error || 'Не удалось отправить тестовое уведомление')
+			}
+		} catch {
+			toast.error('Ошибка сети')
+		} finally {
+			setTestPushLoading(false)
+		}
+	}
+
 	function handleCreateOrder(e: React.FormEvent) {
 		e.preventDefault()
 		if (!isCheckoutValid) {
@@ -112,7 +130,8 @@ export default function CartContent() {
 		})
 	}
 
-	if (itemsCount === 0 && !productsData) {
+	// Show loading only when we have cart items but product data is still fetching
+	if (rawItems.length > 0 && !productsData) {
 		return (
 			<div className='py-12 text-center'>
 				<p className='text-sm text-muted-foreground'>Загрузка корзины...</p>
@@ -137,10 +156,20 @@ export default function CartContent() {
 				<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-xl'>
 					В корзине {itemsCount} товара
 				</h1>
-				<Button variant='ghost' className='gap-2 self-start'>
-					<Link2 className='h-4 w-4' strokeWidth={1.5} />
-					Поделиться корзиной
-				</Button>
+				<div className='flex gap-2 self-start'>
+					<Button variant='ghost' className='gap-2'>
+						<Link2 className='h-4 w-4' strokeWidth={1.5} />
+						Поделиться корзиной
+					</Button>
+					<Button
+						variant='outline'
+						className='gap-2'
+						onClick={handleTestPush}
+						disabled={testPushLoading}
+					>
+						{testPushLoading ? 'Отправка...' : 'Тестировать пуш'}
+					</Button>
+				</div>
 			</div>
 
 			<div className='flex flex-col gap-8 lg:flex-row'>

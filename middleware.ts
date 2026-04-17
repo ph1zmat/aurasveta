@@ -44,37 +44,67 @@ export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl
 	const ip = getClientIp(request)
 
-	// Rate limiting for upload API
-	if (pathname.startsWith('/api/upload')) {
-		if (!rateLimit(`upload:${ip}`, 5, 60_000)) {
-			return NextResponse.json(
-				{ error: 'Слишком много запросов' },
-				{ status: 429 },
-			)
-		}
-	}
+	// CORS & rate limiting for API routes
+	if (pathname.startsWith('/api/')) {
+		const origin = request.headers.get('origin') ?? ''
+		const allowedOrigins = [
+			'http://localhost:3000',
+			'http://localhost:5173',
+			'http://localhost:8081',
+			'http://127.0.0.1:5173',
+			'http://127.0.0.1:8081',
+			'https://aurasveta.ru',
+		]
+		const corsOrigin = allowedOrigins.includes(origin) ? origin : ''
 
-	// Rate limiting for auth endpoints (tRPC)
-	if (
-		pathname.includes('/api/trpc/auth.login') ||
-		pathname.includes('/api/trpc/auth.register')
-	) {
-		if (!rateLimit(`auth:${ip}`, 10, 600_000)) {
-			return NextResponse.json(
-				{ error: 'Слишком много попыток. Попробуйте позже' },
-				{ status: 429 },
-			)
+		// OPTIONS preflight — return immediately with CORS headers
+		if (request.method === 'OPTIONS') {
+			return new NextResponse(null, {
+				status: 204,
+				headers: {
+					'Access-Control-Allow-Origin': corsOrigin,
+					'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+					'Access-Control-Allow-Headers': 'content-type, authorization, x-session-token, cookie',
+					'Access-Control-Allow-Credentials': 'true',
+					'Access-Control-Max-Age': '86400',
+				},
+			})
 		}
-	}
 
-	// Rate limiting for search (tRPC)
-	if (pathname.includes('/api/trpc/search')) {
-		if (!rateLimit(`search:${ip}`, 30, 60_000)) {
-			return NextResponse.json(
-				{ error: 'Слишком много запросов' },
-				{ status: 429 },
-			)
+		// Rate limiting (runs before route handlers)
+		if (pathname.startsWith('/api/upload')) {
+			if (!rateLimit(`upload:${ip}`, 5, 60_000)) {
+				return NextResponse.json(
+					{ error: 'Слишком много запросов' },
+					{ status: 429 },
+				)
+			}
 		}
+
+		if (
+			pathname.includes('/api/trpc/auth.login') ||
+			pathname.includes('/api/trpc/auth.register')
+		) {
+			if (!rateLimit(`auth:${ip}`, 10, 600_000)) {
+				return NextResponse.json(
+					{ error: 'Слишком много попыток. Попробуйте позже' },
+					{ status: 429 },
+				)
+			}
+		}
+
+		if (pathname.includes('/api/trpc/search')) {
+			if (!rateLimit(`search:${ip}`, 30, 60_000)) {
+				return NextResponse.json(
+					{ error: 'Слишком много запросов' },
+					{ status: 429 },
+				)
+			}
+		}
+
+		// Don't add CORS headers here — route handlers (/api/trpc, /api/auth) add their own.
+		// Adding them here would cause duplicate Access-Control-Allow-Origin, which browsers reject.
+		return NextResponse.next()
 	}
 
 	// better-auth session cookie

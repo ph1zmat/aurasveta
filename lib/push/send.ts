@@ -31,6 +31,7 @@ export async function sendPushToAdmins(payload: PushPayload) {
 			if (
 				reason.includes('NotRegistered') ||
 				reason.includes('InvalidRegistration') ||
+				reason.includes('DeviceNotRegistered') ||
 				reason.includes('410')
 			) {
 				failedDeviceIds.push(devices[index].id)
@@ -69,6 +70,11 @@ async function sendToDevice(
 }
 
 async function sendFCM(token: string, payload: PushPayload) {
+	// Expo Push tokens are NOT FCM tokens. Detect and route accordingly.
+	if (isExpoPushToken(token)) {
+		return sendExpoPush(token, payload)
+	}
+
 	// Firebase Admin SDK — если установлен firebase-admin
 	// Fallback: HTTP v1 API
 	const serverKey = process.env.FIREBASE_SERVER_KEY
@@ -100,6 +106,44 @@ async function sendFCM(token: string, payload: PushPayload) {
 	}
 
 	return response.json()
+}
+
+function isExpoPushToken(token: string) {
+	return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')
+}
+
+async function sendExpoPush(token: string, payload: PushPayload) {
+	const response = await fetch('https://exp.host/--/api/v2/push/send', {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Accept-Encoding': 'gzip, deflate',
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			to: token,
+			title: payload.title,
+			body: payload.body,
+			data: payload.data ?? {},
+			sound: 'default',
+			priority: 'high',
+		}),
+	})
+
+	if (!response.ok) {
+		const text = await response.text()
+		throw new Error(`Expo push error: ${response.status} ${text}`)
+	}
+
+	const json = (await response.json().catch(() => null)) as any
+	const ticket = json?.data
+	if (ticket?.status === 'error') {
+		// Typical details: "DeviceNotRegistered"
+		const details = ticket?.details ? JSON.stringify(ticket.details) : ''
+		throw new Error(`Expo push ticket error: ${ticket.message || 'unknown'} ${details}`.trim())
+	}
+
+	return json
 }
 
 async function sendWebPush(

@@ -10,6 +10,8 @@ import {
 	Download,
 	Webhook,
 } from 'lucide-react'
+import AdminNotificationsClient from './AdminNotificationsClient'
+import AdminNotificationsWidget from './AdminNotificationsWidget'
 
 const navItems = {
 	admin: [
@@ -36,6 +38,8 @@ export default async function AdminLayout({
 
 	return (
 		<div className='flex min-h-screen bg-background'>
+			<AdminNotificationsClient />
+			<AdminNotificationsWidget />
 			{/* Sidebar */}
 			<aside className='hidden w-64 shrink-0 border-r border-border bg-muted/30 lg:block'>
 				<div className='flex h-14 items-center border-b border-border px-6'>
