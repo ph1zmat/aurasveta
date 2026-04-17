@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import {
 	Menu,
 	BarChart3,
@@ -27,6 +27,12 @@ export default function Header() {
 	const pathname = usePathname()
 	const router = useRouter()
 	const { data: session } = authClient.useSession()
+
+	// Prevent hydration mismatch: session is only available client-side,
+	// so defer auth-dependent UI until after mount.
+	const [mounted, setMounted] = useState(false)
+	useEffect(() => setMounted(true), [])
+	const clientSession = mounted ? session : null
 
 	const [catalogOpen, setCatalogOpen] = useState(false)
 	const toggleCatalog = useCallback(() => setCatalogOpen(prev => !prev), [])
@@ -73,8 +79,8 @@ export default function Header() {
 		},
 		{
 			icon: User,
-			label: session ? 'Профиль' : 'Войти',
-			href: session ? '/admin' : '/login',
+			label: clientSession ? 'Профиль' : 'Войти',
+			href: clientSession ? '/admin' : '/login',
 			badge: 0,
 			hidden: false,
 		},
@@ -172,7 +178,7 @@ export default function Header() {
 							)
 						})}
 
-					{session && (
+					{clientSession && (
 						<button
 							onClick={handleSignOut}
 							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'

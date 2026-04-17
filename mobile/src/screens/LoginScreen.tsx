@@ -1,15 +1,24 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { useAuth } from '../lib/auth'
+import { colors, fontSize, fontWeight, spacing, borderRadius } from '../theme'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Sparkles, LogIn } from 'lucide-react-native'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function LoginScreen() {
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
-    if (!email || !password) return
+    setEmailError('')
+    if (!email || !password) { Alert.alert('Ошибка', 'Заполните все поля'); return }
+    if (!EMAIL_RE.test(email)) { setEmailError('Некорректный email'); return }
     setLoading(true)
     try {
       await login(email, password)
@@ -21,46 +30,66 @@ export function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>АУРА СВЕТА</Text>
-      <Text style={styles.subtitle}>Вход в панель управления</Text>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.logoBox}>
+          <View style={styles.logoCircle}>
+            <Sparkles size={32} color={colors.primary} />
+          </View>
+          <Text style={styles.title}>АУРА СВЕТА</Text>
+          <Text style={styles.subtitle}>Панель управления</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Пароль"
-        placeholderTextColor="#999"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        <View style={styles.form}>
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={(v) => { setEmail(v); setEmailError('') }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="admin@example.com"
+            error={emailError}
+            containerStyle={styles.field}
+          />
+          <Input
+            label="Пароль"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••"
+            containerStyle={styles.field}
+          />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Вход...' : 'Войти'}</Text>
-      </TouchableOpacity>
-    </View>
+          <Button
+            title={loading ? 'Вход...' : 'Войти'}
+            onPress={handleLogin}
+            loading={loading}
+            style={{ marginTop: spacing.md }}
+            icon={!loading ? <LogIn size={16} color={colors.primaryForeground} /> : undefined}
+          />
+        </View>
+
+        <Text style={styles.version}>v1.0.0</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: '#fff' },
-  title: { fontSize: 20, fontWeight: '700', textAlign: 'center', letterSpacing: 3, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 32 },
-  input: {
-    height: 48, borderWidth: 1, borderColor: '#e5e5e5', borderRadius: 12,
-    paddingHorizontal: 16, fontSize: 14, marginBottom: 12, backgroundColor: '#fafafa',
+  container: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.xl, backgroundColor: colors.background },
+  logoBox: { alignItems: 'center', marginBottom: spacing['3xl'] },
+  logoCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: colors.primary + '1A',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: spacing.lg,
   },
-  button: {
-    height: 48, backgroundColor: '#000', borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center', marginTop: 8,
+  title: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, letterSpacing: 4, color: colors.foreground },
+  subtitle: { fontSize: fontSize.sm, color: colors.mutedForeground, marginTop: spacing.xs },
+  form: {
+    backgroundColor: colors.card, borderRadius: borderRadius.xl,
+    padding: spacing.xl, borderWidth: 1, borderColor: colors.border,
   },
-  buttonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  field: { marginBottom: spacing.md },
+  version: { textAlign: 'center', fontSize: fontSize.xs, color: colors.mutedForeground, marginTop: spacing['2xl'] },
 })

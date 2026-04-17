@@ -21,33 +21,43 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-	const token = getTokenFromRequestHeaders(request.headers)
-	if (!token) {
+	try {
+		const token = getTokenFromRequestHeaders(request.headers)
+		if (!token) {
+			return NextResponse.json(
+				{ error: 'UNAUTHORIZED' },
+				{
+					status: 401,
+					headers: { 'Access-Control-Allow-Origin': '*' },
+				},
+			)
+		}
+
+		const headers = new Headers()
+		headers.set('cookie', `better-auth.session_token=${token}`)
+
+		const session = await auth.api.getSession({ headers })
+		if (!session?.user) {
+			return NextResponse.json(
+				{ error: 'UNAUTHORIZED' },
+				{
+					status: 401,
+					headers: { 'Access-Control-Allow-Origin': '*' },
+				},
+			)
+		}
+
+		return NextResponse.json(session, {
+			headers: { 'Access-Control-Allow-Origin': '*' },
+		})
+	} catch {
 		return NextResponse.json(
-			{ error: 'UNAUTHORIZED' },
+			{ error: 'INTERNAL_SERVER_ERROR' },
 			{
-				status: 401,
+				status: 500,
 				headers: { 'Access-Control-Allow-Origin': '*' },
 			},
 		)
 	}
-
-	const headers = new Headers()
-	headers.set('cookie', `better-auth.session_token=${token}`)
-
-	const session = await auth.api.getSession({ headers })
-	if (!session?.user) {
-		return NextResponse.json(
-			{ error: 'UNAUTHORIZED' },
-			{
-				status: 401,
-				headers: { 'Access-Control-Allow-Origin': '*' },
-			},
-		)
-	}
-
-	return NextResponse.json(session, {
-		headers: { 'Access-Control-Allow-Origin': '*' },
-	})
 }
 

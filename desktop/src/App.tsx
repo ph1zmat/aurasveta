@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { AdminLayout } from './components/AdminLayout'
@@ -29,6 +29,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function ProtectedLayout() {
+  return (
+    <ProtectedRoute>
+      <AdminLayout>
+        <Outlet />
+      </AdminLayout>
+    </ProtectedRoute>
+  )
+}
+
 function AppRoutes() {
   const navigate = useNavigate()
 
@@ -44,28 +54,19 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <AdminLayout>
-              <Routes>
-                <Route index element={<DashboardPage />} />
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="pages" element={<PagesPage />} />
-                <Route path="properties" element={<PropertiesPage />} />
-                <Route path="webhooks" element={<WebhooksPage />} />
-                <Route path="import-export" element={<ImportExportPage />} />
-                <Route path="seo" element={<SeoPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={<ProtectedLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="categories" element={<CategoriesPage />} />
+        <Route path="orders" element={<OrdersPage />} />
+        <Route path="pages" element={<PagesPage />} />
+        <Route path="properties" element={<PropertiesPage />} />
+        <Route path="webhooks" element={<WebhooksPage />} />
+        <Route path="import-export" element={<ImportExportPage />} />
+        <Route path="seo" element={<SeoPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

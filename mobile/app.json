@@ -1,32 +1,42 @@
 {
-	"expo": {
-		"name": "Аура Света CMS",
-		"slug": "auracms",
-		"version": "1.0.0",
-		"orientation": "portrait",
-		"icon": "./assets/icon.png",
-		"userInterfaceStyle": "automatic",
-		"splash": {
-			"image": "./assets/splash.png",
-			"resizeMode": "contain",
-			"backgroundColor": "#ffffff"
-		},
-		"assetBundlePatterns": ["**/*"],
-		"android": {
-			"package": "ru.aurasveta.cms",
-			"adaptiveIcon": {
-				"foregroundImage": "./assets/adaptive-icon.png",
-				"backgroundColor": "#ffffff"
-			},
-			"permissions": ["NOTIFICATIONS", "INTERNET"],
-			"googleServicesFile": "./google-services.json"
-		},
-		"plugins": ["expo-notifications", "expo-secure-store"],
-		"extra": {
-			"eas": {
-				"projectId": "0521569e-d8d4-4491-b8a7-f41f2142bd88"
-			}
-		},
-		"owner": "ph1zpunk"
-	}
+  "expo": {
+    "name": "Аура Света CMS",
+    "slug": "auracms",
+    "scheme": "aurasveta",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "ru.aurasveta.cms",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "NOTIFICATIONS",
+        "INTERNET"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-sharing"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0521569e-d8d4-4491-b8a7-f41f2142bd88"
+      }
+    },
+    "owner": "ph1zpunk"
+  }
 }

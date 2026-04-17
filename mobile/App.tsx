@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider } from './src/lib/auth'
@@ -9,13 +9,21 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 })
 
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#F5F0E8',
+  },
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider>
         <AuthProvider>
-          <NavigationContainer>
-            <StatusBar style="auto" />
+          <NavigationContainer theme={navTheme}>
+            <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
         </AuthProvider>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
+import { useNavigation } from '@react-navigation/native'
 import { trpc } from '../lib/trpc'
 
 Notifications.setNotificationHandler({
@@ -15,6 +16,7 @@ export function usePushNotifications() {
   const notificationListener = useRef<Notifications.Subscription>()
   const responseListener = useRef<Notifications.Subscription>()
   const registerMut = trpc.push.register.useMutation()
+  const navigation = useNavigation<any>()
 
   useEffect(() => {
     registerForPushNotifications().then(token => {
@@ -31,12 +33,19 @@ export function usePushNotifications() {
       console.log('[Push] Received:', notification)
     })
 
-    // Клик по уведомлению
+    // Клик по уведомлению — навигация к заказу
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data
-      if (data?.orderId) {
-        // Навигация к заказу — через deep link или навигатор
-        console.log('[Push] Navigate to order:', data.orderId)
+      if (data?.orderId && data?.order) {
+        navigation.navigate('OrdersTab', {
+          screen: 'OrderDetail',
+          params: { order: data.order },
+        })
+      } else if (data?.orderId) {
+        // Минимальная навигация если полный order не передан
+        navigation.navigate('OrdersTab', {
+          screen: 'OrdersList',
+        })
       }
     })
 

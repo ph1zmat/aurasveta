@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createTRPCReact, httpBatchStreamLink } from '@trpc/react-query'
+import { createTRPCReact } from '@trpc/react-query'
+import { httpBatchLink } from '@trpc/client'
 import superjson from 'superjson'
 import { getApiUrl, getToken } from './store'
 
-// Импортируем AppRouter из типов (сгенерированных)
-// В runtime — тип стирается, для сети используется httpBatchStreamLink
 import type { AppRouter } from '../../../lib/trpc/routers/_app'
 
 export const trpc = createTRPCReact<AppRouter>()
@@ -24,16 +23,34 @@ function getQueryClient() {
   return (queryClientSingleton ??= makeQueryClient())
 }
 
-// API URL — берётся из electron-store
 let cachedApiUrl = 'https://aurasveta.ru'
 export function setApiUrlCache(url: string) {
   cachedApiUrl = url
+}
+
+function buildTrpcClient(apiUrl: string) {
+  return trpc.createClient({
+    links: [
+      httpBatchLink({
+        // In dev, Vite proxies /api/* to the Next.js backend.
+        url: import.meta.env.DEV ? '/api/trpc' : `${apiUrl}/api/trpc`,
+        transformer: superjson,
+        async headers() {
+          const token = await getToken()
+          return token ? { Authorization: `Bearer ${token}` } : {}
+        },
+      }),
+    ],
+  })
 }
 
 export function TRPCProvider({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient()
 
   const [apiUrl, setApiUrl] = useState<string>(cachedApiUrl)
+
+  // Lazy initializer — client created once, not on every render
+  const [trpcClient, setTrpcClient] = useState(() => buildTrpcClient(cachedApiUrl))
 
   useEffect(() => {
     let mounted = true
@@ -59,22 +76,13 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const trpcClient = useMemo(
-    () =>
-      trpc.createClient({
-        links: [
-          httpBatchStreamLink({
-            url: `${apiUrl}/api/trpc`,
-            transformer: superjson,
-            async headers() {
-              const token = await getToken()
-              return token ? { Authorization: `Bearer ${token}` } : {}
-            },
-          }),
-        ],
-      }),
-    [apiUrl],
-  )
+  // Rebuild client when apiUrl changes
+  // NOTE: must use updater form (() => value) because the tRPC client
+  // is a Proxy with a function target — React would call it as a state
+  // updater if passed directly, causing it to become undefined.
+  useEffect(() => {
+    setTrpcClient(() => buildTrpcClient(apiUrl))
+  }, [apiUrl])
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>

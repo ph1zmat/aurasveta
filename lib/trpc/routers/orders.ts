@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server'
 import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
 import { sendPushToAdmins } from '@/lib/push/send'
+import { adminEventBus } from '@/lib/realtime/admin-events'
 
 export const ordersRouter = createTRPCRouter({
 	getMyOrders: protectedProcedure.query(async ({ ctx }) => {
@@ -121,6 +122,14 @@ export const ordersRouter = createTRPCRouter({
 				body: `Заказ #${order.id.slice(-6)} на сумму ${order.total}₽`,
 				data: { orderId: order.id, type: 'new_order' },
 			}).catch(err => console.error('[Push] Ошибка отправки:', err))
+
+			// Realtime для открытой CMS (SSE)
+			adminEventBus.publish({
+				type: 'order.created',
+				orderId: order.id,
+				total: order.total,
+				createdAt: new Date().toISOString(),
+			})
 
 			return order
 		}),
