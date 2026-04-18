@@ -40,6 +40,7 @@ export function TRPCProvider(props: Readonly<{ children: React.ReactNode }>) {
 				httpBatchStreamLink({
 					url: getUrl(),
 					transformer: superjson,
+					maxURLLength: 2048,
 				}),
 			],
 		}),

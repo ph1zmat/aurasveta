@@ -28,6 +28,7 @@ import { Button } from '../components/ui/Button'
 import { IconButton } from '../components/ui/IconButton'
 import { Skeleton, SkeletonCard } from '../components/ui/Skeleton'
 import { useToast } from '../components/ui/Toast'
+import type { OrderStatus } from '../navigation/types'
 import {
 	Package,
 	ShoppingCart,
@@ -504,7 +505,7 @@ function OrderModal({
 			{
 				text: 'Да',
 				onPress: () =>
-					updateStatus.mutate({ id: order.id, status: next as any }),
+					updateStatus.mutate({ id: order.id, status: next as OrderStatus }),
 			},
 		])
 	}

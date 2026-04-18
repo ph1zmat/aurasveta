@@ -17,7 +17,45 @@ export const cartRouter = createTRPCRouter({
 		const cart = await ctx.prisma.cart.findUnique({
 			where: { userId: ctx.userId },
 		})
-		return cart?.items ?? []
+		const items = (cart?.items as unknown as CartItem[]) ?? []
+		if (items.length === 0) return []
+
+		// Fetch product details in a single query to avoid waterfall
+		const productIds = items.map(i => i.productId)
+		const products = await ctx.prisma.product.findMany({
+			where: { id: { in: productIds }, isActive: true },
+			select: {
+				id: true,
+				slug: true,
+				name: true,
+				price: true,
+				compareAtPrice: true,
+				images: true,
+				imagePath: true,
+				stock: true,
+			},
+		})
+		const productMap = new Map(products.map(p => [p.id, p]))
+
+		return items.map(item => {
+			const p = productMap.get(item.productId)
+			return {
+				productId: item.productId,
+				quantity: item.quantity,
+				product: p
+					? {
+							id: p.id,
+							slug: p.slug,
+							name: p.name,
+							price: p.price,
+							compareAtPrice: p.compareAtPrice,
+							images: p.images,
+							imagePath: p.imagePath,
+							stock: p.stock,
+						}
+					: null,
+			}
+		})
 	}),
 
 	update: protectedProcedure

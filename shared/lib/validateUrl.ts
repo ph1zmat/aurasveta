@@ -31,7 +31,7 @@ function isPrivateIp(ip: string): boolean {
 	return PRIVATE_IP_RANGES.some(range => num >= range.start && num <= range.end)
 }
 
-const BLOCKED_HOSTNAMES = ['localhost', 'metadata.google.internal ']
+const BLOCKED_HOSTNAMES = ['localhost', 'metadata.google.internal']
 
 export function validateWebhookUrl(url: string): {
 	valid: boolean

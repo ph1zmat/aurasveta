@@ -120,9 +120,7 @@ export function PagesScreen({ navigation }: Props) {
 					<View style={styles.cardActions}>
 						<IconButton
 							icon={<Pencil size={16} color={colors.primaryForeground} />}
-							onPress={() =>
-								(navigation as any).navigate('PageForm', { id: item.id })
-							}
+							onPress={() => navigation.navigate('PageForm', { id: item.id })}
 							accessibilityLabel='Редактировать'
 							size='sm'
 							variant='overlay'
@@ -179,7 +177,7 @@ export function PagesScreen({ navigation }: Props) {
 					<Button
 						title='Создать'
 						size='sm'
-						onPress={() => (navigation as any).navigate('PageForm')}
+						onPress={() => navigation.navigate('PageForm')}
 						icon={<Plus size={14} color={colors.primaryForeground} />}
 					/>
 				}

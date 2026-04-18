@@ -12,9 +12,13 @@ import { getToken, setToken, getApiUrl } from './store'
 const isWeb = Platform.OS === 'web'
 
 /** Build auth headers: on web use credentials:'include', on native set Cookie manually */
-function authHeaders(token: string | null): { headers?: Record<string, string>; credentials?: RequestCredentials } {
+function authHeaders(token: string | null): {
+	headers?: Record<string, string>
+	credentials?: RequestCredentials
+} {
 	if (isWeb) return { credentials: 'include' }
-	if (token) return { headers: { Cookie: `better-auth.session_token=${token}` } }
+	if (token)
+		return { headers: { Cookie: `better-auth.session_token=${token}` } }
 	return {}
 }
 
@@ -90,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const login = useCallback(
 		async (email: string, password: string) => {
 			const apiUrl = await getApiUrl()
-			console.log('[AUTH] login → POST', `${apiUrl}/api/auth/sign-in/email`)
+			if (__DEV__)
+				console.log('[AUTH] login → POST', `${apiUrl}/api/auth/sign-in/email`)
 			let res: Response
 			try {
 				res = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
@@ -104,37 +109,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				throw new Error('Сервер недоступен')
 			}
 
-			console.log('[AUTH] response status:', res.status)
+			if (__DEV__) console.log('[AUTH] response status:', res.status)
 			const text = await res.text()
-			console.log('[AUTH] response body:', text.slice(0, 500))
-			console.log('[AUTH] response headers:', [...res.headers.entries()])
+			if (__DEV__) console.log('[AUTH] response body:', text.slice(0, 500))
+			if (__DEV__)
+				console.log('[AUTH] response headers:', [...res.headers.entries()])
 
 			if (!res.ok) {
 				let msg = 'Ошибка входа'
-				try { msg = JSON.parse(text).message || msg } catch {}
+				try {
+					msg = JSON.parse(text).message || msg
+				} catch {}
 				throw new Error(msg)
 			}
 
 			let data: any
-			try { data = JSON.parse(text) } catch { data = {} }
-			console.log('[AUTH] parsed data keys:', Object.keys(data))
-			if (data.session) console.log('[AUTH] session keys:', Object.keys(data.session))
+			try {
+				data = JSON.parse(text)
+			} catch {
+				data = {}
+			}
+			if (__DEV__) console.log('[AUTH] parsed data keys:', Object.keys(data))
+			if (__DEV__ && data.session)
+				console.log('[AUTH] session keys:', Object.keys(data.session))
 
 			// better-auth returns token in body or set-cookie header
-			let token =
-				data.token ||
-				data.session?.token ||
-				data.session?.id
+			let token = data.token || data.session?.token || data.session?.id
 			// React Native on Android may hide set-cookie, try header as fallback
 			if (!token) {
 				const setCookie = res.headers.get('set-cookie')
-				console.log('[AUTH] set-cookie header:', setCookie)
+				if (__DEV__) console.log('[AUTH] set-cookie header:', setCookie)
 				if (setCookie) {
 					const m = setCookie.match(/better-auth\.session_token=([^;]+)/)
 					if (m) token = m[1]
 				}
 			}
-			console.log('[AUTH] extracted token:', token ? `${token.slice(0, 8)}...` : 'null')
+			if (__DEV__)
+				console.log(
+					'[AUTH] extracted token:',
+					token ? `${token.slice(0, 8)}...` : 'null',
+				)
 			if (!token) {
 				throw new Error('Не удалось получить токен сессии')
 			}

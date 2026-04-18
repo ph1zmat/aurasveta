@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native'
 import type { OrderDetailProps } from '../navigation/types'
 import type { StatusKey } from '../theme'
+import type { OrderStatus } from '../navigation/types'
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
 	PENDING: ['PAID', 'CANCELLED'],
@@ -60,7 +61,7 @@ export function OrderDetailScreen({ route, navigation }: OrderDetailProps) {
 			{
 				text: 'Да',
 				onPress: () =>
-					updateStatus.mutate({ id: order.id, status: status as any }),
+					updateStatus.mutate({ id: order.id, status: status as OrderStatus }),
 			},
 		])
 	}

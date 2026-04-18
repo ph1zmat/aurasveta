@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useMemo, useCallback } from 'react'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useCart } from '@/features/cart/useCart'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
@@ -18,6 +18,7 @@ export default function InteractiveCatalogCard({
 }: InteractiveCatalogCardProps) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
+	const router = useRouter()
 	const cart = useCart()
 	const favorites = useFavorites()
 	const compare = useCompare()
@@ -42,16 +43,22 @@ export default function InteractiveCatalogCard({
 		return `${url.pathname}${url.search}${url.hash}`
 	}, [pathname, props.href, searchParams])
 
+	const handleMouseEnter = useCallback(() => {
+		router.prefetch(hrefWithReturnTo)
+	}, [router, hrefWithReturnTo])
+
 	return (
-		<CatalogProductCard
-			{...props}
-			href={hrefWithReturnTo}
-			productId={productId}
-			isFavorite={favorites.has(productId)}
-			isCompare={compare.has(productId)}
-			onToggleFavorite={() => favorites.toggle(productId)}
-			onToggleCompare={() => compare.toggle(productId)}
-			onAddToCart={() => cart.add(productId)}
-		/>
+		<div onMouseEnter={handleMouseEnter}>
+			<CatalogProductCard
+				{...props}
+				href={hrefWithReturnTo}
+				productId={productId}
+				isFavorite={favorites.has(productId)}
+				isCompare={compare.has(productId)}
+				onToggleFavorite={() => favorites.toggle(productId)}
+				onToggleCompare={() => compare.toggle(productId)}
+				onAddToCart={() => cart.add(productId)}
+			/>
+		</div>
 	)
 }

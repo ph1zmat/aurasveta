@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { keepPreviousData } from '@tanstack/react-query'
 import { trpc } from '@/lib/trpc/client'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import MobileFilterWrapper from '@/features/catalog-filter/ui/MobileFilterWrapper'
@@ -141,11 +142,17 @@ export default function CategoryContent({ slug }: { slug: string }) {
 
 	const [searchInput, setSearchInput] = useState(search)
 
-	const { data: category } = trpc.categories.getBySlug.useQuery(slug)
-	const { data: categoriesTree } = trpc.categories.getTree.useQuery()
+	const { data: category } = trpc.categories.getBySlug.useQuery(slug, {
+		staleTime: 5 * 60 * 1000,
+	})
+	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+	})
 	const { data: availableFilters } = trpc.products.getAvailableFilters.useQuery({
 		categorySlug: slug,
 		includeChildren: true,
+	}, {
+		staleTime: 3 * 60 * 1000,
 	})
 
 	const { data: productsData, isLoading } = trpc.products.getMany.useQuery({
@@ -164,6 +171,8 @@ export default function CategoryContent({ slug }: { slug: string }) {
 			Object.keys(selectedPropertyFilters).length > 0
 				? selectedPropertyFilters
 				: undefined,
+	}, {
+		placeholderData: keepPreviousData,
 	})
 
 	const categoryName = category?.name ?? slug

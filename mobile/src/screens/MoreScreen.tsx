@@ -114,7 +114,7 @@ export function MoreScreen({ navigation }: Props) {
 						<Pressable
 							key={item.route}
 							android_ripple={ripple.ghost}
-							onPress={() => navigation.navigate(item.route as any)}
+							onPress={() => navigation.navigate(item.route)}
 							style={({ pressed }) => [
 								styles.menuItem,
 								pressed && Platform.OS === 'ios'

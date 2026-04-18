@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { trpc } from '@/lib/trpc/client'
 import { useCart } from '@/features/cart/useCart'
 import CartItem from '@/features/cart/ui/CartItem'
 import CartSummary from '@/features/cart/ui/CartSummary'
@@ -10,36 +9,62 @@ import { Button } from '@/shared/ui/Button'
 import { Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
+import { trpc } from '@/lib/trpc/client'
 
 export default function CartContent() {
-	const { items: rawItems, remove, updateQuantity, clear, isAuth } = useCart()
+	const { items: rawItems, serverCartWithProducts, remove, updateQuantity, clear, isAuth } = useCart()
 
-	// Fetch product details for all items in cart
-	const cartItemIds = rawItems.map(i => i.productId)
-	const { data: productsData } = trpc.products.getByIds.useQuery(cartItemIds, {
-		enabled: cartItemIds.length > 0,
+	// For auth users: use product data already included in cart.get
+	// For anon users: fetch product details separately
+	const anonItemIds = !isAuth ? rawItems.map(i => i.productId) : []
+	const { data: anonProductsData } = trpc.products.getByIds.useQuery(anonItemIds, {
+		enabled: anonItemIds.length > 0,
 	})
 
-	const productMap = new Map((productsData ?? []).map(p => [p.id, p]))
+	const cartItems: CartItemData[] = useMemo(() => {
+		if (isAuth) {
+			// Use enriched data from cart.get (includes product)
+			return (serverCartWithProducts as Array<Record<string, unknown>>)
+				.map(item => {
+					const p = item.product as Record<string, unknown> | null
+					if (!p) return null
+					return {
+						id: String(item.productId),
+						name: String(p.name ?? ''),
+						href: `/product/${p.slug}`,
+						image:
+							(p.imagePath as string) ??
+							(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
+							'/bulb.svg',
+						price: Number(p.price ?? 0),
+						oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
+						quantity: Number(item.quantity),
+					}
+				})
+				.filter(Boolean) as CartItemData[]
+		}
 
-	const cartItems: CartItemData[] = rawItems
-		.map(item => {
-			const p = productMap.get(item.productId)
-			if (!p) return null
-			return {
-				id: item.productId,
-				name: p.name,
-				href: `/product/${p.slug}`,
-				image:
-					(p as { imagePath?: string | null }).imagePath ??
-					(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
-					'/bulb.svg',
-				price: p.price ?? 0,
-				oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
-				quantity: item.quantity,
-			}
-		})
-		.filter(Boolean) as CartItemData[]
+		// Anon: use separately fetched product data
+		const productMap = new Map((anonProductsData ?? []).map(p => [p.id, p]))
+		return rawItems
+			.map(item => {
+				const p = productMap.get(item.productId)
+				if (!p) return null
+				return {
+					id: item.productId,
+					name: p.name,
+					href: `/product/${p.slug}`,
+					image:
+						(p as { imagePath?: string | null }).imagePath ??
+						(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
+						'/bulb.svg',
+					price: p.price ?? 0,
+					oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
+					quantity: item.quantity,
+				}
+			})
+			.filter(Boolean) as CartItemData[]
+	}, [isAuth, serverCartWithProducts, rawItems, anonProductsData])
 
 	const itemsCount = cartItems.length
 	const subtotal = cartItems.reduce(
@@ -131,7 +156,7 @@ export default function CartContent() {
 	}
 
 	// Show loading only when we have cart items but product data is still fetching
-	if (rawItems.length > 0 && !productsData) {
+	if (rawItems.length > 0 && cartItems.length === 0 && (!isAuth || serverCartWithProducts.length > 0)) {
 		return (
 			<div className='py-12 text-center'>
 				<p className='text-sm text-muted-foreground'>Загрузка корзины...</p>

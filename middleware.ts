@@ -7,7 +7,11 @@ const authPaths = ['/login', '/register']
 // In-memory rate limiter (for single-instance deployments; use Redis for multi-instance)
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
 
-function rateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+function rateLimit(
+	key: string,
+	maxRequests: number,
+	windowMs: number,
+): boolean {
 	const now = Date.now()
 	const entry = rateLimitStore.get(key)
 
@@ -30,31 +34,35 @@ function getClientIp(request: NextRequest): string {
 	)
 }
 
-// Cleanup stale entries periodically
-if (typeof globalThis !== 'undefined') {
-	setInterval(() => {
-		const now = Date.now()
-		for (const [key, entry] of rateLimitStore) {
-			if (now > entry.resetAt) rateLimitStore.delete(key)
-		}
-	}, 60_000)
+// Cleanup stale entries lazily on each request (avoids setInterval in edge runtime)
+let lastCleanup = 0
+function cleanStaleEntries() {
+	const now = Date.now()
+	if (now - lastCleanup < 60_000) return
+	lastCleanup = now
+	for (const [key, entry] of rateLimitStore) {
+		if (now > entry.resetAt) rateLimitStore.delete(key)
+	}
 }
 
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl
 	const ip = getClientIp(request)
+	cleanStaleEntries()
 
 	// CORS & rate limiting for API routes
 	if (pathname.startsWith('/api/')) {
 		const origin = request.headers.get('origin') ?? ''
-		const allowedOrigins = [
+		const isDev = process.env.NODE_ENV !== 'production'
+		const prodOrigins = ['https://aurasveta.ru']
+		const devOrigins = [
 			'http://localhost:3000',
 			'http://localhost:5173',
 			'http://localhost:8081',
 			'http://127.0.0.1:5173',
 			'http://127.0.0.1:8081',
-			'https://aurasveta.ru',
 		]
+		const allowedOrigins = isDev ? [...prodOrigins, ...devOrigins] : prodOrigins
 		const corsOrigin = allowedOrigins.includes(origin) ? origin : ''
 
 		// OPTIONS preflight — return immediately with CORS headers
@@ -64,7 +72,8 @@ export function middleware(request: NextRequest) {
 				headers: {
 					'Access-Control-Allow-Origin': corsOrigin,
 					'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-					'Access-Control-Allow-Headers': 'content-type, authorization, x-session-token, cookie',
+					'Access-Control-Allow-Headers':
+						'content-type, authorization, x-session-token, cookie',
 					'Access-Control-Allow-Credentials': 'true',
 					'Access-Control-Max-Age': '86400',
 				},
@@ -132,4 +141,3 @@ export function middleware(request: NextRequest) {
 export const config = {
 	matcher: ['/api/:path*', '/admin/:path*', '/login', '/register'],
 }
-

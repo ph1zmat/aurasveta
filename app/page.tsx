@@ -14,7 +14,41 @@ import AboutSection from '@/widgets/home-sections/ui/AboutSection'
 import RecentlyViewed from '@/widgets/home-sections/ui/RecentlyViewed'
 import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
 import ChatButton from '@/shared/ui/ChatButton'
+import Skeleton from '@/shared/ui/Skeleton'
+import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
+
+function ProductGridSkeleton() {
+	return (
+		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
+			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+				{Array.from({ length: 8 }).map((_, i) => (
+					<div key={i} className='space-y-3'>
+						<Skeleton className='h-36 w-full rounded-xl' />
+						<Skeleton className='h-4 w-3/4' />
+						<Skeleton className='h-3 w-1/2' />
+					</div>
+				))}
+			</div>
+		</section>
+	)
+}
+
+function CategoriesSkeleton() {
+	return (
+		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
+			<Skeleton className='mb-6 h-5 w-56' />
+			<div className='grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-7'>
+				{Array.from({ length: 7 }).map((_, i) => (
+					<div key={i} className='flex flex-col items-center gap-3 p-4'>
+						<Skeleton className='h-24 w-24 rounded-full' />
+						<Skeleton className='h-3 w-16' />
+					</div>
+				))}
+			</div>
+		</section>
+	)
+}
 
 export default async function Home() {
 	const brandNames = await prisma.product.findMany({
@@ -38,10 +72,16 @@ export default async function Home() {
 				<CategoryNav />
 				<HeroBanner />
 				<PopularQueries />
-				<PopularCategories />
-				<SaleProducts />
+				<Suspense fallback={<CategoriesSkeleton />}>
+					<PopularCategories />
+				</Suspense>
+				<Suspense fallback={<ProductGridSkeleton />}>
+					<SaleProducts />
+				</Suspense>
 				<RoomCategories />
-				<NewProducts />
+				<Suspense fallback={<ProductGridSkeleton />}>
+					<NewProducts />
+				</Suspense>
 				<PopularProducts />
 				<BrandsCarousel brands={brands} />
 				<Advantages />
