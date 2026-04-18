@@ -1,6 +1,12 @@
 'use client'
 
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import {
+	useState,
+	useCallback,
+	useRef,
+	useMemo,
+	useSyncExternalStore,
+} from 'react'
 import {
 	Menu,
 	BarChart3,
@@ -17,8 +23,8 @@ import SearchBar from '@/widgets/header/ui/SearchBar'
 import CatalogDropdown from '@/widgets/header/ui/CatalogDropdown'
 import MiniCart from '@/widgets/header/ui/MiniCart'
 import CountBadge from '@/shared/ui/CountBadge'
-import { trpc } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
+import { useCart } from '@/features/cart/useCart'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 import type { CartItemData } from '@/shared/types/cart'
@@ -30,8 +36,11 @@ export default function Header() {
 
 	// Prevent hydration mismatch: session is only available client-side,
 	// so defer auth-dependent UI until after mount.
-	const [mounted, setMounted] = useState(false)
-	useEffect(() => setMounted(true), [])
+	const mounted = useSyncExternalStore(
+		() => () => {},
+		() => true,
+		() => false,
+	)
 	const clientSession = mounted ? session : null
 
 	const [catalogOpen, setCatalogOpen] = useState(false)
@@ -41,23 +50,26 @@ export default function Header() {
 	const [cartOpen, setCartOpen] = useState(false)
 	const cartTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-	// Fetch real cart data — silently returns empty on auth failure
-	const { data: cartRaw } = trpc.cart.get.useQuery(undefined, {
-		retry: false,
-		refetchOnWindowFocus: false,
-	})
-	const cartItems = useMemo<CartItemData[]>(() => {
-		if (!Array.isArray(cartRaw)) return []
-		return (cartRaw as Array<Record<string, unknown>>).map(item => ({
-			id: String(item.productId ?? item.id ?? ''),
-			name: String(item.name ?? ''),
-			href: String(item.href ?? `/product/${item.productId}`),
-			image: String(item.image ?? '/images/placeholder.jpg'),
-			price: Number(item.price ?? 0),
-			quantity: Number(item.quantity ?? 1),
-		}))
-	}, [cartRaw])
-	const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+	const { serverCartWithProducts, count: cartCount } = useCart()
+	const cartItems = useMemo<CartItemData[]>(
+		() =>
+			(serverCartWithProducts as Array<Record<string, unknown>>).map(item => {
+				const p = item.product as Record<string, unknown> | null
+				return {
+					id: String(item.productId ?? ''),
+					name: p ? String(p.name ?? '') : '',
+					href: p ? `/product/${p.slug}` : `/product/${item.productId}`,
+					image: p
+						? (p.imagePath as string) ??
+							(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
+							'/images/placeholder.jpg'
+						: '/images/placeholder.jpg',
+					price: p ? Number(p.price ?? 0) : 0,
+					quantity: Number(item.quantity ?? 1),
+				}
+			}),
+		[serverCartWithProducts],
+	)
 
 	const { count: favoritesCount } = useFavorites()
 	const { count: compareCount } = useCompare()
@@ -77,13 +89,28 @@ export default function Header() {
 			badge: favoritesCount,
 			hidden: pathname === '/favorites',
 		},
-		{
-			icon: User,
-			label: clientSession ? 'Профиль' : 'Войти',
-			href: clientSession ? '/admin' : '/login',
-			badge: 0,
-			hidden: false,
-		},
+		...(clientSession
+			? clientSession.user?.role === 'ADMIN' ||
+				clientSession.user?.role === 'EDITOR'
+				? [
+						{
+							icon: User,
+							label: 'Профиль',
+							href: '/admin',
+							badge: 0,
+							hidden: false,
+						},
+					]
+				: []
+			: [
+					{
+						icon: User,
+						label: 'Войти',
+						href: '/login',
+						badge: 0,
+						hidden: false,
+					},
+				]),
 		{
 			icon: ShoppingCart,
 			label: 'Корзина',
@@ -133,8 +160,12 @@ export default function Header() {
 					<span className='hidden sm:inline'>Каталог</span>
 				</Button>
 
-				{/* Search */}
-				<SearchBar />
+				{/* Search — expands when action icons are hidden on current page */}
+				<SearchBar
+					className={
+						headerActions.some(a => a.hidden) ? 'max-w-3xl' : 'max-w-2xl'
+					}
+				/>
 
 				{/* Actions */}
 				<div className='flex items-center gap-4 lg:gap-6'>

@@ -9,10 +9,12 @@ import {
 } from '@/entities/product/model/adapters'
 
 export default function CatalogContent() {
-	const { data: categoriesTree } = trpc.categories.getTree.useQuery()
+	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+	})
 	const { data: productsData } = trpc.products.getMany.useQuery({
 		page: 1,
-		limit: 100,
+		limit: 24,
 	})
 
 	const categories = (categoriesTree ?? []).map(cat => ({

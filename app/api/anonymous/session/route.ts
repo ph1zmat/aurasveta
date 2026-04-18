@@ -10,7 +10,8 @@ function generateSessionId(): string {
 }
 
 function signSessionId(sessionId: string): string {
-	const secret = process.env.BETTER_AUTH_SECRET || 'fallback-secret'
+	const secret = process.env.BETTER_AUTH_SECRET
+	if (!secret) throw new Error('BETTER_AUTH_SECRET is required')
 	return crypto.createHmac('sha256', secret).update(sessionId).digest('hex')
 }
 
@@ -20,8 +21,14 @@ export async function GET() {
 
 	if (existing) {
 		const [sessionId, signature] = existing.value.split('.')
-		if (sessionId && signature && signSessionId(sessionId) === signature) {
-			return NextResponse.json({ sessionId })
+		if (sessionId && signature) {
+			const expected = signSessionId(sessionId)
+			if (
+				expected.length === signature.length &&
+				crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+			) {
+				return NextResponse.json({ sessionId })
+			}
 		}
 	}
 

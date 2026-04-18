@@ -1,8 +1,5 @@
 import { z } from 'zod'
-import {
-	createTRPCRouter,
-	adminProcedure,
-} from '../init'
+import { createTRPCRouter, adminProcedure } from '../init'
 
 export const adminRouter = createTRPCRouter({
 	getStats: adminProcedure.query(async ({ ctx }) => {
@@ -96,21 +93,47 @@ export const adminRouter = createTRPCRouter({
 			})
 
 			if (input === 'json') {
-				return { format: 'json' as const, data: JSON.stringify(products, null, 2) }
+				return {
+					format: 'json' as const,
+					data: JSON.stringify(products, null, 2),
+				}
 			}
 
 			// CSV
 			const headers = [
-				'id', 'name', 'slug', 'description', 'price', 'compareAtPrice',
-				'stock', 'sku', 'category', 'brand', 'brandCountry', 'isActive',
+				'id',
+				'name',
+				'slug',
+				'description',
+				'price',
+				'compareAtPrice',
+				'stock',
+				'sku',
+				'category',
+				'brand',
+				'brandCountry',
+				'isActive',
 			]
 			const rows = products.map(p => [
-				p.id, p.name, p.slug, p.description ?? '', p.price ?? '',
-				p.compareAtPrice ?? '', p.stock, p.sku ?? '',
-				p.category?.name ?? '', p.brand ?? '', p.brandCountry ?? '',
+				p.id,
+				p.name,
+				p.slug,
+				p.description ?? '',
+				p.price ?? '',
+				p.compareAtPrice ?? '',
+				p.stock,
+				p.sku ?? '',
+				p.category?.name ?? '',
+				p.brand ?? '',
+				p.brandCountry ?? '',
 				p.isActive,
 			])
-			const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n')
+			const csv = [
+				headers.join(','),
+				...rows.map(r =>
+					r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','),
+				),
+			].join('\n')
 
 			return { format: 'csv' as const, data: csv }
 		}),
@@ -137,34 +160,78 @@ export const adminRouter = createTRPCRouter({
 			let created = 0
 			let updated = 0
 
-			for (const item of input) {
-				const { categorySlug, ...data } = item
-				let categoryId: string | undefined
+			// Pre-fetch all categories in one query
+			const categorySlugs = [
+				...new Set(input.map(i => i.categorySlug).filter(Boolean) as string[]),
+			]
+			const categories =
+				categorySlugs.length > 0
+					? await ctx.prisma.category.findMany({
+							where: { slug: { in: categorySlugs } },
+							select: { id: true, slug: true },
+						})
+					: []
+			const categoryMap = new Map(categories.map(c => [c.slug, c.id]))
 
-				if (categorySlug) {
-					const cat = await ctx.prisma.category.findUnique({
-						where: { slug: categorySlug },
-					})
-					categoryId = cat?.id
+			// Pre-fetch all existing products by slug
+			const slugs = input.map(i => i.slug)
+			const existingProducts = await ctx.prisma.product.findMany({
+				where: { slug: { in: slugs } },
+				select: { id: true, slug: true },
+			})
+			const existingMap = new Map(existingProducts.map(p => [p.slug, p.id]))
+
+			// Batch in a transaction
+			await ctx.prisma.$transaction(async tx => {
+				const toCreate: Array<
+					(typeof input)[number] & { categoryId?: string }
+				> = []
+				const toUpdate: Array<{ id: string; data: Record<string, unknown> }> =
+					[]
+
+				for (const item of input) {
+					const { categorySlug, ...data } = item
+					const categoryId = categorySlug
+						? categoryMap.get(categorySlug)
+						: undefined
+					const existingId = existingMap.get(data.slug)
+
+					if (existingId) {
+						toUpdate.push({ id: existingId, data: { ...data, categoryId } })
+						updated++
+					} else {
+						toCreate.push({ ...data, categoryId } as typeof item & {
+							categoryId?: string
+						})
+						created++
+					}
 				}
 
-				const existing = await ctx.prisma.product.findUnique({
-					where: { slug: data.slug },
-				})
-
-				if (existing) {
-					await ctx.prisma.product.update({
-						where: { id: existing.id },
-						data: { ...data, categoryId },
+				// Bulk create new products
+				if (toCreate.length > 0) {
+					await tx.product.createMany({
+						data: toCreate.map(item => ({
+							name: item.name,
+							slug: item.slug,
+							description: item.description,
+							price: item.price,
+							compareAtPrice: item.compareAtPrice,
+							stock: item.stock,
+							sku: item.sku,
+							brand: item.brand,
+							brandCountry: item.brandCountry,
+							isActive: item.isActive,
+							categoryId: item.categoryId,
+							userId: ctx.userId,
+						})),
 					})
-					updated++
-				} else {
-					await ctx.prisma.product.create({
-						data: { ...data, categoryId, userId: ctx.userId },
-					})
-					created++
 				}
-			}
+
+				// Updates still need individual calls (different data per row)
+				for (const { id, data } of toUpdate) {
+					await tx.product.update({ where: { id }, data })
+				}
+			})
 
 			return { created, updated, total: input.length }
 		}),

@@ -6,13 +6,18 @@ import ChatButton from '@/shared/ui/ChatButton'
 import CartContent from './CartContent'
 import { Suspense } from 'react'
 import Skeleton from '@/shared/ui/Skeleton'
+import { trpc, HydrateClient } from '@/lib/trpc/server'
 
 export const metadata = {
 	title: 'Корзина — Аура Света',
 }
 
-export default function CartPage() {
+export default async function CartPage() {
+	// Prefetch cart for authenticated users (silently fails for anon)
+	void trpc.cart.get.prefetch().catch(() => {})
+
 	return (
+		<HydrateClient>
 		<div className='flex flex-col bg-background'>
 			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
@@ -58,5 +63,6 @@ export default function CartPage() {
 			<Footer />
 			<ChatButton />
 		</div>
+		</HydrateClient>
 	)
 }

@@ -8,7 +8,8 @@ function urlBase64ToUint8Array(base64String: string) {
 	const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
 	const rawData = window.atob(base64)
 	const outputArray = new Uint8Array(rawData.length)
-	for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
+	for (let i = 0; i < rawData.length; ++i)
+		outputArray[i] = rawData.charCodeAt(i)
 	return outputArray
 }
 
@@ -24,12 +25,15 @@ function canUseWebPush() {
 async function getSubscriptionJson() {
 	const reg = await navigator.serviceWorker.ready
 	const sub = await reg.pushManager.getSubscription()
-	return sub?.toJSON() as any | undefined
+	return sub?.toJSON() as PushSubscriptionJSON | undefined
 }
 
 export default function AdminNotificationsWidget() {
 	const registerMut = trpc.push.register.useMutation()
-	const vapidPublicKey = useMemo(() => process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, [])
+	const vapidPublicKey = useMemo(
+		() => process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+		[],
+	)
 	const lastRegisteredEndpointRef = useMemo(() => ({ current: '' }), [])
 
 	const [permission, setPermission] = useState<string>('unknown')
@@ -39,7 +43,11 @@ export default function AdminNotificationsWidget() {
 	const [busy, setBusy] = useState<boolean>(false)
 
 	const refreshStatus = useCallback(async () => {
-		setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
+		setPermission(
+			typeof Notification !== 'undefined'
+				? Notification.permission
+				: 'unsupported',
+		)
 		setHasSW(typeof navigator !== 'undefined' && 'serviceWorker' in navigator)
 		try {
 			if (!('serviceWorker' in navigator)) {
@@ -74,7 +82,9 @@ export default function AdminNotificationsWidget() {
 				throw new Error(`Permission: ${perm}`)
 			}
 
-			const reg = await navigator.serviceWorker.register('/cms-sw.js', { scope: '/' })
+			const reg = await navigator.serviceWorker.register('/cms-sw.js', {
+				scope: '/',
+			})
 			const subscription =
 				(await reg.pushManager.getSubscription()) ??
 				(await reg.pushManager.subscribe({
@@ -82,7 +92,7 @@ export default function AdminNotificationsWidget() {
 					applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
 				}))
 
-			const json = subscription.toJSON() as any
+			const json = subscription.toJSON() as PushSubscriptionJSON
 			const endpoint = json?.endpoint as string | undefined
 			const p256dh = json?.keys?.p256dh as string | undefined
 			const authKey = json?.keys?.auth as string | undefined
@@ -156,54 +166,54 @@ export default function AdminNotificationsWidget() {
 
 	// Мини-виджет снизу справа (только в CMS)
 	return (
-		<div className="fixed bottom-4 right-4 z-[60] w-[320px] rounded-2xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur">
-			<div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+		<div className='fixed bottom-4 right-4 z-[60] w-[320px] rounded-2xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur'>
+			<div className='mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground'>
 				Уведомления CMS
 			</div>
 
-			<div className="space-y-1 text-xs">
-				<div className="flex items-center justify-between">
-					<span className="text-muted-foreground">Permission</span>
-					<span className="font-mono">{permission}</span>
+			<div className='space-y-1 text-xs'>
+				<div className='flex items-center justify-between'>
+					<span className='text-muted-foreground'>Permission</span>
+					<span className='font-mono'>{permission}</span>
 				</div>
-				<div className="flex items-center justify-between">
-					<span className="text-muted-foreground">Service Worker</span>
-					<span className="font-mono">{hasSW ? 'yes' : 'no'}</span>
+				<div className='flex items-center justify-between'>
+					<span className='text-muted-foreground'>Service Worker</span>
+					<span className='font-mono'>{hasSW ? 'yes' : 'no'}</span>
 				</div>
-				<div className="flex items-center justify-between">
-					<span className="text-muted-foreground">Subscription</span>
-					<span className="font-mono">{hasSub ? 'yes' : 'no'}</span>
+				<div className='flex items-center justify-between'>
+					<span className='text-muted-foreground'>Subscription</span>
+					<span className='font-mono'>{hasSub ? 'yes' : 'no'}</span>
 				</div>
 			</div>
 
 			{lastError && (
-				<div className="mt-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
+				<div className='mt-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive'>
 					{lastError}
 				</div>
 			)}
 
-			<div className="mt-3 flex gap-2">
+			<div className='mt-3 flex gap-2'>
 				<button
-					type="button"
+					type='button'
 					onClick={enable}
 					disabled={busy}
-					className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-60"
+					className='flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-60'
 				>
 					Включить
 				</button>
 				<button
-					type="button"
+					type='button'
 					onClick={sendTest}
 					disabled={busy}
-					className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground disabled:opacity-60"
+					className='rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground disabled:opacity-60'
 				>
 					Тест
 				</button>
 				<button
-					type="button"
+					type='button'
 					onClick={debug}
 					disabled={busy}
-					className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground disabled:opacity-60"
+					className='rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground disabled:opacity-60'
 				>
 					Debug
 				</button>
@@ -211,4 +221,3 @@ export default function AdminNotificationsWidget() {
 		</div>
 	)
 }
-

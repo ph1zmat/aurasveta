@@ -10,7 +10,8 @@ interface CartItem {
 }
 
 function verifySessionId(sessionId: string, signature: string): boolean {
-	const secret = process.env.BETTER_AUTH_SECRET || 'fallback-secret'
+	const secret = process.env.BETTER_AUTH_SECRET
+	if (!secret) throw new Error('BETTER_AUTH_SECRET is required')
 	const expected = crypto
 		.createHmac('sha256', secret)
 		.update(sessionId)
@@ -134,15 +135,13 @@ export const anonymousRouter = createTRPCRouter({
 			// Migrate favorites
 			const anonFavorites = anonSession.favorites as string[]
 			if (Array.isArray(anonFavorites) && anonFavorites.length > 0) {
-				for (const productId of anonFavorites) {
-					await ctx.prisma.favorite.upsert({
-						where: {
-							userId_productId: { userId: ctx.userId, productId },
-						},
-						create: { userId: ctx.userId, productId },
-						update: {},
-					})
-				}
+				await ctx.prisma.favorite.createMany({
+					data: anonFavorites.map(productId => ({
+						userId: ctx.userId,
+						productId,
+					})),
+					skipDuplicates: true,
+				})
 			}
 
 			// Delete anonymous session

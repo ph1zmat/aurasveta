@@ -2,6 +2,10 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from 'better-auth/crypto'
 
+if (process.env.NODE_ENV === 'production') {
+	throw new Error('Seeding is not allowed in production')
+}
+
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
 	throw new Error(
@@ -1030,7 +1034,9 @@ async function main() {
 	console.log('✅ Test webhook created')
 
 	// ── Seed recommendation data (ProductView + SearchQuery) ──
-	const allProductsForSeed = await prisma.product.findMany({ select: { id: true } })
+	const allProductsForSeed = await prisma.product.findMany({
+		select: { id: true },
+	})
 	const testSessionId = 'seed-session-001'
 
 	// Generate product views (simulate browsing)

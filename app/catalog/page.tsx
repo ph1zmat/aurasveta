@@ -6,6 +6,7 @@ import ChatButton from '@/shared/ui/ChatButton'
 import CatalogContent from './CatalogContent'
 import { Suspense } from 'react'
 import Skeleton from '@/shared/ui/Skeleton'
+import { trpc, HydrateClient } from '@/lib/trpc/server'
 
 export const metadata = {
 	title: 'Каталог — Аура Света',
@@ -13,8 +14,13 @@ export const metadata = {
 		'Каталог люстр и светильников. Широкий ассортимент от ведущих производителей.',
 }
 
-export default function CatalogPage() {
+export default async function CatalogPage() {
+	// Prefetch data on the server for instant hydration
+	void trpc.categories.getTree.prefetch()
+	void trpc.products.getMany.prefetch({ page: 1, limit: 24 })
+
 	return (
+		<HydrateClient>
 		<div className='flex flex-col bg-background'>
 			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
@@ -52,5 +58,6 @@ export default function CatalogPage() {
 			<Footer />
 			<ChatButton />
 		</div>
+		</HydrateClient>
 	)
 }

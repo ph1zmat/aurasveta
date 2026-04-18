@@ -11,7 +11,7 @@ import { trpc } from '@/lib/trpc/client'
 
 const RECENT_KEY = 'aura-recent-searches'
 
-export default function SearchBar() {
+export default function SearchBar({ className }: { className?: string }) {
 	const router = useRouter()
 	const [searchTerm, setSearchTerm] = useState('')
 	const [isOpen, setIsOpen] = useState(false)
@@ -25,7 +25,7 @@ export default function SearchBar() {
 		{
 			enabled: debouncedSearch.length >= 2,
 			staleTime: 1000 * 60,
-			placeholderData: (prev) => prev,
+			placeholderData: prev => prev,
 		},
 	)
 
@@ -138,7 +138,7 @@ export default function SearchBar() {
 
 		if (showSuggestions) {
 			const suggestionOptions =
-				suggestions?.map((s) => ({
+				suggestions?.map(s => ({
 					id: `suggestion-${s.id}`,
 					href: `/product/${s.slug}`,
 					label: s.name,
@@ -193,7 +193,7 @@ export default function SearchBar() {
 				if (!showDropdown) setIsOpen(true)
 				if (options.length === 0) return
 				e.preventDefault()
-				setActiveIndex((prev) => {
+				setActiveIndex(prev => {
 					if (e.key === 'ArrowDown') {
 						const next = prev + 1
 						return next >= options.length ? 0 : next
@@ -222,7 +222,10 @@ export default function SearchBar() {
 	)
 
 	return (
-		<div ref={containerRef} className='relative flex-1 max-w-xl'>
+		<div
+			ref={containerRef}
+			className={`relative flex-1 ${className ?? 'max-w-xl'}`}
+		>
 			<form onSubmit={handleSubmit} role='search'>
 				<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none' />
 				<Input
@@ -267,81 +270,87 @@ export default function SearchBar() {
 						</div>
 					)}
 
-					{showSuggestions && !isLoading && suggestions && suggestions.length === 0 && (
-						<div className='p-4 text-center text-sm text-muted-foreground'>
-							Ничего не найдено по запросу &laquo;{debouncedSearch}&raquo;
-						</div>
-					)}
+					{showSuggestions &&
+						!isLoading &&
+						suggestions &&
+						suggestions.length === 0 && (
+							<div className='p-4 text-center text-sm text-muted-foreground'>
+								Ничего не найдено по запросу &laquo;{debouncedSearch}&raquo;
+							</div>
+						)}
 
-					{showSuggestions && !isLoading && suggestions && suggestions.length > 0 && (
-						<>
-							<ul className='py-1'>
-								{suggestions.map((item, idx) => (
-									<li
-										key={item.id}
-										id={`suggestion-${item.id}`}
-										role='option'
-										aria-selected={activeIndex === idx}
-									>
-										<Link
-											href={`/product/${item.slug}`}
-											className={
-												activeIndex === idx
-													? 'flex items-center gap-3 px-4 py-2 bg-muted transition-colors'
-													: 'flex items-center gap-3 px-4 py-2 hover:bg-muted transition-colors'
-											}
-											onClick={() => {
-												setIsOpen(false)
-												setActiveIndex(-1)
-												pushRecentQuery(debouncedSearch)
-											}}
+					{showSuggestions &&
+						!isLoading &&
+						suggestions &&
+						suggestions.length > 0 && (
+							<>
+								<ul className='py-1'>
+									{suggestions.map((item, idx) => (
+										<li
+											key={item.id}
+											id={`suggestion-${item.id}`}
+											role='option'
+											aria-selected={activeIndex === idx}
 										>
-											<div className='relative h-10 w-10 shrink-0 rounded overflow-hidden bg-muted'>
-												{item.imagePath ? (
-													<Image
-														src={item.imagePath}
-														alt={item.name}
-														fill
-														className='object-contain'
-														sizes='40px'
-													/>
-												) : (
-													<div className='h-full w-full bg-muted' />
-												)}
-											</div>
-											<div className='min-w-0 flex-1'>
-												<p className='truncate text-sm font-medium text-foreground'>
-													{item.name}
-												</p>
-												{item.category && (
-													<p className='truncate text-xs text-muted-foreground'>
-														{item.category.name}
+											<Link
+												href={`/product/${item.slug}`}
+												className={
+													activeIndex === idx
+														? 'flex items-center gap-3 px-4 py-2 bg-muted transition-colors'
+														: 'flex items-center gap-3 px-4 py-2 hover:bg-muted transition-colors'
+												}
+												onClick={() => {
+													setIsOpen(false)
+													setActiveIndex(-1)
+													pushRecentQuery(debouncedSearch)
+												}}
+											>
+												<div className='relative h-10 w-10 shrink-0 rounded overflow-hidden bg-muted'>
+													{item.imagePath ? (
+														<Image
+															src={item.imagePath}
+															alt={item.name}
+															fill
+															className='object-contain'
+															sizes='40px'
+														/>
+													) : (
+														<div className='h-full w-full bg-muted' />
+													)}
+												</div>
+												<div className='min-w-0 flex-1'>
+													<p className='truncate text-sm font-medium text-foreground'>
+														{item.name}
 													</p>
+													{item.category && (
+														<p className='truncate text-xs text-muted-foreground'>
+															{item.category.name}
+														</p>
+													)}
+												</div>
+												{item.price !== null && (
+													<span className='shrink-0 text-sm font-medium text-foreground'>
+														{item.price.toLocaleString('ru-RU')} ₽
+													</span>
 												)}
-											</div>
-											{item.price !== null && (
-												<span className='shrink-0 text-sm font-medium text-foreground'>
-													{item.price.toLocaleString('ru-RU')} ₽
-												</span>
-											)}
-										</Link>
-									</li>
-								))}
-							</ul>
-							<Link
-								href={`/search?q=${encodeURIComponent(debouncedSearch)}`}
-								className='block border-t border-border px-4 py-2.5 text-center text-sm text-primary hover:bg-muted transition-colors'
-								id='show-all'
-								onClick={() => {
-									setIsOpen(false)
-									setActiveIndex(-1)
-									pushRecentQuery(debouncedSearch)
-								}}
-							>
-								Показать все результаты
-							</Link>
-						</>
-					)}
+											</Link>
+										</li>
+									))}
+								</ul>
+								<Link
+									href={`/search?q=${encodeURIComponent(debouncedSearch)}`}
+									className='block border-t border-border px-4 py-2.5 text-center text-sm text-primary hover:bg-muted transition-colors'
+									id='show-all'
+									onClick={() => {
+										setIsOpen(false)
+										setActiveIndex(-1)
+										pushRecentQuery(debouncedSearch)
+									}}
+								>
+									Показать все результаты
+								</Link>
+							</>
+						)}
 
 					{!showSuggestions && (
 						<div className='p-3'>
@@ -363,22 +372,22 @@ export default function SearchBar() {
 										{recentQueries.map((q, i) => {
 											const idx = i
 											return (
-											<Link
-												key={`${q}-${i}`}
-												id={`recent-${i}`}
-												href={`/search?q=${encodeURIComponent(q)}`}
-												className={
-													activeIndex === idx
-														? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
-														: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
-												}
-												onClick={() => {
-													setIsOpen(false)
-													setActiveIndex(-1)
-												}}
-											>
-												{q}
-											</Link>
+												<Link
+													key={`${q}-${i}`}
+													id={`recent-${i}`}
+													href={`/search?q=${encodeURIComponent(q)}`}
+													className={
+														activeIndex === idx
+															? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
+															: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
+													}
+													onClick={() => {
+														setIsOpen(false)
+														setActiveIndex(-1)
+													}}
+												>
+													{q}
+												</Link>
 											)
 										})}
 									</div>
@@ -394,22 +403,22 @@ export default function SearchBar() {
 										{popularQueries.map((q, i) => {
 											const idx = recentQueries.length + i
 											return (
-											<Link
-												key={q}
-												id={`popular-${i}`}
-												href={`/search?q=${encodeURIComponent(q)}`}
-												className={
-													activeIndex === idx
-														? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
-														: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
-												}
-												onClick={() => {
-													setIsOpen(false)
-													setActiveIndex(-1)
-												}}
-											>
-												{q}
-											</Link>
+												<Link
+													key={q}
+													id={`popular-${i}`}
+													href={`/search?q=${encodeURIComponent(q)}`}
+													className={
+														activeIndex === idx
+															? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
+															: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
+													}
+													onClick={() => {
+														setIsOpen(false)
+														setActiveIndex(-1)
+													}}
+												>
+													{q}
+												</Link>
 											)
 										})}
 									</div>

@@ -8,11 +8,14 @@ function corsHeaders() {
 	return {
 		'Access-Control-Allow-Origin': '*',
 		'Access-Control-Allow-Methods': 'POST,OPTIONS',
-		'Access-Control-Allow-Headers': 'content-type, authorization, x-session-token',
+		'Access-Control-Allow-Headers':
+			'content-type, authorization, x-session-token',
 	}
 }
 
-function extractSessionTokenFromSetCookie(setCookie: string | null): string | null {
+function extractSessionTokenFromSetCookie(
+	setCookie: string | null,
+): string | null {
 	if (!setCookie) return null
 	// Take the first cookie only (it’s the one we need)
 	const first = setCookie.split(',')[0]
@@ -53,12 +56,20 @@ export async function POST(req: Request) {
 		}
 
 		// 1. Try extracting from set-cookie header (full token incl. signature)
-		const cookieToken = extractSessionTokenFromSetCookie(res.headers.get('set-cookie'))
+		const cookieToken = extractSessionTokenFromSetCookie(
+			res.headers.get('set-cookie'),
+		)
 
 		// 2. Fallback: try getSetCookie() method (more reliable for multiple Set-Cookie headers)
 		let cookieTokenAlt: string | null = null
-		if (!cookieToken && typeof (res.headers as Record<string, unknown>).getSetCookie === 'function') {
-			const cookies = (res.headers as unknown as { getSetCookie(): string[] }).getSetCookie()
+		if (
+			!cookieToken &&
+			typeof (res.headers as unknown as Record<string, unknown>)
+				.getSetCookie === 'function'
+		) {
+			const cookies = (
+				res.headers as unknown as { getSetCookie(): string[] }
+			).getSetCookie()
 			for (const c of cookies) {
 				const match = c.match(/better-auth\.session_token=([^;]+)/)
 				if (match?.[1]) {
@@ -70,9 +81,9 @@ export async function POST(req: Request) {
 
 		// 3. Fallback: extract session token from response body
 		const bodyToken =
-			(json as Record<string, unknown> | null) &&
-			typeof json === 'object'
-				? ((json as Record<string, Record<string, unknown>>)?.session?.token as string | undefined) ?? null
+			(json as Record<string, unknown> | null) && typeof json === 'object'
+				? (((json as Record<string, Record<string, unknown>>)?.session
+						?.token as string | undefined) ?? null)
 				: null
 
 		const sessionToken = cookieToken || cookieTokenAlt || bodyToken
@@ -96,4 +107,3 @@ export async function POST(req: Request) {
 		)
 	}
 }
-

@@ -7,13 +7,7 @@ import { headers } from 'next/headers'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'productimg')
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
-const ALLOWED_TYPES = [
-	'image/png',
-	'image/jpeg',
-	'image/webp',
-	'image/gif',
-	'image/svg+xml',
-]
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 
 function sanitizeFilename(name: string): string {
 	return name

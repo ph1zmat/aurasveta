@@ -50,8 +50,18 @@ export function useCart() {
 	}, [isAuth]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	const rawItems: AnonymousCartItem[] = isAuth
-		? ((serverItems as unknown as AnonymousCartItem[]) ?? [])
+		? (serverItems ?? []).map(item => ({
+				productId: typeof item === 'object' && item !== null && 'productId' in item
+					? String((item as Record<string, unknown>).productId)
+					: '',
+				quantity: typeof item === 'object' && item !== null && 'quantity' in item
+					? Number((item as Record<string, unknown>).quantity)
+					: 1,
+			}))
 		: anonCart
+
+	// Expose enriched items with product data from cart.get (auth only)
+	const serverCartWithProducts = isAuth ? (serverItems ?? []) : []
 
 	const add = useCallback(
 		(productId: string, quantity = 1) => {
@@ -120,6 +130,7 @@ export function useCart() {
 
 	return {
 		items: rawItems,
+		serverCartWithProducts,
 		add,
 		remove,
 		updateQuantity,

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/Header'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
@@ -72,19 +73,6 @@ export default async function ProductPage({
 	const specGroups = await getProductSpecGroups(product.id)
 
 	const productId = String(product.id)
-
-	// Fetch recommendation data in parallel via tRPC server caller
-	const [similarRaw, brandRaw] = await Promise.all([
-		trpc.recommendations.getSimilarProducts({ productId, limit: 5 }),
-		trpc.recommendations.getProductsFromBrand({ productId, limit: 5 }),
-	])
-
-	const similarProducts = similarRaw.map(p =>
-		toCatalogCardProps(toFrontendProduct(p)),
-	)
-	const collectionProducts = brandRaw.map(p =>
-		toCatalogCardProps(toFrontendProduct(p)),
-	)
 
 	const allImages = [
 		...(product.imagePath ? [product.imagePath] : []),
@@ -197,18 +185,41 @@ export default async function ProductPage({
 					</div>
 				</div>
 
-				{/* Similar products carousel */}
-				<ProductCarousel title='Похожие товары' products={similarProducts} />
+				{/* Similar products carousel — streamed independently */}
+				<Suspense fallback={<div className='h-64' />}>
+					<SimilarProductsSection productId={productId} />
+				</Suspense>
 
-				{/* Collection products carousel */}
-				<ProductCarousel
-					title='Товары из этой коллекции'
-					products={collectionProducts}
-				/>
+				{/* Collection products carousel — streamed independently */}
+				<Suspense fallback={<div className='h-64' />}>
+					<CollectionProductsSection productId={productId} />
+				</Suspense>
 			</main>
 
 			<Footer />
 			<ChatButton />
 		</div>
+	)
+}
+
+async function SimilarProductsSection({ productId }: { productId: string }) {
+	const similarRaw = await trpc.recommendations.getSimilarProducts({
+		productId,
+		limit: 5,
+	})
+	const products = similarRaw.map(p => toCatalogCardProps(toFrontendProduct(p)))
+	if (products.length === 0) return null
+	return <ProductCarousel title='Похожие товары' products={products} />
+}
+
+async function CollectionProductsSection({ productId }: { productId: string }) {
+	const brandRaw = await trpc.recommendations.getProductsFromBrand({
+		productId,
+		limit: 5,
+	})
+	const products = brandRaw.map(p => toCatalogCardProps(toFrontendProduct(p)))
+	if (products.length === 0) return null
+	return (
+		<ProductCarousel title='Товары из этой коллекции' products={products} />
 	)
 }

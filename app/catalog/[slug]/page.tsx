@@ -5,11 +5,13 @@ import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import CategoryContent from './CategoryContent'
 import { Suspense } from 'react'
-import { trpc } from '@/lib/trpc/server'
+import { trpc, HydrateClient } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
 import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getMetadata'
 
 export const dynamic = 'force-dynamic'
+
+const PROPERTY_PARAM_PREFIX = 'prop.'
 
 export async function generateMetadata({
 	params,
@@ -30,21 +32,60 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ slug: string }>
+	searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
 	const { slug } = await params
+	const sp = await searchParams
 
-	// Prefetch category and products for instant hydration
+	// Parse search params for prefetch with actual filters
+	const page = Number(sp.page ?? '1')
+	const search = (sp.search as string) || undefined
+	const sortBy = (sp.sort as 'price-asc' | 'price-desc' | 'name' | 'newest' | 'rating') ?? undefined
+	const minPrice = sp.minPrice ? Number(sp.minPrice) : undefined
+	const maxPrice = sp.maxPrice ? Number(sp.maxPrice) : undefined
+	const isNew = sp.isNew === '1' || undefined
+	const onSale = sp.onSale === '1' || undefined
+	const freeShipping = sp.freeShipping === '1' || undefined
+
+	// Parse dynamic property filters
+	const properties: Record<string, string[]> = {}
+	for (const [key, value] of Object.entries(sp)) {
+		if (key.startsWith(PROPERTY_PARAM_PREFIX) && typeof value === 'string') {
+			const propKey = key.slice(PROPERTY_PARAM_PREFIX.length)
+			if (propKey) {
+				properties[propKey] = value.split(',').map(v => v.trim()).filter(Boolean)
+			}
+		}
+	}
+	const hasProperties = Object.keys(properties).length > 0
+
+	// Prefetch category, tree, filters, and products with actual URL params
 	void trpc.categories.getBySlug.prefetch(slug)
 	void trpc.categories.getTree.prefetch()
+	void trpc.products.getAvailableFilters.prefetch({
+		categorySlug: slug,
+		includeChildren: true,
+	})
 	void trpc.products.getMany.prefetch({
 		categorySlug: slug,
-		page: 1,
+		includeChildren: true,
+		page,
 		limit: 12,
+		search,
+		sortBy,
+		minPrice,
+		maxPrice,
+		isNew,
+		onSale,
+		freeShipping,
+		properties: hasProperties ? properties : undefined,
 	})
 
 	return (
+		<HydrateClient>
 		<div className='flex flex-col bg-background'>
 			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
 				<TopBar />
@@ -65,5 +106,6 @@ export default async function CategoryPage({
 			<Footer />
 			<ChatButton />
 		</div>
+		</HydrateClient>
 	)
 }

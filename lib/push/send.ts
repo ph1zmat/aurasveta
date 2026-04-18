@@ -53,7 +53,13 @@ export async function sendPushToAdmins(payload: PushPayload) {
 }
 
 async function sendToDevice(
-	device: { platform: PushPlatform; token: string; endpoint: string | null; p256dh: string | null; authKey: string | null },
+	device: {
+		platform: PushPlatform
+		token: string
+		endpoint: string | null
+		p256dh: string | null
+		authKey: string | null
+	},
 	payload: PushPayload,
 ) {
 	if (device.platform === 'FCM') {
@@ -63,7 +69,10 @@ async function sendToDevice(
 			throw new Error('Missing Web Push subscription details')
 		}
 		return sendWebPush(
-			{ endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.authKey } },
+			{
+				endpoint: device.endpoint,
+				keys: { p256dh: device.p256dh, auth: device.authKey },
+			},
 			payload,
 		)
 	}
@@ -109,7 +118,9 @@ async function sendFCM(token: string, payload: PushPayload) {
 }
 
 function isExpoPushToken(token: string) {
-	return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')
+	return (
+		token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')
+	)
 }
 
 async function sendExpoPush(token: string, payload: PushPayload) {
@@ -135,12 +146,16 @@ async function sendExpoPush(token: string, payload: PushPayload) {
 		throw new Error(`Expo push error: ${response.status} ${text}`)
 	}
 
-	const json = (await response.json().catch(() => null)) as any
+	const json = (await response.json().catch(() => null)) as {
+		data?: { status?: string; message?: string; details?: unknown }
+	} | null
 	const ticket = json?.data
 	if (ticket?.status === 'error') {
 		// Typical details: "DeviceNotRegistered"
 		const details = ticket?.details ? JSON.stringify(ticket.details) : ''
-		throw new Error(`Expo push ticket error: ${ticket.message || 'unknown'} ${details}`.trim())
+		throw new Error(
+			`Expo push ticket error: ${ticket.message || 'unknown'} ${details}`.trim(),
+		)
 	}
 
 	return json
@@ -156,7 +171,8 @@ async function sendWebPush(
 
 		const vapidPublicKey = process.env.VAPID_PUBLIC_KEY
 		const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
-		const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@aurasveta.ru'
+		const vapidSubject =
+			process.env.VAPID_SUBJECT || 'mailto:admin@aurasveta.ru'
 
 		if (!vapidPublicKey || !vapidPrivateKey) {
 			console.warn('[Push] VAPID ключи не настроены, Web Push пропущен')
@@ -165,10 +181,7 @@ async function sendWebPush(
 
 		webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
 
-		return webpush.sendNotification(
-			subscription,
-			JSON.stringify(payload),
-		)
+		return webpush.sendNotification(subscription, JSON.stringify(payload))
 	} catch {
 		console.warn('[Push] web-push не установлен, Web Push пропущен')
 		return null
