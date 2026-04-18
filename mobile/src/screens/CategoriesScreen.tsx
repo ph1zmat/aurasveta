@@ -1,72 +1,238 @@
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
+import {
+	View,
+	Text,
+	FlatList,
+	Image,
+	Pressable,
+	StyleSheet,
+	RefreshControl,
+	Dimensions,
+	Platform,
+} from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { trpc } from '../lib/trpc'
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../theme'
+import {
+	colors,
+	fontSize,
+	fontWeight,
+	fontFamily,
+	spacing,
+	borderRadius,
+	elevation,
+	ripple,
+} from '../theme'
+import { ScreenHeader } from '../components/ui/ScreenHeader'
 import { EmptyState } from '../components/ui/EmptyState'
-import { FolderOpen, ChevronRight, ImagePlus } from 'lucide-react-native'
+import {
+	FolderOpen,
+	Package,
+	ArrowRight,
+	FolderTree,
+} from 'lucide-react-native'
+import type { CategoriesStackParamList } from '../navigation/types'
+
+const CARD_GAP = spacing.md
+const SCREEN_PAD = spacing.lg
+const cardWidth =
+	(Dimensions.get('window').width - SCREEN_PAD * 2 - CARD_GAP) / 2
 
 export function CategoriesScreen() {
-  const { data: tree, refetch, isRefetching } = trpc.categories.getTree.useQuery()
-  const apiUrl = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
+	const navigation =
+		useNavigation<NativeStackNavigationProp<CategoriesStackParamList>>()
+	const {
+		data: tree,
+		refetch,
+		isRefetching,
+	} = trpc.categories.getTree.useQuery()
+	const apiUrl = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
 
-  const flattenTree = (items: any[], level = 0): any[] => {
-    const result: any[] = []
-    for (const item of items) {
-      result.push({ ...item, level })
-      if (item.children?.length) result.push(...flattenTree(item.children, level + 1))
-    }
-    return result
-  }
+	const resolveImage = (path?: string | null) => {
+		if (!path) return null
+		return path.startsWith('http') ? path : `${apiUrl}${path}`
+	}
 
-  const flatList = tree ? flattenTree(tree) : []
+	const renderCategory = ({ item }: { item: any }) => {
+		const imageUrl = resolveImage(item.imagePath)
+		const productCount = item._count?.products ?? 0
+		const childrenCount = item.children?.length ?? 0
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIcon}><FolderOpen size={18} color={colors.primary} /></View>
-          <Text style={styles.headerTitle}>КАТЕГОРИИ</Text>
-        </View>
-      </View>
-      <FlatList
-        data={flatList} keyExtractor={(item: any) => item.id}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }: { item: any }) => {
-          const imageUrl = item.imagePath ? (item.imagePath.startsWith('http') ? item.imagePath : `${apiUrl}${item.imagePath}`) : null
-          return (
-            <View style={[styles.row, { marginLeft: item.level * spacing.xl }]}>
-              <View style={styles.imageBox}>
-                {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.catImage} resizeMode="cover" /> : <ImagePlus size={18} color={colors.mutedForeground + '50'} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.slug}>/{item.slug}</Text>
-              </View>
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{item._count?.products ?? 0}</Text>
-              </View>
-              <ChevronRight size={16} color={colors.mutedForeground} />
-            </View>
-          )
-        }}
-        ListEmptyComponent={<EmptyState icon={<FolderOpen size={36} color={colors.mutedForeground + '40'} />} title="Нет категорий" description="Категории пока не созданы" />}
-      />
-    </View>
-  )
+		return (
+			<View style={styles.cardWrapper}>
+				<Pressable
+					android_ripple={ripple.ghost}
+					onPress={() =>
+						navigation.navigate('CategoryDetail', { category: item })
+					}
+					style={({ pressed }) => [
+						styles.card,
+						elevation(1),
+						pressed && Platform.OS === 'ios' ? { opacity: 0.85 } : undefined,
+						Platform.OS === 'android' ? { overflow: 'hidden' } : undefined,
+					]}
+				>
+					{/* Image */}
+					<View style={styles.imageBox}>
+						{imageUrl ? (
+							<Image
+								source={{ uri: imageUrl }}
+								style={styles.catImage}
+								resizeMode='cover'
+							/>
+						) : (
+							<FolderTree size={28} color={colors.mutedForeground + '30'} />
+						)}
+					</View>
+
+					{/* Info */}
+					<View style={styles.cardBody}>
+						<Text style={styles.catName} numberOfLines={2}>
+							{item.name}
+						</Text>
+
+						<View style={styles.counters}>
+							{productCount > 0 && (
+								<View style={styles.counter}>
+									<Package size={11} color={colors.mutedForeground} />
+									<Text style={styles.counterText}>{productCount}</Text>
+								</View>
+							)}
+							{childrenCount > 0 && (
+								<View style={styles.counter}>
+									<FolderTree size={11} color={colors.mutedForeground} />
+									<Text style={styles.counterText}>{childrenCount}</Text>
+								</View>
+							)}
+						</View>
+
+						<View style={styles.openBtn}>
+							<Text style={styles.openBtnText}>Открыть</Text>
+							<ArrowRight size={12} color={colors.primary} />
+						</View>
+					</View>
+				</Pressable>
+			</View>
+		)
+	}
+
+	return (
+		<View style={styles.container}>
+			<ScreenHeader
+				title='Категории'
+				icon={
+					<View style={styles.headerIcon}>
+						<FolderOpen size={20} color={colors.primaryForeground} />
+					</View>
+				}
+			/>
+			<FlatList
+				data={tree ?? []}
+				numColumns={2}
+				keyExtractor={(item: any) => item.id}
+				columnWrapperStyle={styles.gridRow}
+				refreshControl={
+					<RefreshControl
+						refreshing={isRefetching}
+						onRefresh={() => refetch()}
+						tintColor={colors.primary}
+					/>
+				}
+				contentContainerStyle={styles.list}
+				renderItem={renderCategory}
+				ListEmptyComponent={
+					<EmptyState
+						icon={
+							<FolderOpen size={36} color={colors.mutedForeground + '40'} />
+						}
+						title='Нет категорий'
+						description='Категории пока не созданы'
+					/>
+				}
+			/>
+		</View>
+	)
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  headerIcon: { width: 36, height: 36, borderRadius: borderRadius.sm, backgroundColor: colors.primary + '1A', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.semibold, letterSpacing: 3, color: colors.foreground },
-  list: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, paddingHorizontal: spacing.md, backgroundColor: colors.card, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.sm },
-  imageBox: { width: 40, height: 40, borderRadius: borderRadius.sm, backgroundColor: colors.muted, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  catImage: { width: 40, height: 40 },
-  name: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.foreground },
-  slug: { fontSize: fontSize.xs, color: colors.mutedForeground },
-  countBadge: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary + '1A', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6 },
-  countText: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.primary },
+	container: { flex: 1, backgroundColor: colors.background },
+	headerIcon: {
+		width: 38,
+		height: 38,
+		borderRadius: borderRadius.md,
+		backgroundColor: colors.primary,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	list: {
+		paddingHorizontal: SCREEN_PAD,
+		paddingTop: spacing.sm,
+		paddingBottom: spacing.xl,
+	},
+	gridRow: {
+		gap: CARD_GAP,
+		marginBottom: CARD_GAP,
+	},
+	cardWrapper: {
+		width: cardWidth,
+	},
+	card: {
+		borderRadius: borderRadius.md,
+		backgroundColor: colors.card,
+		overflow: 'hidden',
+		borderWidth: 1,
+		borderColor: colors.borderLight,
+	},
+	imageBox: {
+		width: '100%',
+		aspectRatio: 4 / 3,
+		backgroundColor: colors.muted + '40',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	catImage: {
+		width: '100%',
+		height: '100%',
+	},
+	cardBody: {
+		padding: spacing.sm,
+		gap: spacing.xs,
+	},
+	catName: {
+		fontFamily: fontFamily.base,
+		fontSize: fontSize.sm,
+		fontWeight: fontWeight.semibold,
+		color: colors.foreground,
+		lineHeight: fontSize.sm * 1.3,
+	},
+	counters: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: spacing.md,
+	},
+	counter: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 3,
+	},
+	counterText: {
+		fontFamily: fontFamily.base,
+		fontSize: 11,
+		color: colors.mutedForeground,
+	},
+	openBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: spacing.xs,
+		backgroundColor: colors.primary + '15',
+		borderRadius: borderRadius.md,
+		paddingVertical: 6,
+		marginTop: spacing.xs,
+	},
+	openBtnText: {
+		fontFamily: fontFamily.base,
+		fontSize: fontSize.xs,
+		fontWeight: fontWeight.medium,
+		color: colors.primary,
+	},
 })

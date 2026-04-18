@@ -12,6 +12,7 @@ interface CategoryTreeProps {
 	title: string
 	items: CategoryTreeItem[]
 	activePath?: string
+	defaultOpen?: boolean
 }
 
 function TreeNode({
@@ -53,8 +54,8 @@ function TreeNode({
 				<Link
 					href={item.href}
 					className={cn(
-						'text-sm transition-colors hover:text-primary',
-						isActive ? 'font-medium text-foreground' : 'text-primary',
+						'text-sm transition-colors hover:text-foreground',
+						isActive ? 'font-medium text-foreground' : 'text-foreground',
 						!hasChildren && 'ml-4',
 					)}
 				>
@@ -81,17 +82,41 @@ export default function CategoryTree({
 	title,
 	items,
 	activePath,
+	defaultOpen = false,
 }: CategoryTreeProps) {
+	const [open, setOpen] = useState(defaultOpen)
+
 	return (
-		<div className='border-b border-border pb-4'>
-			<h3 className='mb-3 text-sm font-semibold uppercase tracking-widest text-foreground'>
-				{title}
-			</h3>
-			<ul className='space-y-1'>
-				{items.map(item => (
-					<TreeNode key={item.href} item={item} activePath={activePath} />
-				))}
-			</ul>
+		<div className='border-b border-border/80 py-3.5'>
+			<button
+				onClick={() => setOpen(!open)}
+				className='group/toggle flex w-full items-center justify-between gap-3 text-left'
+			>
+				<h3 className='text-sm font-semibold uppercase tracking-widest text-foreground'>
+					{title}
+				</h3>
+				<ChevronDown
+					className={cn(
+						'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/toggle:text-foreground',
+						!open && '-rotate-90',
+					)}
+					strokeWidth={1.5}
+				/>
+			</button>
+			<div
+				className={cn(
+					'grid transition-[grid-template-rows] duration-200 ease-out',
+					open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+				)}
+			>
+				<div className='overflow-hidden'>
+					<ul className='mt-2.5 space-y-1'>
+						{items.map(item => (
+							<TreeNode key={item.href} item={item} activePath={activePath} />
+						))}
+					</ul>
+				</div>
+			</div>
 		</div>
 	)
 }

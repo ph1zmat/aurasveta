@@ -19,7 +19,7 @@ import {
 import { useState, type ReactNode } from 'react'
 
 const navItems = [
-	{ href: '/', label: 'Дашборд', icon: LayoutDashboard },
+	{ href: '/', label: 'Главная', icon: LayoutDashboard },
 	{ href: '/products', label: 'Товары', icon: Package },
 	{ href: '/categories', label: 'Категории', icon: FolderTree },
 	{ href: '/properties', label: 'Свойства', icon: SlidersHorizontal },

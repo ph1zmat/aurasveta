@@ -14,13 +14,36 @@ const productFilters = z.object({
 	maxPrice: z.number().optional(),
 	brand: z.string().optional(),
 	inStock: z.boolean().optional(),
-	properties: z.record(z.string(), z.string()).optional(),
+	isNew: z.boolean().optional(),
+	onSale: z.boolean().optional(),
+	freeShipping: z.boolean().optional(),
+	properties: z
+		.record(z.string(), z.union([z.string(), z.array(z.string())]))
+		.optional(),
 	sortBy: z
 		.enum(['price-asc', 'price-desc', 'name', 'newest', 'rating'])
 		.optional(),
 	page: z.number().min(1).default(1),
 	limit: z.number().min(1).max(100).default(20),
 })
+
+const TRUE_VALUES = ['true', '1', 'yes', 'да']
+
+function buildCategoryWhere(
+	categoryId: string,
+	includeChildren: boolean,
+	children: Array<{ id: string }>,
+): Prisma.ProductWhereInput {
+	if (includeChildren && children.length > 0) {
+		return {
+			categoryId: {
+				in: [categoryId, ...children.map(c => c.id)],
+			},
+		}
+	}
+
+	return { categoryId }
+}
 
 export const productsRouter = createTRPCRouter({
 	getMany: baseProcedure.input(productFilters).query(async ({ ctx, input }) => {
@@ -34,11 +57,15 @@ export const productsRouter = createTRPCRouter({
 			maxPrice,
 			brand,
 			inStock,
+			isNew,
+			onSale,
+			freeShipping,
 			properties,
 			sortBy,
 		} = input
 
 		const where: Prisma.ProductWhereInput = { isActive: true }
+		const andConditions: Prisma.ProductWhereInput[] = []
 
 		if (categorySlug) {
 			const category = await ctx.prisma.category.findUnique({
@@ -46,13 +73,10 @@ export const productsRouter = createTRPCRouter({
 				select: { id: true, children: { select: { id: true } } },
 			})
 			if (category) {
-				if (includeChildren && category.children.length > 0) {
-					where.categoryId = {
-						in: [category.id, ...category.children.map(c => c.id)],
-					}
-				} else {
-					where.categoryId = category.id
-				}
+				Object.assign(
+					where,
+					buildCategoryWhere(category.id, includeChildren, category.children),
+				)
 			}
 		}
 
@@ -72,16 +96,47 @@ export const productsRouter = createTRPCRouter({
 
 		if (brand) where.brand = brand
 		if (inStock !== undefined) where.stock = inStock ? { gt: 0 } : { equals: 0 }
+		if (isNew) {
+			andConditions.push({ badges: { array_contains: ['Новинка'] } })
+		}
+		if (onSale) {
+			andConditions.push({ compareAtPrice: { not: null } })
+		}
+		if (freeShipping) {
+			andConditions.push({
+				properties: {
+					some: {
+						property: { key: 'free_shipping' },
+						OR: TRUE_VALUES.map(value => ({ value })),
+					},
+				},
+			})
+		}
 
 		if (properties && Object.keys(properties).length > 0) {
-			where.properties = {
-				some: {
-					OR: Object.entries(properties).map(([key, value]) => ({
+			const propertyOr = Object.entries(properties).flatMap(([key, rawValue]) => {
+				const values = Array.isArray(rawValue) ? rawValue : [rawValue]
+				return values
+					.filter(value => value && value.trim().length > 0)
+					.map(value => ({
 						property: { key },
 						value,
-					})),
-				},
+					}))
+			})
+
+			if (propertyOr.length > 0) {
+				andConditions.push({
+					properties: {
+						some: {
+							OR: propertyOr,
+						},
+					},
+				})
 			}
+		}
+
+		if (andConditions.length > 0) {
+			where.AND = andConditions
 		}
 
 		let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' }
@@ -143,6 +198,151 @@ export const productsRouter = createTRPCRouter({
 			totalPages: Math.ceil(total / limit),
 		}
 	}),
+
+	getAvailableFilters: baseProcedure
+		.input(
+			z.object({
+				categorySlug: z.string().optional(),
+				includeChildren: z.boolean().default(true),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { categorySlug, includeChildren } = input
+
+			const baseWhere: Prisma.ProductWhereInput = { isActive: true }
+
+			if (categorySlug) {
+				const category = await ctx.prisma.category.findUnique({
+					where: { slug: categorySlug },
+					select: { id: true, children: { select: { id: true } } },
+				})
+
+				if (!category) {
+					return {
+						staticFilters: [] as Array<{
+							key: 'isNew' | 'onSale' | 'freeShipping'
+							label: string
+							count: number
+						}>,
+						propertyFilters: [] as Array<{
+							key: string
+							label: string
+							type: string
+							options: Array<{ value: string; label: string; count: number }>
+						}>,
+					}
+				}
+
+				Object.assign(
+					baseWhere,
+					buildCategoryWhere(category.id, includeChildren, category.children),
+				)
+			}
+
+			const [newCount, saleCount, freeShippingCount, values] = await Promise.all([
+				ctx.prisma.product.count({
+					where: {
+						...baseWhere,
+						badges: { array_contains: ['Новинка'] },
+					},
+				}),
+				ctx.prisma.product.count({
+					where: {
+						...baseWhere,
+						compareAtPrice: { not: null },
+					},
+				}),
+				ctx.prisma.product.count({
+					where: {
+						...baseWhere,
+						properties: {
+							some: {
+								property: { key: 'free_shipping' },
+								OR: TRUE_VALUES.map(value => ({ value })),
+							},
+						},
+					},
+				}),
+				ctx.prisma.productPropertyValue.findMany({
+					where: {
+						product: baseWhere,
+					},
+					select: {
+						value: true,
+						property: {
+							select: {
+								key: true,
+								name: true,
+								type: true,
+							},
+						},
+					},
+				}),
+			])
+
+			const staticFilters = [
+				{ key: 'isNew' as const, label: 'Новинки', count: newCount },
+				{ key: 'onSale' as const, label: 'Товары со скидкой', count: saleCount },
+				{
+					key: 'freeShipping' as const,
+					label: 'Бесплатная доставка',
+					count: freeShippingCount,
+				},
+			].filter(item => item.count > 0)
+
+			const grouped = new Map<
+				string,
+				{
+					key: string
+					label: string
+					type: string
+					options: Map<string, number>
+				}
+			>()
+
+			for (const row of values) {
+				const normalizedValue = row.value?.trim()
+				if (!normalizedValue) continue
+
+				const propertyKey = row.property.key
+				const existing = grouped.get(propertyKey)
+				if (!existing) {
+					grouped.set(propertyKey, {
+						key: propertyKey,
+						label: row.property.name,
+						type: row.property.type,
+						options: new Map([[normalizedValue, 1]]),
+					})
+					continue
+				}
+
+				existing.options.set(
+					normalizedValue,
+					(existing.options.get(normalizedValue) ?? 0) + 1,
+				)
+			}
+
+			const propertyFilters = [...grouped.values()]
+				.map(group => ({
+					key: group.key,
+					label: group.label,
+					type: group.type,
+					options: [...group.options.entries()]
+						.map(([value, count]) => ({
+							value,
+							label: value,
+							count,
+						}))
+						.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+				}))
+				.filter(group => group.options.length > 0)
+				.sort((a, b) => a.label.localeCompare(b.label))
+
+			return {
+				staticFilters,
+				propertyFilters,
+			}
+		}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
 		return ctx.prisma.product.findUnique({

@@ -7,10 +7,11 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5F0E8"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -19,18 +20,43 @@
       "package": "ru.aurasveta.cms",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F5F0E8"
       },
       "permissions": [
         "NOTIFICATIONS",
         "INTERNET"
       ],
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "allowBackup": false,
+      "enableEdgeToEdge": true
+    },
+    "ios": {
+      "bundleIdentifier": "ru.aurasveta.cms",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Для загрузки фотографий товаров",
+        "NSPhotoLibraryUsageDescription": "Для выбора фотографий товаров"
+      }
     },
     "plugins": [
       "expo-notifications",
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-navigation-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": false
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

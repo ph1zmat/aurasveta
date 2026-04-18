@@ -19,17 +19,17 @@ export default function FilterSection({
 	const [open, setOpen] = useState(defaultOpen)
 
 	return (
-		<div className='border-b border-border py-4'>
+		<div className='border-b border-border/80 py-3.5'>
 			<button
 				onClick={() => setOpen(!open)}
-				className='flex w-full items-center justify-between text-left group/toggle'
+				className='group/toggle flex w-full items-center justify-between gap-3 text-left'
 			>
 				<h3 className='text-sm font-semibold uppercase tracking-widest text-foreground'>
 					{title}
 				</h3>
 				<ChevronDown
 					className={cn(
-						'h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover/toggle:text-foreground',
+						'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/toggle:text-foreground',
 						!open && '-rotate-90',
 					)}
 					strokeWidth={1.5}
@@ -42,7 +42,7 @@ export default function FilterSection({
 				)}
 			>
 				<div className='overflow-hidden'>
-					<div className='mt-3'>{children}</div>
+					<div className='mt-2.5'>{children}</div>
 				</div>
 			</div>
 		</div>
@@ -52,7 +52,7 @@ export default function FilterSection({
 /* Sub-filter item (expandable child like "Высота, мм" under РАЗМЕРЫ) */
 export function FilterSubItem({ label }: { label: string }) {
 	return (
-		<button className='flex w-full items-center gap-2 rounded-sm py-1.5 -mx-1 px-1 text-sm text-muted-foreground transition-colors hover:text-primary hover:bg-muted/50'>
+		<button className='-mx-1 flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground'>
 			<Plus className='h-3 w-3' strokeWidth={1.5} />
 			{label}
 		</button>
@@ -63,19 +63,36 @@ export function FilterSubItem({ label }: { label: string }) {
 export function CheckboxFilterItem({
 	label,
 	checked = false,
+	count,
+	disabled = false,
 	onChange,
 }: {
 	label: string
 	checked?: boolean
+	count?: number
+	disabled?: boolean
 	onChange?: (checked: boolean) => void
 }) {
 	return (
-		<label className='flex cursor-pointer items-center gap-2 rounded-sm py-1.5 -mx-1 px-1 transition-colors hover:bg-muted/50'>
+		<label
+			className={cn(
+				'-mx-1 flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors',
+				disabled
+					? 'cursor-not-allowed opacity-60'
+					: 'cursor-pointer hover:bg-muted/50',
+			)}
+		>
 			<Checkbox
 				checked={checked}
+				disabled={disabled}
 				onChange={e => onChange?.(e.target.checked)}
 			/>
-			<span className='text-sm text-foreground'>{label}</span>
+			<span className='min-w-0 flex-1 text-sm text-foreground'>{label}</span>
+			{typeof count === 'number' && (
+				<span className='text-xs tabular-nums text-muted-foreground'>
+					{count}
+				</span>
+			)}
 		</label>
 	)
 }
