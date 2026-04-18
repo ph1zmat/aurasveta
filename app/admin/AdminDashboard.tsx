@@ -42,7 +42,7 @@ export default function AdminDashboard() {
 	return (
 		<div className='space-y-8'>
 			<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-				Дашборд
+				Главная
 			</h1>
 
 			{/* Stat cards */}

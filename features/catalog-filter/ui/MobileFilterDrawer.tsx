@@ -5,13 +5,33 @@ import { X } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import type { CategoryTreeItem } from '@/entities/category/ui/CategoryTree'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import type {
+	SidebarPropertyFilterItem,
+	SidebarStaticFilterItem,
+} from '@/features/catalog-filter/ui/CatalogSidebar'
 
 interface MobileFilterDrawerProps {
 	open: boolean
 	onClose: () => void
 	categoryTree: CategoryTreeItem[]
 	activeCategoryPath?: string
+	staticFilters: SidebarStaticFilterItem[]
+	propertyFilters: SidebarPropertyFilterItem[]
+	selectedStaticFilters: Partial<
+		Record<SidebarStaticFilterItem['key'], boolean>
+	>
+	selectedPropertyFilters: Record<string, string[]>
+	onStaticFilterChange: (
+		key: SidebarStaticFilterItem['key'],
+		checked: boolean,
+	) => void
+	onPropertyFilterChange: (
+		propertyKey: string,
+		value: string,
+		checked: boolean,
+	) => void
+	onResetFilters: () => void
+	filterCount: number
 }
 
 export default function MobileFilterDrawer({
@@ -19,20 +39,15 @@ export default function MobileFilterDrawer({
 	onClose,
 	categoryTree,
 	activeCategoryPath,
+	staticFilters,
+	propertyFilters,
+	selectedStaticFilters,
+	selectedPropertyFilters,
+	onStaticFilterChange,
+	onPropertyFilterChange,
+	onResetFilters,
+	filterCount,
 }: MobileFilterDrawerProps) {
-	const router = useRouter()
-	const pathname = usePathname()
-	const searchParams = useSearchParams()
-
-	const filterCount = [
-		searchParams.get('search'),
-		searchParams.get('minPrice'),
-		searchParams.get('maxPrice'),
-		searchParams.get('sort') && searchParams.get('sort') !== 'newest'
-			? searchParams.get('sort')
-			: null,
-	].filter(Boolean).length
-
 	/* Lock body scroll when open */
 	useEffect(() => {
 		if (open) {
@@ -94,6 +109,12 @@ export default function MobileFilterDrawer({
 					<CatalogSidebar
 						categoryTree={categoryTree}
 						activeCategoryPath={activeCategoryPath}
+						staticFilters={staticFilters}
+						propertyFilters={propertyFilters}
+						selectedStaticFilters={selectedStaticFilters}
+						selectedPropertyFilters={selectedPropertyFilters}
+						onStaticFilterChange={onStaticFilterChange}
+						onPropertyFilterChange={onPropertyFilterChange}
 					/>
 				</div>
 
@@ -105,15 +126,7 @@ export default function MobileFilterDrawer({
 							size='default'
 							fullWidth
 							disabled={filterCount === 0}
-							onClick={() => {
-								const params = new URLSearchParams(searchParams.toString())
-								params.delete('search')
-								params.delete('minPrice')
-								params.delete('maxPrice')
-								params.delete('sort')
-								params.set('page', '1')
-								router.push(`${pathname}?${params.toString()}`)
-							}}
+							onClick={onResetFilters}
 						>
 							Сбросить
 						</Button>
