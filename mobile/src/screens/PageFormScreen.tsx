@@ -132,8 +132,8 @@ export function PageFormScreen({ navigation, route }: Props) {
 				title: title.trim(),
 				slug: slug.trim(),
 				content: content.trim(),
-				metaTitle: metaTitle.trim() || null,
-				metaDesc: metaDesc.trim() || null,
+				metaTitle: metaTitle.trim() || undefined,
+				metaDesc: metaDesc.trim() || undefined,
 				isPublished,
 			}
 			if (isEdit) {
@@ -169,12 +169,14 @@ export function PageFormScreen({ navigation, route }: Props) {
 					<Text style={styles.label}>Обложка</Text>
 					<ImagePicker
 						imageUrl={
-							isEdit ? ((existing as any)?.image ?? null) : localImagePath
-						}
-						onImageUploaded={path =>
 							isEdit
-								? updateImageMut.mutate({ id: editId!, path })
-								: setLocalImagePath(path)
+								? ((existing as any)?.imageUrl ?? (existing as any)?.image ?? null)
+								: localImagePath
+						}
+						onImageUploaded={imagePath =>
+							isEdit
+								? updateImageMut.mutate({ pageId: editId!, imagePath })
+								: setLocalImagePath(imagePath)
 						}
 						onImageRemoved={() =>
 							isEdit ? removeImageMut.mutate(editId!) : setLocalImagePath(null)

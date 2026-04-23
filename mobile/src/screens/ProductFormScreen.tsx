@@ -77,9 +77,17 @@ interface PropertyValue {
 }
 
 function getProductImageValue(
-	image: { key?: string | null; url?: string | null } | null | undefined,
+	image:
+		| {
+				key?: string | null
+				url?: string | null
+				displayUrl?: string | null
+				imageAsset?: { url?: string | null } | null
+		  }
+		| null
+		| undefined,
 ) {
-	return image?.key ?? image?.url ?? null
+	return image?.displayUrl ?? image?.imageAsset?.url ?? image?.key ?? image?.url ?? null
 }
 
 export function ProductFormScreen({ navigation, route }: ProductFormProps) {

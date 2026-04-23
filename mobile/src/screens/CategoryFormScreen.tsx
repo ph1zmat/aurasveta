@@ -120,7 +120,7 @@ export function CategoryFormScreen({ navigation, route }: CategoryFormProps) {
 			const payload = {
 				name: name.trim(),
 				slug: slug.trim(),
-				description: description.trim() || null,
+				description: description.trim() || undefined,
 				parentId: parentId || null,
 			}
 
@@ -153,11 +153,13 @@ export function CategoryFormScreen({ navigation, route }: CategoryFormProps) {
 				keyboardShouldPersistTaps='handled'
 			>
 				<ImagePicker
-					imageUrl={isEdit ? (cat?.image ?? null) : localImagePath}
-					onImageUploaded={path =>
+					imageUrl={
+						isEdit ? (cat?.imageUrl ?? cat?.image ?? cat?.imagePath ?? null) : localImagePath
+					}
+						onImageUploaded={imagePath =>
 						isEdit
-							? updateImageMut.mutate({ id: editId!, path })
-							: setLocalImagePath(path)
+							? updateImageMut.mutate({ categoryId: editId!, imagePath })
+								: setLocalImagePath(imagePath)
 					}
 					onImageRemoved={() =>
 						isEdit ? removeImageMut.mutate(editId!) : setLocalImagePath(null)

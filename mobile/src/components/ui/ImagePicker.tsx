@@ -3,7 +3,6 @@ import {
 	View,
 	Text,
 	Pressable,
-	Image,
 	StyleSheet,
 	Alert,
 	ActivityIndicator,
@@ -21,19 +20,14 @@ import {
 	ripple,
 } from '../../theme'
 import { getToken, getApiUrl } from '../../lib/store'
+import { resolveImageUrl } from '../../lib/resolveImageUrl'
+import { AsyncImage } from './AsyncImage'
 
 interface ImagePickerProps {
 	imageUrl: string | null
 	onImageUploaded: (path: string) => void
 	onImageRemoved?: () => void
 	height?: number
-}
-
-function resolveImageUrl(imageUrl: string | null, apiUrl: string) {
-	if (!imageUrl) return null
-	if (imageUrl.startsWith('http')) return imageUrl
-	if (imageUrl.startsWith('/')) return `${apiUrl}${imageUrl}`
-	return `${apiUrl}/api/storage/file?key=${encodeURIComponent(imageUrl)}`
 }
 
 export function ImagePicker({
@@ -113,9 +107,10 @@ export function ImagePicker({
 
 	return (
 		<View style={[styles.container, { height }]}>
-			<Image
-				source={{ uri: fullUrl }}
-				style={styles.image}
+			<AsyncImage
+				uri={fullUrl}
+				containerStyle={styles.image}
+				imageStyle={styles.image}
 				resizeMode='cover'
 			/>
 			<View style={styles.actions}>

@@ -3,6 +3,7 @@ import {
 	Text,
 	TextInput,
 	StyleSheet,
+	type StyleProp,
 	type TextInputProps,
 	type ViewStyle,
 } from 'react-native'
@@ -18,7 +19,7 @@ import {
 interface InputProps extends TextInputProps {
 	label?: string
 	error?: string
-	containerStyle?: ViewStyle
+	containerStyle?: StyleProp<ViewStyle>
 }
 
 export function Input({

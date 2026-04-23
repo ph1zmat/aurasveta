@@ -1,5 +1,9 @@
 export type { Product } from '@/shared/types/product'
 export type {
+	StorageImageAsset,
+	StorageImageSource,
+} from '@/shared/types/storage'
+export type {
 	Category,
 	Subcategory,
 	CategoryTreeItem,

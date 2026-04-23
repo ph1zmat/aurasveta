@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import {
 	Pencil,
 	Trash2,
@@ -250,13 +251,17 @@ export function ProductsPage() {
 						{/* Image */}
 						<div className='aspect-square w-full bg-muted/50'>
 							{product.images?.[0] ? (
-								<img
-									src={resolveImgUrl(
-										product.images[0].url ?? product.images[0].key,
-										apiBaseUrl,
-									)}
+								<AsyncImage
+									src={
+										product.images[0].displayUrl ??
+										product.images[0].imageAsset?.url ??
+										resolveImgUrl(
+											product.images[0].url ?? product.images[0].key,
+											apiBaseUrl,
+										)
+									}
 									alt={product.name}
-									className='h-full w-full object-cover'
+									className='h-full w-full'
 								/>
 							) : (
 								<div className='flex h-full w-full items-center justify-center'>
@@ -511,13 +516,17 @@ function ProductFormModal({
 							<div className='relative group w-full aspect-square rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden'>
 								{editId && editProduct?.images?.[0] ? (
 									<>
-										<img
-											src={resolveImgUrl(
-												editProduct.images[0].url ?? editProduct.images[0].key,
-												apiBaseUrl,
-											)}
-											alt=''
-											className='h-full w-full object-cover'
+										<AsyncImage
+											src={
+												editProduct.images[0].displayUrl ??
+												editProduct.images[0].imageAsset?.url ??
+												resolveImgUrl(
+													editProduct.images[0].url ?? editProduct.images[0].key,
+													apiBaseUrl,
+												)
+											}
+											alt={editProduct.name ?? 'Фото товара'}
+											className='h-full w-full'
 										/>
 										<div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100'>
 											<label className='cursor-pointer rounded-lg bg-white/10 p-2.5 text-white backdrop-blur-sm transition-colors hover:bg-white/20'>

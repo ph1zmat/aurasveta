@@ -3,17 +3,31 @@ import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { deleteFile } from '@/lib/storage'
 import { productImageSelect } from '@/lib/products/product-images'
+import {
+	withResolvedImageAsset,
+	withResolvedProductImages,
+} from '@/lib/storage-image-assets'
 
 export const categoriesRouter = createTRPCRouter({
 	getAll: baseProcedure.query(async ({ ctx }) => {
-		return ctx.prisma.category.findMany({
+		const categories = await ctx.prisma.category.findMany({
 			include: { children: true, _count: { select: { products: true } } },
 			orderBy: { name: 'asc' },
 		})
+
+		const cache = new Map()
+		return Promise.all(
+			categories.map(async category => ({
+				...(await withResolvedImageAsset(category, { cache })),
+				children: await Promise.all(
+					category.children.map(child => withResolvedImageAsset(child, { cache })),
+				),
+			})),
+		)
 	}),
 
 	getTree: baseProcedure.query(async ({ ctx }) => {
-		return ctx.prisma.category.findMany({
+		const categories = await ctx.prisma.category.findMany({
 			where: { parentId: null },
 			include: {
 				children: {
@@ -26,10 +40,27 @@ export const categoriesRouter = createTRPCRouter({
 			},
 			orderBy: { name: 'asc' },
 		})
+
+		const cache = new Map()
+		return Promise.all(
+			categories.map(async category => ({
+				...(await withResolvedImageAsset(category, { cache })),
+				children: await Promise.all(
+					category.children.map(async child => ({
+						...(await withResolvedImageAsset(child, { cache })),
+						children: await Promise.all(
+							child.children.map(grandChild =>
+								withResolvedImageAsset(grandChild, { cache }),
+							),
+						),
+					})),
+				),
+			})),
+		)
 	}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.category.findUnique({
+		const category = await ctx.prisma.category.findUnique({
 			where: { slug: input },
 			include: {
 				children: true,
@@ -37,6 +68,19 @@ export const categoriesRouter = createTRPCRouter({
 				_count: { select: { products: true } },
 			},
 		})
+
+		if (!category) return null
+
+		const cache = new Map()
+		return {
+			...(await withResolvedImageAsset(category, { cache })),
+			children: await Promise.all(
+				category.children.map(child => withResolvedImageAsset(child, { cache })),
+			),
+			parent: category.parent
+				? await withResolvedImageAsset(category.parent, { cache })
+				: null,
+		}
 	}),
 
 	getNav: baseProcedure.query(async ({ ctx }) => {
@@ -127,7 +171,18 @@ export const categoriesRouter = createTRPCRouter({
 				ctx.prisma.product.count({ where }),
 			])
 
-			return { items, total, page, limit, totalPages: Math.ceil(total / limit) }
+			const cache = new Map()
+			const enrichedItems = await Promise.all(
+				items.map(item => withResolvedProductImages(item, { cache })),
+			)
+
+			return {
+				items: enrichedItems,
+				total,
+				page,
+				limit,
+				totalPages: Math.ceil(total / limit),
+			}
 		}),
 
 	create: adminProcedure

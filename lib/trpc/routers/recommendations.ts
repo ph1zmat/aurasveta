@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure } from '../init'
 import { productImageSelect } from '@/lib/products/product-images'
+import { withResolvedProductImages } from '@/lib/storage-image-assets'
+import type { StorageImageAsset } from '@/shared/types/storage'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' as const },
@@ -26,6 +28,30 @@ const productCardSelect = {
 	category: { select: { id: true, name: true, slug: true } },
 } as const
 
+type RecommendationImageShape = {
+	key?: string | null
+	url?: string | null
+	isMain?: boolean | null
+	order?: number | null
+}
+
+type RecommendationProductShape = {
+	images?: readonly RecommendationImageShape[] | null
+}
+
+async function enrichRecommendationProducts<
+	T extends RecommendationProductShape,
+>(products: readonly T[]) {
+	const cache = new Map()
+	return Promise.all(
+		products.map(product =>
+			withResolvedProductImages(product, {
+				cache: cache as Map<string, StorageImageAsset | null>,
+			}),
+		),
+	)
+}
+
 export const recommendationsRouter = createTRPCRouter({
 	/** 3.1 — Similar products (same category, excluding current) */
 	getSimilarProducts: baseProcedure
@@ -42,7 +68,7 @@ export const recommendationsRouter = createTRPCRouter({
 			})
 			if (!product?.categoryId) return []
 
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: {
 					id: { not: input.productId },
 					categoryId: product.categoryId,
@@ -52,6 +78,8 @@ export const recommendationsRouter = createTRPCRouter({
 				orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
 				select: productCardSelect,
 			})
+
+			return enrichRecommendationProducts(products)
 		}),
 
 	/** 3.2 — Products from same brand (acts as "collection") */
@@ -69,7 +97,7 @@ export const recommendationsRouter = createTRPCRouter({
 			})
 			if (!product?.brand) return []
 
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: {
 					brand: product.brand,
 					id: { not: input.productId },
@@ -79,6 +107,8 @@ export const recommendationsRouter = createTRPCRouter({
 				orderBy: { createdAt: 'desc' },
 				select: productCardSelect,
 			})
+
+			return enrichRecommendationProducts(products)
 		}),
 
 	/** 3.3 — Popular in category (by order count + views) */
@@ -90,7 +120,7 @@ export const recommendationsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: { categoryId: input.categoryId, isActive: true },
 				take: input.limit,
 				orderBy: [
@@ -100,6 +130,8 @@ export const recommendationsRouter = createTRPCRouter({
 				],
 				select: productCardSelect,
 			})
+
+			return enrichRecommendationProducts(products)
 		}),
 
 	/** 3.4 — Popular products globally (by views + orders last 30 days) */
@@ -120,12 +152,14 @@ export const recommendationsRouter = createTRPCRouter({
 
 			if (popularViews.length === 0) {
 				// Fallback: newest products with highest rating
-				return ctx.prisma.product.findMany({
+				const fallbackProducts = await ctx.prisma.product.findMany({
 					where: { isActive: true },
 					take: input.limit,
 					orderBy: [{ rating: 'desc' }, { reviewsCount: 'desc' }],
 					select: productCardSelect,
 				})
+
+				return enrichRecommendationProducts(fallbackProducts)
 			}
 
 			const productIds = popularViews.map(v => v.productId)
@@ -136,8 +170,10 @@ export const recommendationsRouter = createTRPCRouter({
 
 			// Sort by view count order
 			const idOrder = new Map(productIds.map((id, i) => [id, i]))
-			return products.sort(
+			return enrichRecommendationProducts(
+				products.sort(
 				(a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0),
+				),
 			)
 		}),
 
@@ -162,7 +198,7 @@ export const recommendationsRouter = createTRPCRouter({
 				},
 			})
 
-			return views.map(v => v.product)
+			return enrichRecommendationProducts(views.map(v => v.product))
 		}),
 
 	/** 3.6 — Popular searches (last 7 days) */

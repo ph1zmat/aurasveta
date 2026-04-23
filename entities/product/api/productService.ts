@@ -8,6 +8,7 @@ import type {
 import { toFrontendProduct } from '@/entities/product/model/adapters'
 import { productImageSelect } from '@/lib/products/product-images'
 import { prisma } from '@/lib/prisma'
+import { withResolvedProductImages } from '@/lib/storage-image-assets'
 
 const productInclude = {
 	category: { select: { name: true, slug: true } },
@@ -49,7 +50,11 @@ export async function getAllProducts(): Promise<Product[]> {
 		select: productCardSelect,
 		orderBy: { createdAt: 'desc' },
 	})
-	return dbProducts.map(toFrontendProduct)
+	const cache = new Map()
+	const enrichedProducts = await Promise.all(
+		dbProducts.map(product => withResolvedProductImages(product, { cache })),
+	)
+	return enrichedProducts.map(toFrontendProduct)
 }
 
 /**
@@ -62,7 +67,9 @@ export async function getProductById(
 		where: { id: String(id) },
 		include: productInclude,
 	})
-	return dbProduct ? toFrontendProduct(dbProduct) : undefined
+	if (!dbProduct) return undefined
+
+	return toFrontendProduct(await withResolvedProductImages(dbProduct))
 }
 
 /**
@@ -75,7 +82,9 @@ export async function getProductBySlug(
 		where: { slug },
 		include: productInclude,
 	})
-	return dbProduct ? toFrontendProduct(dbProduct) : undefined
+	if (!dbProduct) return undefined
+
+	return toFrontendProduct(await withResolvedProductImages(dbProduct))
 }
 
 /**
@@ -92,7 +101,11 @@ export async function getProductsByCategory(
 		select: productCardSelect,
 		orderBy: { createdAt: 'desc' },
 	})
-	return dbProducts.map(toFrontendProduct)
+	const cache = new Map()
+	const enrichedProducts = await Promise.all(
+		dbProducts.map(product => withResolvedProductImages(product, { cache })),
+	)
+	return enrichedProducts.map(toFrontendProduct)
 }
 
 /**

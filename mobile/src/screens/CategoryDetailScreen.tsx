@@ -2,7 +2,6 @@ import {
 	View,
 	Text,
 	ScrollView,
-	Image,
 	FlatList,
 	StyleSheet,
 	Alert,
@@ -20,6 +19,7 @@ import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { IconButton } from '../components/ui/IconButton'
 import { ImagePicker } from '../components/ui/ImagePicker'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import { trpc } from '../lib/trpc'
 import {
 	FolderOpen,
@@ -29,6 +29,7 @@ import {
 	ImagePlus,
 } from 'lucide-react-native'
 import type { CategoryDetailProps } from '../navigation/types'
+import { resolveImageUrl } from '../lib/resolveImageUrl'
 
 export function CategoryDetailScreen({
 	route,
@@ -78,20 +79,18 @@ export function CategoryDetailScreen({
 	}
 
 	const children = cat.children ?? []
-	const imageUrl = cat.image || cat.imageUrl || null
+	const imageUrl = cat.imageUrl || cat.image || cat.imagePath || null
 	const apiUrl = 'https://aurasveta.ru'
-	const fullImageUrl = imageUrl?.startsWith('http')
-		? imageUrl
-		: imageUrl
-			? `${apiUrl}${imageUrl}`
-			: null
+	const fullImageUrl = resolveImageUrl(imageUrl, apiUrl)
 
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
 			{/* Category image */}
 			<ImagePicker
-				imageUrl={imageUrl}
-				onImageUploaded={path => updateImageMut.mutate({ id: cat.id, path })}
+				imageUrl={fullImageUrl}
+				onImageUploaded={imagePath =>
+					updateImageMut.mutate({ categoryId: cat.id, imagePath })
+				}
 				onImageRemoved={() => removeImageMut.mutate(cat.id)}
 				height={180}
 			/>
@@ -157,14 +156,19 @@ export function CategoryDetailScreen({
 					children.map((child: any) => (
 						<Card key={child.id} style={styles.childCard}>
 							<View style={styles.childRow}>
-								{child.image ? (
-									<Image
-										source={{
-											uri: child.image.startsWith('http')
-												? child.image
-												: `${apiUrl}${child.image}`,
-										}}
-										style={styles.childImage}
+								{resolveImageUrl(
+									child.imageUrl ?? child.imagePath ?? child.image,
+									apiUrl,
+								) ? (
+									<AsyncImage
+										uri={resolveImageUrl(
+											child.imageUrl ?? child.imagePath ?? child.image,
+											apiUrl,
+										)}
+										containerStyle={styles.childImage}
+										imageStyle={styles.childImage}
+										resizeMode='cover'
+										showSpinner={false}
 									/>
 								) : (
 									<View

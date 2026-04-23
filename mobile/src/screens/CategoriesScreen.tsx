@@ -2,7 +2,6 @@ import {
 	View,
 	Text,
 	FlatList,
-	Image,
 	Pressable,
 	StyleSheet,
 	RefreshControl,
@@ -23,6 +22,7 @@ import {
 	ripple,
 } from '../theme'
 import { ScreenHeader } from '../components/ui/ScreenHeader'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import { EmptyState } from '../components/ui/EmptyState'
 import {
 	FolderOpen,
@@ -31,6 +31,7 @@ import {
 	FolderTree,
 } from 'lucide-react-native'
 import type { CategoriesStackParamList } from '../navigation/types'
+import { resolveImageUrl } from '../lib/resolveImageUrl'
 
 const CARD_GAP = spacing.md
 const SCREEN_PAD = spacing.lg
@@ -47,13 +48,11 @@ export function CategoriesScreen() {
 	} = trpc.categories.getTree.useQuery()
 	const apiUrl = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
 
-	const resolveImage = (path?: string | null) => {
-		if (!path) return null
-		return path.startsWith('http') ? path : `${apiUrl}${path}`
-	}
-
 	const renderCategory = ({ item }: { item: any }) => {
-		const imageUrl = resolveImage(item.imagePath)
+		const imageUrl = resolveImageUrl(
+			item.imageUrl ?? item.imagePath ?? item.image,
+			apiUrl,
+		)
 		const productCount = item._count?.products ?? 0
 		const childrenCount = item.children?.length ?? 0
 
@@ -74,9 +73,10 @@ export function CategoriesScreen() {
 					{/* Image */}
 					<View style={styles.imageBox}>
 						{imageUrl ? (
-							<Image
-								source={{ uri: imageUrl }}
-								style={styles.catImage}
+							<AsyncImage
+								uri={imageUrl}
+								containerStyle={styles.catImage}
+								imageStyle={styles.catImage}
 								resizeMode='cover'
 							/>
 						) : (

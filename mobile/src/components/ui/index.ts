@@ -1,4 +1,5 @@
 export { AppBottomSheet } from './AppBottomSheet'
+export { AsyncImage } from './AsyncImage'
 export { Badge, StatusBadge } from './Badge'
 export { Button } from './Button'
 export { Card } from './Card'

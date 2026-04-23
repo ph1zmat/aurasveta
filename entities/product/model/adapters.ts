@@ -3,10 +3,12 @@ import type { CartItemData } from '@/entities/cart/model/types'
 import type { ProductCardProps } from '@/entities/product/ui/ProductCard'
 import type { CatalogProductCardProps } from '@/entities/product/ui/CatalogProductCard'
 import {
+	getResolvedProductImageUrl,
 	getProductImageUrl,
 	normalizeProductImages,
 } from '@/shared/lib/product-utils'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+import type { StorageImageAsset } from '@/shared/types/storage'
 
 /** Shape of a Prisma product row used by `toFrontendProduct`. */
 export interface DbProduct {
@@ -37,6 +39,8 @@ function toProductImage(image: unknown, index: number): ProductImage | null {
 			id: `legacy-${index}-${value}`,
 			url: resolvedUrl,
 			key: value,
+			displayUrl: resolvedUrl,
+			imageAsset: null,
 			originalName: null,
 			size: null,
 			mimeType: null,
@@ -50,8 +54,17 @@ function toProductImage(image: unknown, index: number): ProductImage | null {
 	const value = image as Partial<ProductImage>
 	const key = typeof value.key === 'string' ? value.key.trim() : ''
 	const url = typeof value.url === 'string' ? value.url.trim() : ''
-	const resolvedValue = url || key
-	const resolvedUrl = resolveStorageFileUrl(resolvedValue)
+	const displayUrl =
+		typeof value.displayUrl === 'string' ? value.displayUrl.trim() : ''
+	const imageAsset = (value.imageAsset ?? null) as StorageImageAsset | null
+	const resolvedValue = displayUrl || url || key
+	const resolvedUrl =
+		getResolvedProductImageUrl({
+			displayUrl: displayUrl || null,
+			imageAsset,
+			url,
+			key,
+		}) ?? resolveStorageFileUrl(resolvedValue)
 
 	if (!resolvedValue || !resolvedUrl) return null
 
@@ -63,6 +76,8 @@ function toProductImage(image: unknown, index: number): ProductImage | null {
 		productId: value.productId,
 		url: resolvedUrl,
 		key: key || resolvedValue,
+			displayUrl: resolvedUrl,
+			imageAsset,
 		originalName: value.originalName ?? null,
 		size: value.size ?? null,
 		mimeType: value.mimeType ?? null,

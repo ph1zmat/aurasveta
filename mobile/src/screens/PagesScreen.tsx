@@ -4,7 +4,6 @@ import {
 	View,
 	Text,
 	FlatList,
-	Image,
 	Pressable,
 	StyleSheet,
 	Alert,
@@ -24,6 +23,7 @@ import {
 	ripple,
 } from '../theme'
 import { Button } from '../components/ui/Button'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import { IconButton } from '../components/ui/IconButton'
 import { SearchInput } from '../components/ui/SearchInput'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -31,6 +31,7 @@ import { useToast } from '../components/ui/Toast'
 import { FileText, Trash2, Pencil, Plus, Calendar } from 'lucide-react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MoreStackParamList } from '../navigation/types'
+import { resolveImageUrl } from '../lib/resolveImageUrl'
 
 type Props = NativeStackScreenProps<MoreStackParamList, 'Pages'>
 const CARD_GAP = spacing.sm
@@ -79,11 +80,10 @@ export function PagesScreen({ navigation }: Props) {
 			? item.content.slice(0, 80) + (item.content.length > 80 ? '...' : '')
 			: null
 		const apiUrl = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
-		const imageUrl = item.imagePath
-			? item.imagePath.startsWith('http')
-				? item.imagePath
-				: `${apiUrl}${item.imagePath}`
-			: null
+		const imageUrl = resolveImageUrl(
+			item.imageUrl ?? item.imagePath ?? item.image,
+			apiUrl,
+		)
 
 		return (
 			<View
@@ -95,9 +95,10 @@ export function PagesScreen({ navigation }: Props) {
 				{/* Cover area */}
 				<View style={styles.coverArea}>
 					{imageUrl ? (
-						<Image
-							source={{ uri: imageUrl }}
-							style={styles.coverImage}
+						<AsyncImage
+							uri={imageUrl}
+							containerStyle={styles.coverImage}
+							imageStyle={styles.coverImage}
 							resizeMode='cover'
 						/>
 					) : (

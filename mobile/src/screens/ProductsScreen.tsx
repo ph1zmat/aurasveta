@@ -3,7 +3,6 @@ import {
 	View,
 	Text,
 	FlatList,
-	Image,
 	Pressable,
 	StyleSheet,
 	Alert,
@@ -23,6 +22,7 @@ import {
 	ripple,
 } from '../theme'
 import { SearchInput } from '../components/ui/SearchInput'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import { Button } from '../components/ui/Button'
 import { IconButton } from '../components/ui/IconButton'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -38,18 +38,25 @@ import {
 } from 'lucide-react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { ProductsStackParamList } from '../navigation/types'
+import { resolveImageUrl } from '../lib/resolveImageUrl'
 
 type Props = NativeStackScreenProps<ProductsStackParamList, 'ProductsList'>
 
 function resolveProductImage(
-	image: { key?: string | null; url?: string | null } | null | undefined,
+	image:
+		| {
+				key?: string | null
+				url?: string | null
+				displayUrl?: string | null
+				imageAsset?: { url?: string | null } | null
+		  }
+		| null
+		| undefined,
 	apiUrl: string,
 ) {
-	const value = image?.url ?? image?.key ?? null
-	if (!value) return null
-	if (value.startsWith('http')) return value
-	if (value.startsWith('/')) return `${apiUrl}${value}`
-	return `${apiUrl}/api/storage/file?key=${encodeURIComponent(value)}`
+	const value =
+		image?.displayUrl ?? image?.imageAsset?.url ?? image?.url ?? image?.key ?? null
+	return resolveImageUrl(value, apiUrl)
 }
 
 export function ProductsScreen({ navigation }: Props) {
@@ -131,9 +138,10 @@ export function ProductsScreen({ navigation }: Props) {
 					</View>
 					<View style={styles.imageContainer}>
 						{imageUrl ? (
-							<Image
-								source={{ uri: imageUrl }}
-								style={styles.productImage}
+							<AsyncImage
+								uri={imageUrl}
+								containerStyle={styles.productImage}
+								imageStyle={styles.productImage}
 								resizeMode='cover'
 							/>
 						) : (

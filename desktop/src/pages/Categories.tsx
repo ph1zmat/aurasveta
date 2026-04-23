@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import {
 Plus,
 Pencil,
@@ -104,10 +105,10 @@ return (
 {/* Image */}
 <div className='aspect-4/3 w-full bg-muted/30'>
 {category.imagePath ? (
-<img
-src={resolveImgUrl(category.imagePath, apiBaseUrl)}
+<AsyncImage
+src={category.imageUrl ?? resolveImgUrl(category.imagePath, apiBaseUrl)}
 alt={category.name}
-className='h-full w-full object-cover'
+className='h-full w-full'
 />
 ) : (
 <div className='flex h-full w-full items-center justify-center'>
@@ -292,10 +293,10 @@ className='flex items-center gap-1.5 text-sm text-muted-foreground transition-co
 <div className='group relative h-40 w-40 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center'>
 {cat?.imagePath ? (
 <>
-<img
-src={resolveImgUrl(cat.imagePath, apiBaseUrl)}
-alt=''
-className='h-full w-full object-cover'
+<AsyncImage
+src={cat.imageUrl ?? resolveImgUrl(cat.imagePath, apiBaseUrl)}
+alt={cat?.name ?? 'Фото категории'}
+className='h-full w-full'
 />
 <div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100'>
 <label className='cursor-pointer rounded-lg bg-white/10 p-2.5 text-white backdrop-blur-sm hover:bg-white/20'>
@@ -606,10 +607,10 @@ className='flex-1 overflow-y-auto px-6 py-5 space-y-5'
 <div className='relative group h-28 w-28 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center'>
 {editId && editCat?.imagePath ? (
 <>
-<img
-src={resolveImgUrl(editCat.imagePath, apiBaseUrl)}
-alt=''
-className='h-full w-full object-cover'
+<AsyncImage
+src={editCat.imageUrl ?? resolveImgUrl(editCat.imagePath, apiBaseUrl)}
+alt={editCat.name ?? 'Фото категории'}
+className='h-full w-full'
 />
 <div className='absolute inset-0 flex items-center justify-center gap-1.5 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100'>
 <label className='cursor-pointer rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm hover:bg-white/20'>

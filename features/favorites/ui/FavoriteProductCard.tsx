@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, BarChart3, Heart, Star } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/Button'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export interface FavoriteProductCardProps {
 	name: string
@@ -69,11 +69,12 @@ export default function FavoriteProductCard({
 			{/* Image */}
 			<Link href={href} className='relative mb-3 block overflow-hidden'>
 				<div className='relative h-56 w-full'>
-					<Image
+					<DeferredImage
 						src={image}
 						alt={name}
 						fill
-						className='object-contain transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-contain transition-transform duration-500 group-hover:scale-105'
+						fallbackClassName='bg-muted/30'
 					/>
 				</div>
 				{/* Color indicator line */}

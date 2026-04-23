@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
+import { AsyncImage } from '../components/ui/AsyncImage'
 import { Plus, Pencil, Trash2, X, ImagePlus, Trash, FileText, Calendar } from 'lucide-react'
 import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
 
@@ -74,10 +75,10 @@ export function PagesPage() {
 								{/* Cover image or gradient header */}
 								{page.imagePath ? (
 									<div className='relative h-32 w-full'>
-										<img
-											src={resolveImgUrl(page.imagePath, apiBaseUrl)}
-											alt=''
-											className='h-full w-full object-cover'
+										<AsyncImage
+											src={page.imageUrl ?? resolveImgUrl(page.imagePath, apiBaseUrl)}
+											alt={page.title ?? 'Обложка страницы'}
+											className='h-full w-full'
 										/>
 										<div className='absolute inset-0 bg-linear-to-t from-black/40 to-transparent' />
 										{/* Status dot over image */}
@@ -312,11 +313,11 @@ function PageFormModal({
 						<div className='relative group h-32 w-48 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center'>
 							{editId && editPage?.imagePath ? (
 								<>
-									<img
-										src={resolveImgUrl(editPage.imagePath, apiBaseUrl)}
-										alt=''
-										className='h-full w-full object-cover'
-									/>
+										<AsyncImage
+											src={editPage.imageUrl ?? resolveImgUrl(editPage.imagePath, apiBaseUrl)}
+											alt={editPage.title ?? 'Обложка страницы'}
+											className='h-full w-full'
+										/>
 									<div className='absolute inset-0 flex items-center justify-center gap-1.5 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100'>
 										<label className='cursor-pointer rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm hover:bg-white/20'>
 											<ImagePlus className='h-4 w-4' />

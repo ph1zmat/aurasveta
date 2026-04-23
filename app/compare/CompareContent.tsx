@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, Fragment } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, X } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
@@ -13,6 +12,7 @@ import { Button } from '@/shared/ui/Button'
 import EmptyState from '@/shared/ui/EmptyState'
 import { getProductImageUrl } from '@/shared/lib/product-utils'
 import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 /* ─────── types ─────── */
 
@@ -365,11 +365,12 @@ export default function CompareContent() {
 													href={`/product/${product.slug}`}
 													className='relative mb-3 block h-40 w-full'
 												>
-													<Image
+														<DeferredImage
 														src={product.image}
 														alt={product.name}
 														fill
-														className='object-contain'
+															imageClassName='object-contain'
+															fallbackClassName='bg-muted/30'
 													/>
 												</Link>
 
