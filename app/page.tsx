@@ -19,6 +19,10 @@ import { Suspense } from 'react'
 import { connection } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+type BrandRow = {
+	brand: string | null
+}
+
 function ProductGridSkeleton() {
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
@@ -60,11 +64,11 @@ export default async function Home() {
 		distinct: ['brand'],
 	})
 	const brands = brandNames
-		.map(p => p.brand)
-		.filter(Boolean)
-		.map(name => ({
-			name: name!,
-			slug: name!.toLowerCase().replace(/\s+/g, '-'),
+		.map((product: BrandRow) => product.brand)
+		.filter((name: string | null): name is string => Boolean(name))
+		.map((name: string) => ({
+			name,
+			slug: name.toLowerCase().replace(/\s+/g, '-'),
 		}))
 
 	return (

@@ -14,6 +14,15 @@ import { getProductImageUrl } from '@/shared/lib/product-utils'
 import type { ProductImage } from '@/shared/types/product'
 import { CartContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
+type AnonCartProduct = {
+	id: string
+	slug: string
+	name: string
+	price?: number | null
+	compareAtPrice?: number | null
+	images?: ProductImage[] | null
+}
+
 export default function CartContent() {
 	const {
 		items: rawItems,
@@ -63,7 +72,8 @@ export default function CartContent() {
 		}
 
 		// Anon: use separately fetched product data
-		const productMap = new Map((anonProductsData ?? []).map(p => [p.id, p]))
+		const anonProducts = (anonProductsData ?? []) as unknown as AnonCartProduct[]
+		const productMap = new Map(anonProducts.map(product => [product.id, product]))
 		return rawItems
 			.map(item => {
 				const p = productMap.get(item.productId)

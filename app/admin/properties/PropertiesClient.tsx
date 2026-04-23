@@ -136,7 +136,7 @@ export default function PropertiesClient() {
 						</tr>
 					</thead>
 					<tbody>
-						{properties?.map(prop => (
+						{properties?.map((prop: PropertyItem) => (
 							<tr key={prop.id} className='border-b border-border/50'>
 								<td className='px-4 py-3 font-mono text-xs'>{prop.key}</td>
 								<td className='px-4 py-3'>{prop.name}</td>

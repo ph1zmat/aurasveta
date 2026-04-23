@@ -44,8 +44,9 @@ export default function RecentlyViewed() {
 	})
 
 	if (!products || products.length === 0) return null
+	const recentProducts = (products ?? []) as unknown as DbProduct[]
 
-	const cards = products
+	const cards = recentProducts
 		.slice(0, 4)
 		.map(product => toProductCardProps(toFrontendProduct(product as DbProduct)))
 

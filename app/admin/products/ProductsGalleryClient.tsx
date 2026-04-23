@@ -10,6 +10,22 @@ import ProductImagesField, {
 	type EditableProductImage,
 } from './ProductImagesField'
 
+type ProductListItem = {
+	id: string
+	name: string
+	price?: number | null
+	stock: number
+	isActive: boolean
+	category?: {
+		name?: string | null
+	} | null
+	images?: Array<{
+		url?: string | null
+		displayUrl?: string | null
+	}> | null
+}
+type CategoryOption = RouterOutputs['categories']['getAll'][number]
+
 export default function ProductsGalleryClient() {
 	const [page, setPage] = useState(1)
 	const [search, setSearch] = useState('')
@@ -24,6 +40,7 @@ export default function ProductsGalleryClient() {
 	const deleteMut = trpc.products.delete.useMutation({
 		onSuccess: () => refetch(),
 	})
+	const products = (data?.items ?? []) as unknown as ProductListItem[]
 
 	return (
 		<div className='space-y-6'>
@@ -79,8 +96,9 @@ export default function ProductsGalleryClient() {
 						</tr>
 					</thead>
 					<tbody>
-						{data?.items.map(product => {
-							const previewImage = product.images?.[0]?.url ?? null
+						{products.map(product => {
+							const previewImage =
+								product.images?.[0]?.displayUrl ?? product.images?.[0]?.url ?? null
 
 							return (
 								<tr key={product.id} className='border-b border-border/50'>
@@ -182,6 +200,7 @@ export default function ProductsGalleryClient() {
 }
 
 type ProductDetails = RouterOutputs['products']['getById']
+type ProductImageItem = NonNullable<NonNullable<ProductDetails>['images']>[number]
 
 function ProductFormModal({
 	editId,
@@ -247,7 +266,7 @@ function ProductForm({
 	})
 	const [images, setImages] = useState<EditableProductImage[]>(
 		() =>
-			product?.images?.map(image => ({
+			product?.images?.map((image: ProductImageItem) => ({
 				id: image.id,
 				url: image.url,
 				key: image.key,
@@ -406,7 +425,7 @@ function ProductForm({
 								className='input-field'
 							>
 								<option value=''>— Без категории —</option>
-								{categories?.map(category => (
+								{categories?.map((category: CategoryOption) => (
 									<option key={category.id} value={category.id}>
 										{category.name}
 									</option>

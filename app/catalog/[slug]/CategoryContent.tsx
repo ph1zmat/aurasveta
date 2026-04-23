@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { keepPreviousData } from '@tanstack/react-query'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import MobileFilterWrapper from '@/features/catalog-filter/ui/MobileFilterWrapper'
 import ViewToggle from '@/features/catalog-filter/ui/ViewToggle'
@@ -28,6 +28,7 @@ const STATIC_FILTER_KEYS = {
 } as const
 
 const PROPERTY_PARAM_PREFIX = 'prop.'
+type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
 
 function parsePropertyFiltersFromParams(
 	params: URLSearchParams,
@@ -158,7 +159,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 	}
 	breadcrumbItems.push({ label: categoryName })
 
-	const categoryTree = (categoriesTree ?? []).map(cat => ({
+	const categoryTree = (categoriesTree ?? []).map((cat: CategoryTreeNode) => ({
 		name: cat.name,
 		href: `/catalog/${cat.slug}`,
 		children: cat.children?.map((child: { name: string; slug: string }) => ({
@@ -168,7 +169,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 	}))
 
 	const products = (productsData?.items ?? []).map(p =>
-		toCatalogCardProps(toFrontendProduct(p as DbProduct)),
+		toCatalogCardProps(toFrontendProduct(p as unknown as DbProduct)),
 	)
 	const totalProducts = productsData?.total ?? 0
 	const totalPages = productsData?.totalPages ?? 1

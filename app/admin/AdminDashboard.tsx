@@ -1,6 +1,6 @@
 'use client'
 
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Package, ShoppingCart, Users, TrendingUp } from 'lucide-react'
 import {
 	BarChart,
@@ -11,6 +11,10 @@ import {
 	Tooltip,
 	ResponsiveContainer,
 } from 'recharts'
+
+type AdminStats = RouterOutputs['admin']['getStats']
+type RecentOrder = AdminStats['recentOrders'][number]
+type TopProduct = AdminStats['topProducts'][number]
 
 export default function AdminDashboard() {
 	const { data: stats } = trpc.admin.getStats.useQuery()
@@ -124,7 +128,7 @@ export default function AdminDashboard() {
 								</tr>
 							</thead>
 							<tbody>
-								{stats.recentOrders.map(order => (
+								{stats.recentOrders.map((order: RecentOrder) => (
 									<tr key={order.id} className='border-b border-border/50'>
 										<td className='py-2 font-mono text-xs'>
 											{order.id.slice(0, 8)}
@@ -160,7 +164,7 @@ export default function AdminDashboard() {
 				</h2>
 				{stats?.topProducts && stats.topProducts.length > 0 ? (
 					<div className='space-y-3'>
-						{stats.topProducts.map(tp => (
+						{stats.topProducts.map((tp: TopProduct) => (
 							<div
 								key={tp.productId}
 								className='flex items-center justify-between text-sm'
