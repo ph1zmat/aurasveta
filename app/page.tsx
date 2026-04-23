@@ -16,6 +16,7 @@ import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
 import ChatButton from '@/shared/ui/ChatButton'
 import Skeleton from '@/shared/ui/Skeleton'
 import { Suspense } from 'react'
+import { connection } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 function ProductGridSkeleton() {
@@ -51,6 +52,8 @@ function CategoriesSkeleton() {
 }
 
 export default async function Home() {
+	await connection()
+
 	const brandNames = await prisma.product.findMany({
 		where: { isActive: true, brand: { not: null } },
 		select: { brand: true },
