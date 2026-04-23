@@ -7,6 +7,7 @@ import {
 	toCatalogCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
 export default function CatalogContent() {
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
@@ -22,7 +23,9 @@ export default function CatalogContent() {
 		slug: cat.slug,
 		name: cat.name,
 		href: `/catalog/${cat.slug}`,
-		image: cat.image ?? '/images/categories/default.jpg',
+		image:
+			resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
+			'/images/categories/default.jpg',
 		productCount: cat._count?.products ?? 0,
 	}))
 

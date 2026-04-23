@@ -34,6 +34,11 @@ import {
 import { notFound } from 'next/navigation'
 import { trpc } from '@/lib/trpc/server'
 import { getMetadataForProduct, seoToMetadata } from '@/lib/seo/getMetadata'
+import {
+	getProductImageUrl,
+	normalizeProductImages,
+} from '@/shared/lib/product-utils'
+import { ProductCarouselSkeleton } from '@/shared/ui/storefront-skeletons'
 
 /* ── Page ── */
 
@@ -54,7 +59,6 @@ export async function generateMetadata({
 		description: product.description,
 		price: product.price,
 		images: product.images,
-		imagePath: product.imagePath,
 		brand: product.brand,
 	})
 	return seoToMetadata(seo)
@@ -74,10 +78,9 @@ export default async function ProductPage({
 
 	const productId = String(product.id)
 
-	const allImages = [
-		...(product.imagePath ? [product.imagePath] : []),
-		...product.images,
-	]
+	const allImages = normalizeProductImages(product.images).map(
+		image => image.url,
+	)
 	const productImages = allImages.length > 0 ? allImages : ['/bulb.svg']
 	return (
 		<div className='flex flex-col bg-background'>
@@ -98,7 +101,7 @@ export default async function ProductPage({
 			<StickyHeaderWithTrigger
 				triggerId='product-tabs'
 				name={product.name}
-				image={productImages[0]}
+				image={getProductImageUrl(product)}
 				price={product.price}
 				discountPercent={product.discountPercent}
 				bonusAmount={product.bonusAmount}
@@ -118,7 +121,9 @@ export default async function ProductPage({
 					productName={product.name}
 					categoryName={product.category}
 					categoryHref={
-						product.categorySlug ? `/catalog/${product.categorySlug}` : undefined
+						product.categorySlug
+							? `/catalog/${product.categorySlug}`
+							: undefined
 					}
 				/>
 
@@ -186,12 +191,12 @@ export default async function ProductPage({
 				</div>
 
 				{/* Similar products carousel — streamed independently */}
-				<Suspense fallback={<div className='h-64' />}>
+				<Suspense fallback={<ProductCarouselSkeleton />}>
 					<SimilarProductsSection productId={productId} />
 				</Suspense>
 
 				{/* Collection products carousel — streamed independently */}
-				<Suspense fallback={<div className='h-64' />}>
+				<Suspense fallback={<ProductCarouselSkeleton />}>
 					<CollectionProductsSection productId={productId} />
 				</Suspense>
 			</main>

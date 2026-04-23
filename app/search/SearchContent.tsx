@@ -8,11 +8,6 @@ import { useDebounce } from '@/shared/lib/useDebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingSession'
 import EmptyState from '@/shared/ui/EmptyState'
 import Skeleton from '@/shared/ui/Skeleton'
-import {
-	toFrontendProduct,
-	toCatalogCardProps,
-} from '@/entities/product/model/adapters'
-import type { DbProduct } from '@/entities/product/model/adapters'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
 
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
@@ -73,7 +68,7 @@ export default function SearchContent() {
 		},
 		{
 			enabled: debouncedSearch.length >= 2,
-			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			getNextPageParam: lastPage => lastPage.nextCursor,
 			staleTime: 1000 * 60 * 2,
 		},
 	)
@@ -84,7 +79,7 @@ export default function SearchContent() {
 		if (!el) return
 
 		const observer = new IntersectionObserver(
-			(entries) => {
+			entries => {
 				if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
 					void fetchNextPage()
 				}
@@ -96,27 +91,36 @@ export default function SearchContent() {
 	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
 	const allItems =
-		data?.pages.flatMap((page) =>
-			page.items.map((item) => {
-				const dbProduct: DbProduct = {
-					id: item.id,
-					slug: item.slug,
+		data?.pages.flatMap(page =>
+			page.items.map(item => {
+				const price = item.price ? Number(item.price) : 0
+				const oldPrice = item.compareAtPrice
+					? Number(item.compareAtPrice)
+					: undefined
+
+				return {
+					productId: item.id,
 					name: item.name,
-					description: item.description,
-					price: item.price,
-					compareAtPrice: item.compareAtPrice,
-					stock: item.stock,
-					images: item.images,
-					imagePath: item.imagePath,
-					brand: item.brand,
-					brandCountry: item.brandCountry,
-					rating: item.rating,
-					reviewsCount: item.reviewsCount,
-					badges: item.badges,
-					createdAt: item.createdAt,
-					category: item.category,
+					href: `/product/${item.slug}`,
+					image: item.imageUrl ?? '/bulb.svg',
+					brand: item.brandCountry
+						? `${item.brand} (${item.brandCountry})`
+						: (item.brand ?? undefined),
+					price,
+					oldPrice,
+					discountPercent:
+						price && oldPrice
+							? Math.round((1 - price / oldPrice) * 100)
+							: undefined,
+					bonusAmount: price ? Math.round(price * 0.06) : undefined,
+					badges: Array.isArray(item.badges)
+						? item.badges.filter(
+								(badge): badge is string => typeof badge === 'string',
+							)
+						: [],
+					inStock: item.stock > 0 ? `В наличии ${item.stock} шт.` : undefined,
+					buttonLabel: item.stock > 0 ? 'В КОРЗИНУ' : 'УТОЧНИТЬ',
 				}
-				return toCatalogCardProps(toFrontendProduct(dbProduct))
 			}),
 		) ?? []
 
@@ -157,7 +161,7 @@ export default function SearchContent() {
 							onChange={handleSortChange}
 							className='rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground'
 						>
-							{SORT_OPTIONS.map((opt) => (
+							{SORT_OPTIONS.map(opt => (
 								<option key={opt.value} value={opt.value}>
 									{opt.label}
 								</option>
@@ -169,7 +173,7 @@ export default function SearchContent() {
 						<input
 							type='checkbox'
 							checked={inStock}
-							onChange={(e) => setInStock(e.target.checked)}
+							onChange={e => setInStock(e.target.checked)}
 							className='rounded border-border'
 						/>
 						Только в наличии
@@ -231,7 +235,7 @@ export default function SearchContent() {
 			{/* Results grid */}
 			{allItems.length > 0 && (
 				<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
-					{allItems.map((card) => (
+					{allItems.map(card => (
 						<InteractiveCatalogCard key={card.productId} {...card} />
 					))}
 				</div>

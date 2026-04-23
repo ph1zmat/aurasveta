@@ -4,9 +4,15 @@ import { trpc } from '@/lib/trpc/client'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 import { useCart } from '@/features/cart/useCart'
+import {
+	type DbProduct,
+	toFrontendProduct,
+} from '@/entities/product/model/adapters'
+import { toFavoriteCardProps } from '@/features/favorites/model/adapters'
 import FavoriteProductCard from '@/features/favorites/ui/FavoriteProductCard'
 import { Button } from '@/shared/ui/Button'
 import EmptyState from '@/shared/ui/EmptyState'
+import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 export default function FavoritesContent() {
 	const { productIds, remove, clear, isAuth, serverFavorites } = useFavorites()
@@ -14,18 +20,12 @@ export default function FavoritesContent() {
 	const cart = useCart()
 
 	// Fetch product details for anonymous favorites
-	const { data: productsData } = trpc.products.getByIds.useQuery(productIds, {
-		enabled: !isAuth && productIds.length > 0,
-	})
+	const { data: productsData, isLoading: isProductsLoading } =
+		trpc.products.getByIds.useQuery(productIds, {
+			enabled: !isAuth && productIds.length > 0,
+		})
 
-	type FavoriteCardProps = {
-		name: string
-		href: string
-		image: string
-		price: number
-		oldPrice?: number
-		discountPercent?: number
-		availability: string
+	type FavoriteCardProps = ReturnType<typeof toFavoriteCardProps> & {
 		productId: string
 	}
 
@@ -33,60 +33,19 @@ export default function FavoritesContent() {
 
 	if (isAuth && serverFavorites.length > 0) {
 		products = serverFavorites.map(fav => {
-			const p = fav.product
-			const price = (p as { price?: number | null }).price
-				? Number((p as { price?: number | null }).price)
-				: 0
-			const compareAtPrice = (p as { compareAtPrice?: number | null })
-				.compareAtPrice
-				? Number((p as { compareAtPrice?: number | null }).compareAtPrice)
-				: undefined
+			const product = toFrontendProduct(fav.product as unknown as DbProduct)
 			return {
-				name: p.name,
-				href: `/product/${p.slug}`,
-				image:
-					(p as { imagePath?: string | null }).imagePath ??
-					(Array.isArray((p as { images?: unknown }).images)
-						? (p as { images: string[] }).images[0]
-						: null) ?? '/bulb.svg',
-				price,
-				oldPrice: compareAtPrice,
-				discountPercent:
-					price && compareAtPrice
-						? Math.round((1 - price / compareAtPrice) * 100)
-						: undefined,
-				availability:
-					((p as { stock?: number }).stock ?? 0) > 0
-						? 'В наличии'
-						: 'Нет в наличии',
+				...toFavoriteCardProps(product),
 				productId: fav.productId,
 			}
 		})
 	} else if (!isAuth && productsData) {
 		products = productsData
 			.filter(p => productIds.includes(p.id))
-			.map(p => {
-				const price = p.price ? Number(p.price) : 0
-				const compareAtPrice = p.compareAtPrice
-					? Number(p.compareAtPrice)
-					: undefined
-				return {
-					name: p.name,
-					href: `/product/${p.slug}`,
-					image:
-						(p as { imagePath?: string | null }).imagePath ??
-						(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
-						'/bulb.svg',
-					price,
-					oldPrice: compareAtPrice,
-					discountPercent:
-						price && compareAtPrice
-							? Math.round((1 - price / compareAtPrice) * 100)
-							: undefined,
-					availability: p.stock > 0 ? 'В наличии' : 'Нет в наличии',
-					productId: p.id,
-				}
-			})
+			.map(p => ({
+				...toFavoriteCardProps(toFrontendProduct(p as unknown as DbProduct)),
+				productId: p.id,
+			}))
 	}
 
 	function handleRemove(productId: string) {
@@ -95,6 +54,10 @@ export default function FavoritesContent() {
 
 	function handleClearAll() {
 		clear()
+	}
+
+	if (!isAuth && productIds.length > 0 && isProductsLoading && !productsData) {
+		return <FavoritesContentSkeleton />
 	}
 
 	if (products.length === 0) {

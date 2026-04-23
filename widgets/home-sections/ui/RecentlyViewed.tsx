@@ -2,6 +2,11 @@
 
 import { useSyncExternalStore } from 'react'
 import ProductCard from '@/entities/product/ui/ProductCard'
+import {
+	type DbProduct,
+	toFrontendProduct,
+	toProductCardProps,
+} from '@/entities/product/model/adapters'
 import { trpc } from '@/lib/trpc/client'
 import { getRecentlyViewedIds } from '@/shared/lib/recentlyViewed'
 
@@ -40,16 +45,9 @@ export default function RecentlyViewed() {
 
 	if (!products || products.length === 0) return null
 
-	const cards = products.slice(0, 4).map(p => ({
-		name: p.name,
-		href: `/product/${p.slug}`,
-		image:
-			(p as { imagePath?: string | null }).imagePath ??
-			((Array.isArray(p.images) ? p.images[0] : undefined) as string) ??
-			'/bulb.svg',
-		price: p.price ? Number(p.price) : 0,
-		oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
-	}))
+	const cards = products
+		.slice(0, 4)
+		.map(product => toProductCardProps(toFrontendProduct(product as DbProduct)))
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>

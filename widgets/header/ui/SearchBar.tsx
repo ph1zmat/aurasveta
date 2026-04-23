@@ -306,9 +306,9 @@ export default function SearchBar({ className }: { className?: string }) {
 												}}
 											>
 												<div className='relative h-10 w-10 shrink-0 rounded overflow-hidden bg-muted'>
-													{item.imagePath ? (
+													{item.imageUrl ? (
 														<Image
-															src={item.imagePath}
+															src={item.imageUrl}
 															alt={item.name}
 															fill
 															className='object-contain'

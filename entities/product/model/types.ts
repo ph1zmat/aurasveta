@@ -1,1 +1,1 @@
-export type { Product } from '@/shared/types/product'
+export type { Product, ProductImage } from '@/shared/types/product'

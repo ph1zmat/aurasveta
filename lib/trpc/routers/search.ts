@@ -28,8 +28,7 @@ interface SearchProductRow {
 	compare_at_price: number | null
 	stock: number
 	sku: string | null
-	images: Prisma.JsonValue
-	image_path: string | null
+	main_image_url: string | null
 	brand: string | null
 	brand_country: string | null
 	rating: number | null
@@ -103,13 +102,21 @@ export const searchRouter = createTRPCRouter({
 			SELECT
 				p."id", p."name", p."slug", p."description",
 				p."price", p."compare_at_price", p."stock", p."sku",
-				p."images", p."image_path", p."brand", p."brand_country",
+				pi."url" as main_image_url,
+				p."brand", p."brand_country",
 				p."rating", p."reviews_count", p."badges", p."is_active",
 				p."category_id", p."created_at",
 				c."name" as category_name, c."slug" as category_slug,
 				ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)) as rank
 			FROM "products" p
 			LEFT JOIN "categories" c ON p."category_id" = c."id"
+			LEFT JOIN LATERAL (
+				SELECT pi."url"
+				FROM "product_images" pi
+				WHERE pi."product_id" = p."id"
+				ORDER BY pi."is_main" DESC, pi."order" ASC, pi."created_at" ASC
+				LIMIT 1
+			) pi ON true
 			WHERE p."is_active" = true
 				AND p."search_vector" @@ websearch_to_tsquery('russian', $1)
 				${filterClause}
@@ -149,8 +156,7 @@ export const searchRouter = createTRPCRouter({
 				compareAtPrice: row.compare_at_price,
 				stock: row.stock,
 				sku: row.sku,
-				images: row.images,
-				imagePath: row.image_path,
+				imageUrl: row.main_image_url,
 				brand: row.brand,
 				brandCountry: row.brand_country,
 				rating: row.rating,
@@ -184,7 +190,7 @@ export const searchRouter = createTRPCRouter({
 					id: string
 					name: string
 					slug: string
-					image_path: string | null
+					image_url: string | null
 					price: number | null
 					category_name: string | null
 					category_slug: string | null
@@ -193,11 +199,19 @@ export const searchRouter = createTRPCRouter({
 			>(
 				`
 				SELECT
-					p."id", p."name", p."slug", p."image_path", p."price",
+					p."id", p."name", p."slug", p."price",
+					pi."url" as image_url,
 					c."name" as category_name, c."slug" as category_slug,
 					ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)) as rank
 				FROM "products" p
 				LEFT JOIN "categories" c ON p."category_id" = c."id"
+				LEFT JOIN LATERAL (
+					SELECT pi."url"
+					FROM "product_images" pi
+					WHERE pi."product_id" = p."id"
+					ORDER BY pi."is_main" DESC, pi."order" ASC, pi."created_at" ASC
+					LIMIT 1
+				) pi ON true
 				WHERE p."is_active" = true
 					AND p."search_vector" @@ websearch_to_tsquery('russian', $1)
 				ORDER BY rank DESC
@@ -211,7 +225,7 @@ export const searchRouter = createTRPCRouter({
 				id: row.id,
 				name: row.name,
 				slug: row.slug,
-				imagePath: row.image_path,
+				imageUrl: row.image_url,
 				price: row.price,
 				category: row.category_name
 					? { name: row.category_name, slug: row.category_slug! }

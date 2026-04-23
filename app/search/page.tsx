@@ -28,28 +28,28 @@ export default async function SearchPage({
 
 	return (
 		<HydrateClient>
-		<Suspense
-			fallback={
-				<div className='mx-auto max-w-7xl px-4 py-6 space-y-4'>
-					<Skeleton className='h-7 w-64' />
-					<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
-						{Array.from({ length: 8 }).map((_, i) => (
-							<div
-								key={i}
-								className='rounded-2xl border border-border p-4 space-y-3'
-							>
-								<Skeleton className='h-36 w-full rounded-xl' />
-								<Skeleton className='h-4 w-4/5' />
-								<Skeleton className='h-4 w-1/2' />
-								<Skeleton className='h-10 w-full rounded-lg' />
-							</div>
-						))}
+			<Suspense
+				fallback={
+					<div className='mx-auto max-w-7xl px-4 py-6 space-y-4'>
+						<Skeleton className='h-7 w-64' />
+						<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
+							{Array.from({ length: 8 }).map((_, i) => (
+								<div
+									key={i}
+									className='rounded-2xl border border-border p-4 space-y-3'
+								>
+									<Skeleton className='h-36 w-full rounded-xl' />
+									<Skeleton className='h-4 w-4/5' />
+									<Skeleton className='h-4 w-1/2' />
+									<Skeleton className='h-10 w-full rounded-lg' />
+								</div>
+							))}
+						</div>
 					</div>
-				</div>
-			}
-		>
-			<SearchContent />
-		</Suspense>
+				}
+			>
+				<SearchContent />
+			</Suspense>
 		</HydrateClient>
 	)
 }

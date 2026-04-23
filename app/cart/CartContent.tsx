@@ -10,16 +10,29 @@ import { Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
 import { trpc } from '@/lib/trpc/client'
+import { getProductImageUrl } from '@/shared/lib/product-utils'
+import type { ProductImage } from '@/shared/types/product'
+import { CartContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 export default function CartContent() {
-	const { items: rawItems, serverCartWithProducts, remove, updateQuantity, clear, isAuth } = useCart()
+	const {
+		items: rawItems,
+		serverCartWithProducts,
+		remove,
+		updateQuantity,
+		clear,
+		isAuth,
+	} = useCart()
 
 	// For auth users: use product data already included in cart.get
 	// For anon users: fetch product details separately
 	const anonItemIds = !isAuth ? rawItems.map(i => i.productId) : []
-	const { data: anonProductsData } = trpc.products.getByIds.useQuery(anonItemIds, {
-		enabled: anonItemIds.length > 0,
-	})
+	const { data: anonProductsData } = trpc.products.getByIds.useQuery(
+		anonItemIds,
+		{
+			enabled: anonItemIds.length > 0,
+		},
+	)
 
 	const cartItems: CartItemData[] = useMemo(() => {
 		if (isAuth) {
@@ -28,14 +41,19 @@ export default function CartContent() {
 				.map(item => {
 					const p = item.product as Record<string, unknown> | null
 					if (!p) return null
+					const image = getProductImageUrl(
+						{
+							images: Array.isArray(p.images)
+								? (p.images as ProductImage[])
+								: [],
+						},
+						'/bulb.svg',
+					)
 					return {
 						id: String(item.productId),
 						name: String(p.name ?? ''),
 						href: `/product/${p.slug}`,
-						image:
-							(p.imagePath as string) ??
-							(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
-							'/bulb.svg',
+						image,
 						price: Number(p.price ?? 0),
 						oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
 						quantity: Number(item.quantity),
@@ -54,10 +72,7 @@ export default function CartContent() {
 					id: item.productId,
 					name: p.name,
 					href: `/product/${p.slug}`,
-					image:
-						(p as { imagePath?: string | null }).imagePath ??
-						(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
-						'/bulb.svg',
+					image: getProductImageUrl(p),
 					price: p.price ?? 0,
 					oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
 					quantity: item.quantity,
@@ -109,7 +124,7 @@ export default function CartContent() {
 			clear()
 			toast.success('Заказ успешно оформлен')
 		},
-		onError: (err) => {
+		onError: err => {
 			toast.error(err.message || 'Не удалось оформить заказ')
 		},
 	})
@@ -117,7 +132,10 @@ export default function CartContent() {
 	function handleCheckout() {
 		if (!isAuth) {
 			toast.error('Для оформления заказа необходимо войти в аккаунт', {
-				action: { label: 'Войти', onClick: () => (window.location.href = '/login') },
+				action: {
+					label: 'Войти',
+					onClick: () => (window.location.href = '/login'),
+				},
 			})
 			return
 		}
@@ -156,12 +174,12 @@ export default function CartContent() {
 	}
 
 	// Show loading only when we have cart items but product data is still fetching
-	if (rawItems.length > 0 && cartItems.length === 0 && (!isAuth || serverCartWithProducts.length > 0)) {
-		return (
-			<div className='py-12 text-center'>
-				<p className='text-sm text-muted-foreground'>Загрузка корзины...</p>
-			</div>
-		)
+	if (
+		rawItems.length > 0 &&
+		cartItems.length === 0 &&
+		(!isAuth || serverCartWithProducts.length > 0)
+	) {
+		return <CartContentSkeleton />
 	}
 
 	if (itemsCount === 0) {
@@ -237,7 +255,9 @@ export default function CartContent() {
 									value={address}
 									onChange={e => setAddress(e.target.value)}
 									aria-invalid={addressError ? true : undefined}
-									aria-describedby={addressError ? 'checkout-address-error' : undefined}
+									aria-describedby={
+										addressError ? 'checkout-address-error' : undefined
+									}
 									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 									placeholder='г. Мозырь, ул. ...'
 								/>
@@ -259,12 +279,17 @@ export default function CartContent() {
 									inputMode='tel'
 									autoComplete='tel'
 									aria-invalid={phoneError ? true : undefined}
-									aria-describedby={phoneError ? 'checkout-phone-error' : undefined}
+									aria-describedby={
+										phoneError ? 'checkout-phone-error' : undefined
+									}
 									className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 									placeholder='+375 29 123-45-67'
 								/>
 								{phoneError && (
-									<p id='checkout-phone-error' className='text-xs text-destructive'>
+									<p
+										id='checkout-phone-error'
+										className='text-xs text-destructive'
+									>
 										{phoneError}
 									</p>
 								)}

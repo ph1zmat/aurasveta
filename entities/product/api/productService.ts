@@ -1,15 +1,21 @@
 import type { Product } from '@/entities/product/model/types'
+import type { Prisma } from '@prisma/client'
 import type {
 	SpecItem,
 	SpecGroup,
 	CompareSpecSection,
 } from '@/entities/spec/model/types'
 import { toFrontendProduct } from '@/entities/product/model/adapters'
+import { productImageSelect } from '@/lib/products/product-images'
 import { prisma } from '@/lib/prisma'
 
 const productInclude = {
 	category: { select: { name: true, slug: true } },
-}
+	images: {
+		orderBy: { order: 'asc' },
+		select: productImageSelect,
+	},
+} as const satisfies Prisma.ProductInclude
 
 /** Select only fields needed for product cards (listings). */
 const productCardSelect = {
@@ -20,8 +26,10 @@ const productCardSelect = {
 	price: true,
 	compareAtPrice: true,
 	stock: true,
-	images: true,
-	imagePath: true,
+	images: {
+		orderBy: { order: 'asc' },
+		select: productImageSelect,
+	},
 	brand: true,
 	brandCountry: true,
 	rating: true,
@@ -30,7 +38,7 @@ const productCardSelect = {
 	createdAt: true,
 	categoryId: true,
 	category: { select: { name: true, slug: true } },
-} as const
+} as const satisfies Prisma.ProductSelect
 
 /**
  * Returns all products.

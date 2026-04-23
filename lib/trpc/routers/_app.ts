@@ -1,6 +1,6 @@
 import { createTRPCRouter } from '../init'
 import { categoriesRouter } from './categories'
-import { productsRouter } from './products'
+import { productsRouter } from './products-router'
 import { propertiesRouter } from './properties'
 import { cartRouter } from './cart'
 import { compareRouter } from './compare'

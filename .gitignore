@@ -48,15 +48,21 @@ yarn-error.log*
 
 # screenshots / temp images
 emulator_*.png
+screenshots/
+design-output.html
 
 # misc IDE / OS
 .idea/
+.vscode/
 
 # env files (can opt-in for committing if needed)
 .env*
 
 # vercel
 .vercel
+
+# local desktop runtime artifacts
+/desktop/stderr.log
 
 # typescript
 *.tsbuildinfo

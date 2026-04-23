@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth/auth-utils'
-import ProductsClient from './ProductsClient'
+import ProductsGalleryClient from './ProductsGalleryClient'
 
 export default async function AdminProductsPage() {
 	await requireAdmin()
-	return <ProductsClient />
+	return <ProductsGalleryClient />
 }

@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
+import { productImageSelect } from '@/lib/products/product-images'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 export const compareRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -7,7 +13,10 @@ export const compareRouter = createTRPCRouter({
 			where: { userId: ctx.userId },
 			include: {
 				product: {
-					include: { category: { select: { name: true, slug: true } } },
+					include: {
+						category: { select: { name: true, slug: true } },
+						images: orderedProductImages,
+					},
 				},
 			},
 			orderBy: { createdAt: 'desc' },

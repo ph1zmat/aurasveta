@@ -1,7 +1,12 @@
-import type { Product } from '@/entities/product/model/types'
+import type { Product, ProductImage } from '@/entities/product/model/types'
 import type { CartItemData } from '@/entities/cart/model/types'
 import type { ProductCardProps } from '@/entities/product/ui/ProductCard'
 import type { CatalogProductCardProps } from '@/entities/product/ui/CatalogProductCard'
+import {
+	getProductImageUrl,
+	normalizeProductImages,
+} from '@/shared/lib/product-utils'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
 /** Shape of a Prisma product row used by `toFrontendProduct`. */
 export interface DbProduct {
@@ -13,7 +18,6 @@ export interface DbProduct {
 	compareAtPrice?: number | null
 	stock: number
 	images: unknown
-	imagePath?: string | null
 	brand?: string | null
 	brandCountry?: string | null
 	rating?: number | null
@@ -23,11 +27,63 @@ export interface DbProduct {
 	category?: { name: string; slug?: string } | null
 }
 
+function toProductImage(image: unknown, index: number): ProductImage | null {
+	if (typeof image === 'string') {
+		const value = image.trim()
+		const resolvedUrl = resolveStorageFileUrl(value)
+		if (!value || !resolvedUrl) return null
+
+		return {
+			id: `legacy-${index}-${value}`,
+			url: resolvedUrl,
+			key: value,
+			originalName: null,
+			size: null,
+			mimeType: null,
+			order: index,
+			isMain: index === 0,
+		}
+	}
+
+	if (!image || typeof image !== 'object') return null
+
+	const value = image as Partial<ProductImage>
+	const key = typeof value.key === 'string' ? value.key.trim() : ''
+	const url = typeof value.url === 'string' ? value.url.trim() : ''
+	const resolvedValue = url || key
+	const resolvedUrl = resolveStorageFileUrl(resolvedValue)
+
+	if (!resolvedValue || !resolvedUrl) return null
+
+	return {
+		id:
+			typeof value.id === 'string' && value.id.trim().length > 0
+				? value.id
+				: `image-${index}-${resolvedValue}`,
+		productId: value.productId,
+		url: resolvedUrl,
+		key: key || resolvedValue,
+		originalName: value.originalName ?? null,
+		size: value.size ?? null,
+		mimeType: value.mimeType ?? null,
+		order: typeof value.order === 'number' ? value.order : index,
+		isMain: Boolean(value.isMain),
+		createdAt: value.createdAt,
+		updatedAt: value.updatedAt,
+	}
+}
+
 /**
  * Prisma DB row → frontend Product type.
  * Single source of truth — replace local `toFrontendProduct` copies.
  */
 export function toFrontendProduct(p: DbProduct): Product {
+	const images = normalizeProductImages(
+		(Array.isArray(p.images) ? p.images : [])
+			.map((image, index) => toProductImage(image, index))
+			.filter((image): image is ProductImage => image !== null),
+	)
+
 	return {
 		id: p.id,
 		slug: p.slug,
@@ -44,8 +100,7 @@ export function toFrontendProduct(p: DbProduct): Product {
 		categorySlug: p.category?.slug ?? undefined,
 		brand: p.brand ?? undefined,
 		brandCountry: p.brandCountry ?? undefined,
-		images: Array.isArray(p.images) ? (p.images as string[]) : [],
-		imagePath: p.imagePath ?? null,
+		images,
 		rating: p.rating ? Number(p.rating) : undefined,
 		reviewsCount: p.reviewsCount,
 		inStock: p.stock > 0,
@@ -65,7 +120,7 @@ export function toProductCardProps(p: Product): ProductCardProps {
 	return {
 		name: p.name,
 		href: `/product/${p.slug}`,
-		image: p.imagePath ?? p.images[0] ?? '/bulb.svg',
+		image: getProductImageUrl(p),
 		price: p.price,
 		oldPrice: p.oldPrice,
 	}
@@ -81,7 +136,7 @@ export function toCatalogCardProps(
 		productId: String(p.id),
 		name: p.name,
 		href: `/product/${p.slug}`,
-		image: p.imagePath ?? p.images[0] ?? '/bulb.svg',
+		image: getProductImageUrl(p),
 		brand: p.brandCountry ? `${p.brand} (${p.brandCountry})` : p.brand,
 		price: p.price,
 		oldPrice: p.oldPrice,
@@ -112,7 +167,7 @@ export function toCartItemData(
 		id: String(p.id),
 		name: p.name,
 		href: `/product/${p.slug}`,
-		image: p.imagePath ?? p.images[0],
+		image: getProductImageUrl(p),
 		price: p.price,
 		oldPrice: p.oldPrice,
 		quantity: opts?.quantity ?? 1,
