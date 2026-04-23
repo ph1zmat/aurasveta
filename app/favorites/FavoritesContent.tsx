@@ -1,6 +1,6 @@
 'use client'
 
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 import { useCart } from '@/features/cart/useCart'
@@ -13,6 +13,8 @@ import FavoriteProductCard from '@/features/favorites/ui/FavoriteProductCard'
 import { Button } from '@/shared/ui/Button'
 import EmptyState from '@/shared/ui/EmptyState'
 import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
+
+type ServerFavorite = RouterOutputs['favorites']['getAll'][number]
 
 export default function FavoritesContent() {
 	const { productIds, remove, clear, isAuth, serverFavorites } = useFavorites()
@@ -30,9 +32,10 @@ export default function FavoritesContent() {
 	}
 
 	let products: FavoriteCardProps[] = []
+	const anonProducts = (productsData ?? []) as unknown as DbProduct[]
 
 	if (isAuth && serverFavorites.length > 0) {
-		products = serverFavorites.map(fav => {
+		products = serverFavorites.map((fav: ServerFavorite) => {
 			const product = toFrontendProduct(fav.product as unknown as DbProduct)
 			return {
 				...toFavoriteCardProps(product),
@@ -40,7 +43,7 @@ export default function FavoritesContent() {
 			}
 		})
 	} else if (!isAuth && productsData) {
-		products = productsData
+		products = anonProducts
 			.filter(p => productIds.includes(p.id))
 			.map(p => ({
 				...toFavoriteCardProps(toFrontendProduct(p as unknown as DbProduct)),

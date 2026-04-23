@@ -28,6 +28,7 @@ import {
 	getProductSpecGroups,
 } from '@/entities/product/api/productService'
 import {
+	type DbProduct,
 	toCatalogCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
@@ -212,7 +213,9 @@ async function SimilarProductsSection({ productId }: { productId: string }) {
 		productId,
 		limit: 5,
 	})
-	const products = similarRaw.map(p => toCatalogCardProps(toFrontendProduct(p)))
+	const products = similarRaw.map(product =>
+		toCatalogCardProps(toFrontendProduct(product as unknown as DbProduct)),
+	)
 	if (products.length === 0) return null
 	return <ProductCarousel title='Похожие товары' products={products} />
 }
@@ -222,7 +225,9 @@ async function CollectionProductsSection({ productId }: { productId: string }) {
 		productId,
 		limit: 5,
 	})
-	const products = brandRaw.map(p => toCatalogCardProps(toFrontendProduct(p)))
+	const products = brandRaw.map(product =>
+		toCatalogCardProps(toFrontendProduct(product as unknown as DbProduct)),
+	)
 	if (products.length === 0) return null
 	return (
 		<ProductCarousel title='Товары из этой коллекции' products={products} />

@@ -207,7 +207,7 @@ export default function CategoriesClient() {
 
 			{/* Category tree */}
 			<div className='space-y-2'>
-				{categories?.map(cat => (
+				{categories?.map((cat: CategoryNodeData) => (
 					<CategoryNode
 						key={cat.id}
 						category={cat}

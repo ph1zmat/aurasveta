@@ -1,5 +1,4 @@
 import type { Product } from '@/entities/product/model/types'
-import type { Prisma } from '@prisma/client'
 import type {
 	SpecItem,
 	SpecGroup,
@@ -16,7 +15,7 @@ const productInclude = {
 		orderBy: { order: 'asc' },
 		select: productImageSelect,
 	},
-} as const satisfies Prisma.ProductInclude
+} as const
 
 /** Select only fields needed for product cards (listings). */
 const productCardSelect = {
@@ -39,7 +38,7 @@ const productCardSelect = {
 	createdAt: true,
 	categoryId: true,
 	category: { select: { name: true, slug: true } },
-} as const satisfies Prisma.ProductSelect
+} as const
 
 /**
  * Returns all products.
@@ -52,7 +51,9 @@ export async function getAllProducts(): Promise<Product[]> {
 	})
 	const cache = new Map()
 	const enrichedProducts = await Promise.all(
-		dbProducts.map(product => withResolvedProductImages(product, { cache })),
+		dbProducts.map((product: (typeof dbProducts)[number]) =>
+			withResolvedProductImages(product, { cache }),
+		),
 	)
 	return enrichedProducts.map(toFrontendProduct)
 }
@@ -103,7 +104,9 @@ export async function getProductsByCategory(
 	})
 	const cache = new Map()
 	const enrichedProducts = await Promise.all(
-		dbProducts.map(product => withResolvedProductImages(product, { cache })),
+		dbProducts.map((product: (typeof dbProducts)[number]) =>
+			withResolvedProductImages(product, { cache }),
+		),
 	)
 	return enrichedProducts.map(toFrontendProduct)
 }
@@ -116,7 +119,7 @@ export async function getCategories(): Promise<string[]> {
 		select: { name: true },
 		orderBy: { name: 'asc' },
 	})
-	return cats.map(c => c.name)
+	return cats.map((category: (typeof cats)[number]) => category.name)
 }
 
 /**
@@ -131,9 +134,9 @@ export async function getQuickSpecs(
 		orderBy: { property: { name: 'asc' } },
 		take: 4,
 	})
-	return values.map(v => ({
-		label: v.property.name,
-		value: v.value,
+	return values.map((value: (typeof values)[number]) => ({
+		label: value.property.name,
+		value: value.value,
 		tooltip: true,
 	}))
 }
@@ -153,9 +156,9 @@ export async function getProductSpecGroups(
 	return [
 		{
 			title: 'Характеристики',
-			rows: values.map(v => ({
-				label: v.property.name,
-				value: v.value,
+			rows: values.map((value: (typeof values)[number]) => ({
+				label: value.property.name,
+				value: value.value,
 			})),
 		},
 	]

@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2, SlidersHorizontal } from 'lucide-react'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { useDebounce } from '@/shared/lib/useDebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingSession'
 import EmptyState from '@/shared/ui/EmptyState'
@@ -11,6 +11,7 @@ import Skeleton from '@/shared/ui/Skeleton'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
 
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+type SearchItem = RouterOutputs['search']['search']['items'][number]
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'relevance', label: 'По релевантности' },
@@ -92,7 +93,7 @@ export default function SearchContent() {
 
 	const allItems =
 		data?.pages.flatMap(page =>
-			page.items.map(item => {
+			page.items.map((item: SearchItem) => {
 				const price = item.price ? Number(item.price) : 0
 				const oldPrice = item.compareAtPrice
 					? Number(item.compareAtPrice)
@@ -115,7 +116,7 @@ export default function SearchContent() {
 					bonusAmount: price ? Math.round(price * 0.06) : undefined,
 					badges: Array.isArray(item.badges)
 						? item.badges.filter(
-								(badge): badge is string => typeof badge === 'string',
+								(badge: unknown): badge is string => typeof badge === 'string',
 							)
 						: [],
 					inStock: item.stock > 0 ? `В наличии ${item.stock} шт.` : undefined,

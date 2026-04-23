@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useAtom } from 'jotai'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
 import { anonymousCompareAtom } from '@/lib/store/anonymous'
+
+type ServerCompareItem = RouterOutputs['compare']['getAll'][number]
 
 export function useCompare() {
 	const { data: session } = authClient.useSession()
@@ -44,7 +46,10 @@ export function useCompare() {
 
 	// Unified product IDs list
 	const productIds = useMemo<string[]>(
-		() => (isAuth ? (serverCompare?.map(c => c.productId) ?? []) : anonCompare),
+		() =>
+			isAuth
+				? (serverCompare?.map((compareItem: ServerCompareItem) => compareItem.productId) ?? [])
+				: anonCompare,
 		[isAuth, serverCompare, anonCompare],
 	)
 

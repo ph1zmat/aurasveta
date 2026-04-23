@@ -231,7 +231,7 @@ export default function PagesClient() {
 			)}
 
 			<div className='space-y-2'>
-				{pages?.map(page => (
+				{pages?.map((page: PageItem) => (
 					<div
 						key={page.id}
 						className='flex items-center gap-4 rounded-xl border border-border/50 bg-muted/20 px-4 py-3'

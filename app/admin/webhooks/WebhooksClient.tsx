@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 import { Plus, Trash2, TestTube2 } from 'lucide-react'
 
@@ -11,6 +11,7 @@ const EVENTS = [
 	'order.created',
 	'order.updated',
 ]
+type WebhookItem = RouterOutputs['webhooks']['getAll'][number]
 
 export default function WebhooksClient() {
 	const { data: webhooks, refetch } = trpc.webhooks.getAll.useQuery()
@@ -102,7 +103,7 @@ export default function WebhooksClient() {
 			)}
 
 			<div className='space-y-2'>
-				{webhooks?.map(wh => (
+				{webhooks?.map((wh: WebhookItem) => (
 					<div
 						key={wh.id}
 						className='flex items-center gap-4 rounded-xl border border-border/50 bg-muted/20 px-4 py-3'

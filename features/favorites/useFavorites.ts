@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useAtom } from 'jotai'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
 import { anonymousFavoritesAtom } from '@/lib/store/anonymous'
+
+type ServerFavoriteItem = RouterOutputs['favorites']['getAll'][number]
 
 export function useFavorites() {
 	const { data: session } = authClient.useSession()
@@ -42,7 +44,9 @@ export function useFavorites() {
 	// Unified product IDs list
 	const productIds = useMemo<string[]>(
 		() =>
-			isAuth ? (serverFavorites?.map(f => f.productId) ?? []) : anonFavorites,
+			isAuth
+				? (serverFavorites?.map((favorite: ServerFavoriteItem) => favorite.productId) ?? [])
+				: anonFavorites,
 		[isAuth, serverFavorites, anonFavorites],
 	)
 
@@ -74,7 +78,9 @@ export function useFavorites() {
 
 	const clear = useCallback(() => {
 		if (isAuth && serverFavorites) {
-			serverFavorites.forEach(f => removeMut.mutate(f.productId))
+			serverFavorites.forEach((favorite: ServerFavoriteItem) =>
+				removeMut.mutate(favorite.productId),
+			)
 		} else {
 			setAnonFavorites([])
 		}

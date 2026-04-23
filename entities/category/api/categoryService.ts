@@ -17,6 +17,33 @@ interface DbCategory {
 	_count?: { products: number }
 }
 
+type DbSubcategory = {
+	id?: string
+	slug: string
+	name: string
+	image?: string | null
+	imagePath?: string | null
+}
+
+type DbCategoryWithChildren = DbCategory & {
+	children: DbSubcategory[]
+}
+
+type DbTreeSubcategory = {
+	name: string
+	slug: string
+}
+
+type DbTreeChild = {
+	name: string
+	slug: string
+	children: DbTreeSubcategory[]
+}
+
+type BrandRow = {
+	brand: string | null
+}
+
 function toFrontendCategory(dbCat: DbCategory): Category {
 	return {
 		id: dbCat.id,
@@ -49,10 +76,10 @@ export async function getAllCategories(): Promise<Category[]> {
 	})
 	const cache = new Map()
 	return Promise.all(
-		dbCats.map(async c => ({
-			...toFrontendCategory(await withResolvedImageAsset(c, { cache })),
+		dbCats.map(async (category: DbCategoryWithChildren) => ({
+			...toFrontendCategory(await withResolvedImageAsset(category, { cache })),
 			subcategories: await Promise.all(
-				c.children.map(async sub => {
+				category.children.map(async (sub: DbSubcategory) => {
 					const enrichedSub = await withResolvedImageAsset(sub, { cache })
 					return {
 						name: sub.name,
@@ -90,10 +117,10 @@ export async function getCategoryTree(
 		},
 	})
 	if (!category) return []
-	return category.children.map(child => ({
+	return category.children.map((child: DbTreeChild) => ({
 		name: child.name,
 		href: `/catalog/${child.slug}`,
-		children: child.children.map(sub => ({
+		children: child.children.map((sub: DbTreeSubcategory) => ({
 			name: sub.name,
 			href: `/catalog/${sub.slug}`,
 		})),
@@ -113,7 +140,7 @@ export async function getSubcategories(slug: string): Promise<Subcategory[]> {
 	if (!category) return []
 	const cache = new Map()
 	return Promise.all(
-		category.children.map(async sub => {
+		category.children.map(async (sub: DbSubcategory) => {
 			const enrichedSub = await withResolvedImageAsset(sub, { cache })
 			return {
 				name: sub.name,
@@ -139,9 +166,9 @@ export async function getCollectionTags(): Promise<Tag[]> {
 		take: 20,
 	})
 	return brands
-		.map(p => p.brand)
-		.filter(Boolean)
-		.map(brand => ({ label: brand! }))
+		.map((product: BrandRow) => product.brand)
+		.filter((brand: string | null): brand is string => Boolean(brand))
+		.map((brand: string) => ({ label: brand }))
 }
 
 export async function getSeoContent(slug: string): Promise<string> {
@@ -160,5 +187,5 @@ export function getCategoryNameBySlug(
 			where: { slug },
 			select: { name: true },
 		})
-		.then(c => c?.name)
+		.then((category: { name?: string } | null) => category?.name)
 }

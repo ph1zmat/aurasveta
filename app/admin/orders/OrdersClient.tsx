@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 
 const STATUSES = [
@@ -12,6 +12,7 @@ const STATUSES = [
 	'CANCELLED',
 ] as const
 type OrderStatus = (typeof STATUSES)[number]
+type OrderItem = RouterOutputs['orders']['getAllOrders']['items'][number]
 const STATUS_LABELS: Record<string, string> = {
 	PENDING: 'Ожидает',
 	PAID: 'Оплачен',
@@ -69,7 +70,7 @@ export default function OrdersClient() {
 						</tr>
 					</thead>
 					<tbody>
-						{data?.items.map(order => (
+						{data?.items.map((order: OrderItem) => (
 							<tr key={order.id} className='border-b border-border/50'>
 								<td className='px-4 py-3 font-mono text-xs'>
 									{order.id.slice(0, 8)}

@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 
 const BASE_URL = 'https://aurasveta.by'
 
+type SitemapEntity = {
+	slug: string
+	updatedAt: Date
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	await connection()
 
@@ -36,23 +41,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		},
 	]
 
-	const productPages: MetadataRoute.Sitemap = products.map(p => ({
-		url: `${BASE_URL}/product/${p.slug}`,
-		lastModified: p.updatedAt,
+	const productPages: MetadataRoute.Sitemap = products.map((product: SitemapEntity) => ({
+		url: `${BASE_URL}/product/${product.slug}`,
+		lastModified: product.updatedAt,
 		changeFrequency: 'weekly' as const,
 		priority: 0.8,
 	}))
 
-	const categoryPages: MetadataRoute.Sitemap = categories.map(c => ({
-		url: `${BASE_URL}/catalog/${c.slug}`,
-		lastModified: c.updatedAt,
+	const categoryPages: MetadataRoute.Sitemap = categories.map((category: SitemapEntity) => ({
+		url: `${BASE_URL}/catalog/${category.slug}`,
+		lastModified: category.updatedAt,
 		changeFrequency: 'weekly' as const,
 		priority: 0.7,
 	}))
 
-	const cmsPages: MetadataRoute.Sitemap = pages.map(p => ({
-		url: `${BASE_URL}/pages/${p.slug}`,
-		lastModified: p.updatedAt,
+	const cmsPages: MetadataRoute.Sitemap = pages.map((page: SitemapEntity) => ({
+		url: `${BASE_URL}/pages/${page.slug}`,
+		lastModified: page.updatedAt,
 		changeFrequency: 'monthly' as const,
 		priority: 0.5,
 	}))

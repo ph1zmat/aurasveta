@@ -1,13 +1,24 @@
 'use client'
 
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import CatalogCategoryCarousel from '@/entities/category/ui/CatalogCategoryCarousel'
 import CategorySection from '@/entities/category/ui/CategorySection'
 import {
+	type DbProduct,
 	toCatalogCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+
+type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
+type CatalogCategoryCard = {
+	id: string
+	slug: string
+	name: string
+	href: string
+	image: string
+	productCount: number
+}
 
 export default function CatalogContent() {
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
@@ -18,7 +29,8 @@ export default function CatalogContent() {
 		limit: 24,
 	})
 
-	const categories = (categoriesTree ?? []).map(cat => ({
+	const categories: CatalogCategoryCard[] = (categoriesTree ?? []).map(
+		(cat: CategoryTreeNode) => ({
 		id: cat.id,
 		slug: cat.slug,
 		name: cat.name,
@@ -28,13 +40,16 @@ export default function CatalogContent() {
 			resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
 			'/images/categories/default.jpg',
 		productCount: cat._count?.products ?? 0,
-	}))
+		}),
+	)
 
-	const allProducts = (productsData?.items ?? []).map(toFrontendProduct)
+	const allProducts = (productsData?.items ?? []).map(product =>
+		toFrontendProduct(product as unknown as DbProduct),
+	)
 
 	// Group products by category (show first 2 categories with products)
 	const categorySections = categories
-		.filter(cat => {
+		.filter((cat: CatalogCategoryCard) => {
 			const prods = allProducts.filter(p => p.category === cat.name)
 			return prods.length > 0
 		})
@@ -44,7 +59,7 @@ export default function CatalogContent() {
 		<>
 			<CatalogCategoryCarousel categories={categories} />
 
-			{categorySections.map(cat => {
+			{categorySections.map((cat: CatalogCategoryCard) => {
 				const prods = allProducts
 					.filter(p => p.category === cat.name)
 					.slice(0, 4)

@@ -13,6 +13,7 @@ import EmptyState from '@/shared/ui/EmptyState'
 import { getProductImageUrl } from '@/shared/lib/product-utils'
 import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
 import DeferredImage from '@/shared/ui/DeferredImage'
+import type { ProductImage } from '@/shared/types/product'
 
 /* ─────── types ─────── */
 
@@ -41,6 +42,28 @@ interface SpecRow {
 	label: string
 	group: string
 	values: (string | null)[]
+}
+
+interface CompareSourceProduct {
+	id: string
+	name: string
+	slug: string
+	images?: ProductImage[] | null
+	price?: number | null
+	compareAtPrice?: number | null
+	brand: string | null
+	brandCountry: string | null
+	description: string | null
+	rating: number | null
+	stock: number
+	category?: { id: string; name: string } | null
+	properties?: Array<{
+		value: string
+		property: {
+			key: string
+			name: string
+		}
+	}> | null
 }
 
 /* ─────── constants ─────── */
@@ -106,7 +129,8 @@ export default function CompareContent() {
 	/* ── map to CompareProduct ── */
 	const allProducts = useMemo<CompareProduct[]>(() => {
 		if (!productsRaw) return []
-		return productsRaw.map(p => {
+		const safeProducts = (productsRaw ?? []) as unknown as CompareSourceProduct[]
+		return safeProducts.map(p => {
 			const props: Record<string, string> = {}
 			const labels: Record<string, string> = {}
 			for (const pv of p.properties ?? []) {

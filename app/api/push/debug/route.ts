@@ -3,6 +3,15 @@ import { auth } from '@/lib/auth/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushToAdmins } from '@/lib/push/send'
 
+type DeviceCounts = {
+	total: number
+	byPlatform: Record<string, number>
+}
+
+type ActiveDevice = {
+	platform: string
+}
+
 export async function GET(request: NextRequest) {
 	const session = await auth.api.getSession({ headers: request.headers })
 	if (!session?.user) {
@@ -23,12 +32,12 @@ export async function GET(request: NextRequest) {
 	})
 
 	const counts = devices.reduce(
-		(acc, d) => {
+		(acc: DeviceCounts, d: ActiveDevice) => {
 			acc.total++
 			acc.byPlatform[d.platform] = (acc.byPlatform[d.platform] ?? 0) + 1
 			return acc
 		},
-		{ total: 0, byPlatform: {} as Record<string, number> },
+		{ total: 0, byPlatform: {} },
 	)
 
 	return NextResponse.json({
