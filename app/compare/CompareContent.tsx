@@ -11,6 +11,8 @@ import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCart } from '@/features/cart/useCart'
 import { Button } from '@/shared/ui/Button'
 import EmptyState from '@/shared/ui/EmptyState'
+import { getProductImageUrl } from '@/shared/lib/product-utils'
+import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 /* ─────── types ─────── */
 
@@ -43,14 +45,44 @@ interface SpecRow {
 
 /* ─────── constants ─────── */
 
-const FIXED_SPECS: { key: string; label: string; group: string; getter: (p: CompareProduct) => string | null }[] = [
+const FIXED_SPECS: {
+	key: string
+	label: string
+	group: string
+	getter: (p: CompareProduct) => string | null
+}[] = [
 	{ key: '_name', label: 'Название', group: 'Основные', getter: p => p.name },
-	{ key: '_price', label: 'Цена', group: 'Основные', getter: p => p.price ? `${p.price.toLocaleString('ru-RU')} руб.` : null },
+	{
+		key: '_price',
+		label: 'Цена',
+		group: 'Основные',
+		getter: p => (p.price ? `${p.price.toLocaleString('ru-RU')} руб.` : null),
+	},
 	{ key: '_brand', label: 'Бренд', group: 'Основные', getter: p => p.brand },
-	{ key: '_brandCountry', label: 'Страна бренда', group: 'Основные', getter: p => p.brandCountry },
-	{ key: '_rating', label: 'Рейтинг', group: 'Основные', getter: p => p.rating != null ? String(p.rating) : null },
-	{ key: '_stock', label: 'В наличии', group: 'Основные', getter: p => p.stock > 0 ? `${p.stock} шт.` : 'Нет' },
-	{ key: '_description', label: 'Описание', group: 'Основные', getter: p => p.description },
+	{
+		key: '_brandCountry',
+		label: 'Страна бренда',
+		group: 'Основные',
+		getter: p => p.brandCountry,
+	},
+	{
+		key: '_rating',
+		label: 'Рейтинг',
+		group: 'Основные',
+		getter: p => (p.rating != null ? String(p.rating) : null),
+	},
+	{
+		key: '_stock',
+		label: 'В наличии',
+		group: 'Основные',
+		getter: p => (p.stock > 0 ? `${p.stock} шт.` : 'Нет'),
+	},
+	{
+		key: '_description',
+		label: 'Описание',
+		group: 'Основные',
+		getter: p => p.description,
+	},
 ]
 
 const DYNAMIC_GROUP = 'Характеристики'
@@ -66,9 +98,10 @@ export default function CompareContent() {
 	const [filterMode, setFilterMode] = useState<'all' | 'diff'>('all')
 
 	/* ── fetch products with properties ── */
-	const { data: productsRaw } = trpc.products.getByIds.useQuery(productIds, {
-		enabled: productIds.length > 0,
-	})
+	const { data: productsRaw, isLoading: isProductsLoading } =
+		trpc.products.getByIds.useQuery(productIds, {
+			enabled: productIds.length > 0,
+		})
 
 	/* ── map to CompareProduct ── */
 	const allProducts = useMemo<CompareProduct[]>(() => {
@@ -84,7 +117,7 @@ export default function CompareContent() {
 				id: p.id,
 				name: p.name,
 				slug: p.slug,
-				image: (p as { imagePath?: string | null }).imagePath ?? (Array.isArray(p.images) ? (p.images as string[])[0] : null) ?? '/bulb.svg',
+				image: getProductImageUrl(p),
 				price: p.price ? Number(p.price) : 0,
 				oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
 				brand: p.brand,
@@ -102,7 +135,10 @@ export default function CompareContent() {
 
 	/* ── categories for filter ── */
 	const categories = useMemo(() => {
-		const map = new Map<string, { id: string | null; name: string; count: number }>()
+		const map = new Map<
+			string,
+			{ id: string | null; name: string; count: number }
+		>()
 		for (const p of allProducts) {
 			const key = p.categoryId ?? '__none'
 			const existing = map.get(key)
@@ -118,7 +154,9 @@ export default function CompareContent() {
 	/* ── filtered products ── */
 	const products = useMemo(() => {
 		if (!selectedCategory) return allProducts
-		return allProducts.filter(p => (p.categoryId ?? '__none') === selectedCategory)
+		return allProducts.filter(
+			p => (p.categoryId ?? '__none') === selectedCategory,
+		)
 	}, [allProducts, selectedCategory])
 
 	/* ── build spec rows ── */
@@ -194,6 +232,10 @@ export default function CompareContent() {
 		)
 	}
 
+	if (isProductsLoading && !productsRaw) {
+		return <CompareContentSkeleton />
+	}
+
 	return (
 		<>
 			{/* Heading */}
@@ -221,7 +263,8 @@ export default function CompareContent() {
 								: 'text-muted-foreground hover:text-foreground',
 						)}
 					>
-						Все товары <span className='text-muted-foreground'>{allProducts.length}</span>
+						Все товары{' '}
+						<span className='text-muted-foreground'>{allProducts.length}</span>
 					</button>
 					{categories.map(cat => (
 						<button
@@ -234,7 +277,8 @@ export default function CompareContent() {
 									: 'text-muted-foreground hover:text-foreground',
 							)}
 						>
-							{cat.name} <span className='text-muted-foreground'>{cat.count}</span>
+							{cat.name}{' '}
+							<span className='text-muted-foreground'>{cat.count}</span>
 						</button>
 					))}
 				</div>
@@ -243,7 +287,9 @@ export default function CompareContent() {
 			{/* No products in selected category */}
 			{products.length === 0 && selectedCategory && (
 				<div className='py-12 text-center'>
-					<p className='text-muted-foreground'>Нет товаров этой категории для сравнения</p>
+					<p className='text-muted-foreground'>
+						Нет товаров этой категории для сравнения
+					</p>
 				</div>
 			)}
 
@@ -265,7 +311,9 @@ export default function CompareContent() {
 												<span
 													className={cn(
 														'flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors',
-														filterMode === v ? 'border-foreground' : 'border-muted-foreground',
+														filterMode === v
+															? 'border-foreground'
+															: 'border-muted-foreground',
 													)}
 												>
 													{filterMode === v && (
@@ -280,9 +328,13 @@ export default function CompareContent() {
 
 								{/* Product cards */}
 								{products.map(product => {
-									const hasDiscount = product.oldPrice != null && product.oldPrice > product.price
+									const hasDiscount =
+										product.oldPrice != null && product.oldPrice > product.price
 									return (
-										<th key={product.id} className='min-w-[180px] p-2 align-top font-normal'>
+										<th
+											key={product.id}
+											className='min-w-[180px] p-2 align-top font-normal'
+										>
 											<div className='flex flex-col'>
 												{/* Actions */}
 												<div className='mb-2 flex items-center justify-end gap-1'>
@@ -294,7 +346,8 @@ export default function CompareContent() {
 														<Heart
 															className={cn(
 																'h-4 w-4',
-																favorites.has(product.id) && 'fill-foreground text-foreground',
+																favorites.has(product.id) &&
+																	'fill-foreground text-foreground',
 															)}
 														/>
 													</Button>
@@ -308,12 +361,23 @@ export default function CompareContent() {
 												</div>
 
 												{/* Image */}
-												<Link href={`/product/${product.slug}`} className='relative mb-3 block h-40 w-full'>
-													<Image src={product.image} alt={product.name} fill className='object-contain' />
+												<Link
+													href={`/product/${product.slug}`}
+													className='relative mb-3 block h-40 w-full'
+												>
+													<Image
+														src={product.image}
+														alt={product.name}
+														fill
+														className='object-contain'
+													/>
 												</Link>
 
 												{/* Name */}
-												<Link href={`/product/${product.slug}`} className='mb-2'>
+												<Link
+													href={`/product/${product.slug}`}
+													className='mb-2'
+												>
 													<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
 														{product.name}
 													</h3>
@@ -321,7 +385,12 @@ export default function CompareContent() {
 
 												{/* Price */}
 												<div className='mb-4 flex flex-wrap items-center gap-2'>
-													<span className={cn('text-base font-semibold', hasDiscount ? 'text-primary' : 'text-foreground')}>
+													<span
+														className={cn(
+															'text-base font-semibold',
+															hasDiscount ? 'text-primary' : 'text-foreground',
+														)}
+													>
 														{product.price.toLocaleString('ru-RU')} руб.
 													</span>
 													{hasDiscount && (
@@ -369,8 +438,13 @@ export default function CompareContent() {
 												{row.label}
 											</td>
 											{row.values.map((val, i) => (
-												<td key={i} className='px-2 py-2 text-sm text-foreground'>
-													{val ?? <span className='text-muted-foreground'>—</span>}
+												<td
+													key={i}
+													className='px-2 py-2 text-sm text-foreground'
+												>
+													{val ?? (
+														<span className='text-muted-foreground'>—</span>
+													)}
 												</td>
 											))}
 										</tr>

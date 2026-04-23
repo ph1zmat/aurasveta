@@ -42,6 +42,16 @@ const STATUS_LABELS: Record<string, string> = {
 	CANCELLED: 'Отменён',
 }
 
+function resolveOrderItemImage(
+	image: { key?: string | null; url?: string | null } | null | undefined,
+) {
+	const value = image?.url ?? image?.key ?? null
+	if (!value) return null
+	if (value.startsWith('http')) return value
+	if (value.startsWith('/')) return `https://aurasveta.ru${value}`
+	return `https://aurasveta.ru/api/storage/file?key=${encodeURIComponent(value)}`
+}
+
 export function OrderDetailScreen({ route, navigation }: OrderDetailProps) {
 	const order = route.params.order
 	const utils = trpc.useUtils()
@@ -108,41 +118,41 @@ export function OrderDetailScreen({ route, navigation }: OrderDetailProps) {
 			{/* Order items */}
 			<Card style={styles.card}>
 				<Text style={styles.sectionTitle}>Товары ({items.length})</Text>
-				{items.map((item: any, i: number) => (
-					<View
-						key={item.id ?? i}
-						style={[styles.itemRow, i < items.length - 1 && styles.itemBorder]}
-					>
-						{item.product?.images?.[0] ? (
-							<Image
-								source={{
-									uri: item.product.images[0].startsWith('http')
-										? item.product.images[0]
-										: `https://aurasveta.ru${item.product.images[0]}`,
-								}}
-								style={styles.itemImage}
-							/>
-						) : (
-							<View style={[styles.itemImage, styles.itemImagePlaceholder]}>
-								<Package size={20} color={colors.mutedForeground} />
+				{items.map((item: any, i: number) => {
+					const imageUrl = resolveOrderItemImage(item.product?.images?.[0])
+
+					return (
+						<View
+							key={item.id ?? i}
+							style={[
+								styles.itemRow,
+								i < items.length - 1 && styles.itemBorder,
+							]}
+						>
+							{imageUrl ? (
+								<Image source={{ uri: imageUrl }} style={styles.itemImage} />
+							) : (
+								<View style={[styles.itemImage, styles.itemImagePlaceholder]}>
+									<Package size={20} color={colors.mutedForeground} />
+								</View>
+							)}
+							<View style={styles.itemInfo}>
+								<Text style={styles.itemName} numberOfLines={2}>
+									{item.product?.name ?? 'Товар'}
+								</Text>
+								<Text style={styles.itemQty}>
+									{item.quantity} × {item.price?.toLocaleString('ru-RU')} ₽
+								</Text>
 							</View>
-						)}
-						<View style={styles.itemInfo}>
-							<Text style={styles.itemName} numberOfLines={2}>
-								{item.product?.name ?? 'Товар'}
-							</Text>
-							<Text style={styles.itemQty}>
-								{item.quantity} × {item.price?.toLocaleString('ru-RU')} ₽
+							<Text style={styles.itemTotal}>
+								{((item.quantity ?? 1) * (item.price ?? 0)).toLocaleString(
+									'ru-RU',
+								)}{' '}
+								₽
 							</Text>
 						</View>
-						<Text style={styles.itemTotal}>
-							{((item.quantity ?? 1) * (item.price ?? 0)).toLocaleString(
-								'ru-RU',
-							)}{' '}
-							₽
-						</Text>
-					</View>
-				))}
+					)
+				})}
 				<View style={styles.totalRow}>
 					<Text style={styles.totalLabel}>Итого</Text>
 					<Text style={styles.totalValue}>

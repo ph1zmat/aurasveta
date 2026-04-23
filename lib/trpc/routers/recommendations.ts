@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure } from '../init'
+import { productImageSelect } from '@/lib/products/product-images'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 /** Product fields needed for recommendation cards */
 const productCardSelect = {
@@ -10,8 +16,7 @@ const productCardSelect = {
 	price: true,
 	compareAtPrice: true,
 	stock: true,
-	images: true,
-	imagePath: true,
+	images: orderedProductImages,
 	brand: true,
 	brandCountry: true,
 	rating: true,
@@ -24,7 +29,12 @@ const productCardSelect = {
 export const recommendationsRouter = createTRPCRouter({
 	/** 3.1 — Similar products (same category, excluding current) */
 	getSimilarProducts: baseProcedure
-		.input(z.object({ productId: z.string(), limit: z.number().min(1).max(20).default(6) }))
+		.input(
+			z.object({
+				productId: z.string(),
+				limit: z.number().min(1).max(20).default(6),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const product = await ctx.prisma.product.findUnique({
 				where: { id: input.productId },
@@ -46,7 +56,12 @@ export const recommendationsRouter = createTRPCRouter({
 
 	/** 3.2 — Products from same brand (acts as "collection") */
 	getProductsFromBrand: baseProcedure
-		.input(z.object({ productId: z.string(), limit: z.number().min(1).max(20).default(8) }))
+		.input(
+			z.object({
+				productId: z.string(),
+				limit: z.number().min(1).max(20).default(8),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const product = await ctx.prisma.product.findUnique({
 				where: { id: input.productId },
@@ -68,7 +83,12 @@ export const recommendationsRouter = createTRPCRouter({
 
 	/** 3.3 — Popular in category (by order count + views) */
 	getPopularInCategory: baseProcedure
-		.input(z.object({ categoryId: z.string(), limit: z.number().min(1).max(20).default(8) }))
+		.input(
+			z.object({
+				categoryId: z.string(),
+				limit: z.number().min(1).max(20).default(8),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			return ctx.prisma.product.findMany({
 				where: { categoryId: input.categoryId, isActive: true },
@@ -116,15 +136,19 @@ export const recommendationsRouter = createTRPCRouter({
 
 			// Sort by view count order
 			const idOrder = new Map(productIds.map((id, i) => [id, i]))
-			return products.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
+			return products.sort(
+				(a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0),
+			)
 		}),
 
 	/** 3.5 — Recently viewed (server-side, from ProductView table) */
 	getRecentlyViewed: baseProcedure
-		.input(z.object({
-			sessionId: z.string(),
-			limit: z.number().min(1).max(20).default(10),
-		}))
+		.input(
+			z.object({
+				sessionId: z.string(),
+				limit: z.number().min(1).max(20).default(10),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId
 
@@ -161,10 +185,12 @@ export const recommendationsRouter = createTRPCRouter({
 
 	/** Log a product view */
 	logProductView: baseProcedure
-		.input(z.object({
-			productId: z.string(),
-			sessionId: z.string(),
-		}))
+		.input(
+			z.object({
+				productId: z.string(),
+				sessionId: z.string(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.userId ?? null
 
@@ -191,10 +217,12 @@ export const recommendationsRouter = createTRPCRouter({
 
 	/** Log a search query */
 	logSearchQuery: baseProcedure
-		.input(z.object({
-			query: z.string(),
-			sessionId: z.string(),
-		}))
+		.input(
+			z.object({
+				query: z.string(),
+				sessionId: z.string(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const trimmed = input.query.trim().toLowerCase()
 			if (trimmed.length < 2) return { success: false }

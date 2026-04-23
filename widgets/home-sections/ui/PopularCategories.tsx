@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import UnderlineAnimation from '@/shared/ui/UnderlineAnimation'
 import { prisma } from '@/lib/prisma'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
 export default async function PopularCategories() {
 	const dbCategories = await prisma.category.findMany({
@@ -14,7 +15,9 @@ export default async function PopularCategories() {
 	const categories = dbCategories.map(c => ({
 		label: c.name.toUpperCase(),
 		href: `/catalog/${c.slug}`,
-		image: c.imagePath ?? c.image ?? '/images/placeholder.jpg',
+		image:
+			resolveStorageFileUrl(c.imagePath ?? c.image) ??
+			'/images/placeholder.jpg',
 	}))
 
 	return (

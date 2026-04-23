@@ -53,7 +53,7 @@ export default function CategoriesClient() {
 	})
 	const [slugTouched, setSlugTouched] = useState(false)
 	const [pendingImage, setPendingImage] = useState<{
-		path: string
+		key: string
 		originalName: string
 	} | null>(null)
 
@@ -94,10 +94,10 @@ export default function CategoriesClient() {
 		createMut.mutate(data, {
 			onSuccess: (created) => {
 				// bind uploaded image to newly created category
-				if (pendingImage?.path) {
+				if (pendingImage?.key) {
 					updateImageMut.mutate({
 						categoryId: created.id,
-						imagePath: pendingImage.path,
+						imagePath: pendingImage.key,
 						imageOriginalName: pendingImage.originalName,
 					})
 				}
@@ -163,10 +163,10 @@ export default function CategoriesClient() {
 							<div className='sm:col-span-2'>
 								<FileUploader
 									currentImage={editCat.imagePath}
-									onUploaded={(filePath, originalName) =>
-										updateImageMut.mutate({
-											categoryId: editCat.id,
-											imagePath: filePath,
+								onUploaded={(key, originalName) =>
+									updateImageMut.mutate({
+										categoryId: editCat.id,
+										imagePath: key,
 											imageOriginalName: originalName,
 										})
 									}
@@ -178,9 +178,9 @@ export default function CategoriesClient() {
 						{!editCat && (
 							<div className='sm:col-span-2'>
 								<FileUploader
-									currentImage={pendingImage?.path ?? null}
-									onUploaded={(filePath, originalName) =>
-										setPendingImage({ path: filePath, originalName })
+								currentImage={pendingImage?.key ?? null}
+								onUploaded={(key, originalName) =>
+									setPendingImage({ key, originalName })
 									}
 									onRemove={() => setPendingImage(null)}
 									isLoading={createMut.isPending || updateImageMut.isPending}

@@ -1,7 +1,6 @@
 import { z } from 'zod'
-import { unlink } from 'fs/promises'
-import path from 'path'
 import { createTRPCRouter, baseProcedure, editorProcedure } from '../init'
+import { deleteFile } from '@/lib/storage'
 
 export const pagesRouter = createTRPCRouter({
 	getPublished: baseProcedure.query(async ({ ctx }) => {
@@ -151,15 +150,8 @@ export const pagesRouter = createTRPCRouter({
 			})
 
 			if (page?.imagePath) {
-				const fileName = path.basename(page.imagePath)
-				const fullPath = path.join(
-					process.cwd(),
-					'public',
-					'productimg',
-					fileName,
-				)
 				try {
-					await unlink(fullPath)
+					await deleteFile(page.imagePath)
 				} catch {
 					/* file may not exist */
 				}

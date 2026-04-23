@@ -29,6 +29,13 @@ interface ImagePickerProps {
 	height?: number
 }
 
+function resolveImageUrl(imageUrl: string | null, apiUrl: string) {
+	if (!imageUrl) return null
+	if (imageUrl.startsWith('http')) return imageUrl
+	if (imageUrl.startsWith('/')) return `${apiUrl}${imageUrl}`
+	return `${apiUrl}/api/storage/file?key=${encodeURIComponent(imageUrl)}`
+}
+
 export function ImagePicker({
 	imageUrl,
 	onImageUploaded,
@@ -67,7 +74,7 @@ export function ImagePicker({
 
 			if (!res.ok) throw new Error('Ошибка загрузки')
 			const data = await res.json()
-			onImageUploaded(data.path)
+			onImageUploaded((data.key as string) ?? (data.path as string))
 		} catch (err) {
 			Alert.alert(
 				'Ошибка',
@@ -79,11 +86,7 @@ export function ImagePicker({
 	}
 
 	const apiUrlSync = 'https://aurasveta.ru' // fallback for display
-	const fullUrl = imageUrl?.startsWith('http')
-		? imageUrl
-		: imageUrl
-			? `${apiUrlSync}${imageUrl}`
-			: null
+	const fullUrl = resolveImageUrl(imageUrl, apiUrlSync)
 
 	if (!fullUrl) {
 		return (

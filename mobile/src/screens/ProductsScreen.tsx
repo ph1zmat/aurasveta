@@ -41,6 +41,17 @@ import type { ProductsStackParamList } from '../navigation/types'
 
 type Props = NativeStackScreenProps<ProductsStackParamList, 'ProductsList'>
 
+function resolveProductImage(
+	image: { key?: string | null; url?: string | null } | null | undefined,
+	apiUrl: string,
+) {
+	const value = image?.url ?? image?.key ?? null
+	if (!value) return null
+	if (value.startsWith('http')) return value
+	if (value.startsWith('/')) return `${apiUrl}${value}`
+	return `${apiUrl}/api/storage/file?key=${encodeURIComponent(value)}`
+}
+
 export function ProductsScreen({ navigation }: Props) {
 	const [page, setPage] = useState(1)
 	const [search, setSearch] = useState('')
@@ -62,11 +73,7 @@ export function ProductsScreen({ navigation }: Props) {
 	const apiUrl = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
 
 	const renderItem = ({ item, index }: { item: any; index: number }) => {
-		const imageUrl = item.imagePath
-			? item.imagePath.startsWith('http')
-				? item.imagePath
-				: `${apiUrl}${item.imagePath}`
-			: null
+		const imageUrl = resolveProductImage(item.images?.[0], apiUrl)
 		const isLeft = index % 2 === 0
 
 		return (

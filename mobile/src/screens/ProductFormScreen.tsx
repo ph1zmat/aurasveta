@@ -76,6 +76,12 @@ interface PropertyValue {
 	value: string
 }
 
+function getProductImageValue(
+	image: { key?: string | null; url?: string | null } | null | undefined,
+) {
+	return image?.key ?? image?.url ?? null
+}
+
 export function ProductFormScreen({ navigation, route }: ProductFormProps) {
 	const editId = route.params?.id
 	const isEdit = !!editId
@@ -241,11 +247,13 @@ export function ProductFormScreen({ navigation, route }: ProductFormProps) {
 					<Text style={styles.label}>Изображение</Text>
 					<ImagePicker
 						imageUrl={
-							isEdit ? ((existing as any)?.images?.[0] ?? null) : localImagePath
+							isEdit
+								? getProductImageValue((existing as any)?.images?.[0])
+								: localImagePath
 						}
 						onImageUploaded={path =>
 							isEdit
-								? updateImageMut.mutate({ id: editId!, path })
+								? updateImageMut.mutate({ productId: editId!, imagePath: path })
 								: setLocalImagePath(path)
 						}
 						onImageRemoved={() =>

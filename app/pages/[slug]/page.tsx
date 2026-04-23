@@ -8,6 +8,7 @@ import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,7 @@ export async function generateMetadata({
 	const page = await trpc.pages.getBySlug(slug)
 
 	if (!page) return { title: 'Страница не найдена' }
+	const resolvedImage = resolveStorageFileUrl(page.imagePath ?? page.image)
 
 	return {
 		title: page.metaTitle || page.title,
@@ -27,7 +29,7 @@ export async function generateMetadata({
 		openGraph: {
 			title: page.metaTitle || page.title,
 			description: page.metaDesc || undefined,
-			images: (page.imagePath ?? page.image) ? [page.imagePath ?? page.image!] : undefined,
+			images: resolvedImage ? [resolvedImage] : undefined,
 		},
 	}
 }
@@ -41,6 +43,7 @@ export default async function ContentPage({
 	const page = await trpc.pages.getBySlug(slug)
 
 	if (!page) notFound()
+	const resolvedImage = resolveStorageFileUrl(page.imagePath ?? page.image)
 
 	return (
 		<div className='flex flex-col bg-background'>
@@ -50,16 +53,13 @@ export default async function ContentPage({
 				<CategoryNav />
 
 				<Breadcrumbs
-					items={[
-						{ label: 'Главная', href: '/' },
-						{ label: page.title },
-					]}
+					items={[{ label: 'Главная', href: '/' }, { label: page.title }]}
 				/>
 
 				<article className='prose prose-neutral dark:prose-invert mx-auto max-w-3xl py-8'>
-					{(page.imagePath ?? page.image) && (
+					{resolvedImage && (
 						<Image
-							src={(page.imagePath ?? page.image)!}
+							src={resolvedImage}
 							alt={page.title}
 							width={800}
 							height={400}

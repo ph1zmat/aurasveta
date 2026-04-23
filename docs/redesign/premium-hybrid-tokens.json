@@ -1,0 +1,115 @@
+{
+  "name": "Aura Sveta Premium Hybrid",
+  "version": "1.0.0",
+  "concept": "Noir Ligne",
+  "tokens": {
+    "color": {
+      "background": { "light": "#F6F3EE", "dark": "#0F1217" },
+      "foreground": { "light": "#121418", "dark": "#F5F2EC" },
+      "card": { "light": "#FFFFFF", "dark": "#171B22" },
+      "cardForeground": { "light": "#121418", "dark": "#F5F2EC" },
+      "primary": { "light": "#121418", "dark": "#F5F2EC" },
+      "primaryForeground": { "light": "#F8F6F2", "dark": "#111318" },
+      "secondary": { "light": "#EEE7DE", "dark": "#1E232C" },
+      "secondaryForeground": { "light": "#121418", "dark": "#F5F2EC" },
+      "muted": { "light": "#ECE7E0", "dark": "#171C24" },
+      "mutedForeground": { "light": "#6C717D", "dark": "#A7AFBC" },
+      "accent": { "light": "#C66A2B", "dark": "#D47A3F" },
+      "accentForeground": { "light": "#FFF7F2", "dark": "#FFF7F2" },
+      "accent2": { "light": "#C7FF45", "dark": "#C7FF45" },
+      "accent2Foreground": { "light": "#121418", "dark": "#121418" },
+      "destructive": { "light": "#CB4F4F", "dark": "#D66161" },
+      "success": { "light": "#2E9F64", "dark": "#46B978" },
+      "warning": { "light": "#D6A23D", "dark": "#E0B04B" },
+      "border": {
+        "light": "rgba(18,20,24,0.14)",
+        "dark": "rgba(245,242,236,0.12)"
+      },
+      "borderStrong": {
+        "light": "rgba(18,20,24,0.28)",
+        "dark": "rgba(245,242,236,0.24)"
+      },
+      "lineDefault": {
+        "light": "rgba(18,20,24,0.72)",
+        "dark": "rgba(245,242,236,0.80)"
+      },
+      "lineMuted": {
+        "light": "rgba(18,20,24,0.18)",
+        "dark": "rgba(245,242,236,0.18)"
+      },
+      "lineActive": { "light": "#C66A2B", "dark": "#D47A3F" },
+      "lineSignal": { "light": "#C7FF45", "dark": "#C7FF45" }
+    },
+    "radius": {
+      "sm": "12px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px",
+      "pill": "999px"
+    },
+    "shadow": {
+      "xs": {
+        "light": "0 4px 12px rgba(18,20,24,0.05)",
+        "dark": "0 4px 12px rgba(0,0,0,0.18)"
+      },
+      "sm": {
+        "light": "0 10px 24px rgba(18,20,24,0.08)",
+        "dark": "0 12px 28px rgba(0,0,0,0.24)"
+      },
+      "md": {
+        "light": "0 18px 48px rgba(18,20,24,0.10)",
+        "dark": "0 20px 56px rgba(0,0,0,0.32)"
+      },
+      "lg": {
+        "light": "0 28px 80px rgba(18,20,24,0.16)",
+        "dark": "0 32px 92px rgba(0,0,0,0.42)"
+      }
+    },
+    "typography": {
+      "fontSans": "Manrope, Inter, system-ui, sans-serif",
+      "trackingCaps": "0.12em",
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      }
+    },
+    "motion": {
+      "underlineReveal": "180ms ease-out",
+      "ctaFill": "220ms cubic-bezier(.22,1,.36,1)",
+      "cardLift": "240ms ease",
+      "imageZoom": "340ms ease",
+      "stickyReveal": "220ms cubic-bezier(.22,1,.36,1)"
+    },
+    "componentRoles": {
+      "headerShell": {
+        "background": "primary",
+        "foreground": "primaryForeground",
+        "focusLine": "accent"
+      },
+      "catalogChip": {
+        "background": "transparent",
+        "border": "lineDefault",
+        "hoverBackground": "primary",
+        "hoverForeground": "primaryForeground"
+      },
+      "productCard": {
+        "background": "card",
+        "border": "border",
+        "hoverBorder": "borderStrong",
+        "hoverShadow": "shadow.md"
+      },
+      "buyRail": {
+        "background": "surface-2",
+        "cta": "primary",
+        "statusAccent": "accent2"
+      },
+      "underline": {
+        "default": "lineDefault",
+        "active": "lineActive",
+        "gradient": "underline-gradient"
+      }
+    }
+  }
+}

@@ -13,7 +13,7 @@ Package,
 ChevronLeft,
 ArrowRight,
 } from 'lucide-react'
-import { getApiUrl, getToken } from '../lib/store'
+import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
 
 export function CategoriesPage() {
 const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -95,6 +95,7 @@ onClick?: () => void
 onEdit?: () => void
 onDelete?: () => void
 }) {
+const apiBaseUrl = useApiBaseUrl()
 const productCount = category._count?.products ?? 0
 const childrenCount = category.children?.length ?? 0
 
@@ -104,7 +105,7 @@ return (
 <div className='aspect-4/3 w-full bg-muted/30'>
 {category.imagePath ? (
 <img
-src={category.imagePath}
+src={resolveImgUrl(category.imagePath, apiBaseUrl)}
 alt={category.name}
 className='h-full w-full object-cover'
 />
@@ -218,6 +219,7 @@ refetch()
 refetchTree()
 },
 })
+const apiBaseUrl = useApiBaseUrl()
 
 const handleUploadImage = async (file: File) => {
 const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
@@ -234,8 +236,8 @@ body: fd,
 })
 
 if (!res.ok) {
-const text = await res.text()
-throw new Error(text || `Upload failed: ${res.status}`)
+const body = await res.json().catch(() => null)
+throw new Error(body?.error ?? `Upload failed: ${res.status}`)
 }
 
 const out = await res.json()
@@ -291,7 +293,7 @@ className='flex items-center gap-1.5 text-sm text-muted-foreground transition-co
 {cat?.imagePath ? (
 <>
 <img
-src={cat.imagePath}
+src={resolveImgUrl(cat.imagePath, apiBaseUrl)}
 alt=''
 className='h-full w-full object-cover'
 />
@@ -303,12 +305,13 @@ type='file'
 accept='image/*'
 className='hidden'
 onChange={async e => {
-const file = e.target.files?.[0]
+const input = e.currentTarget
+const file = input.files?.[0]
 if (!file) return
 try {
 await handleUploadImage(file)
 } finally {
-e.currentTarget.value = ''
+input.value = ''
 }
 }}
 />
@@ -332,12 +335,13 @@ type='file'
 accept='image/*'
 className='hidden'
 onChange={async e => {
-const file = e.target.files?.[0]
+const input = e.currentTarget
+const file = input.files?.[0]
 if (!file) return
 try {
 await handleUploadImage(file)
 } finally {
-e.currentTarget.value = ''
+input.value = ''
 }
 }}
 />
@@ -491,16 +495,21 @@ onClose: () => void
 onSuccess: () => void
 }) {
 const { data: allCategories } = trpc.categories.getAll.useQuery()
+const utils = trpc.useUtils()
 const createMut = trpc.categories.create.useMutation({ onSuccess })
 const updateMut = trpc.categories.update.useMutation({ onSuccess })
 const updateImageMut = trpc.categories.updateImagePath.useMutation({
-onSuccess,
+onSuccess: () => utils.categories.getAll.invalidate(),
 })
-const removeImageMut = trpc.categories.removeImage.useMutation({ onSuccess })
+const removeImageMut = trpc.categories.removeImage.useMutation({
+onSuccess: () => utils.categories.getAll.invalidate(),
+})
+const apiBaseUrl = useApiBaseUrl()
 
 const [name, setName] = useState('')
 const [slug, setSlug] = useState('')
 const [description, setDescription] = useState('')
+const [uploadError, setUploadError] = useState<string | null>(null)
 
 const editCat = allCategories?.find((c: any) => c.id === editId)
 
@@ -520,6 +529,7 @@ setDescription(editCat.description ?? '')
 
 const handleUploadImage = async (file: File) => {
 if (!editId) return
+setUploadError(null)
 const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
 const token = await getToken()
 if (!token) throw new Error('No token')
@@ -534,8 +544,10 @@ body: fd,
 })
 
 if (!res.ok) {
-const text = await res.text()
-throw new Error(text || `Upload failed: ${res.status}`)
+const body = await res.json().catch(() => null)
+const msg = body?.error ?? `Upload failed: ${res.status}`
+setUploadError(msg)
+throw new Error(msg)
 }
 
 const out = await res.json()
@@ -595,7 +607,7 @@ className='flex-1 overflow-y-auto px-6 py-5 space-y-5'
 {editId && editCat?.imagePath ? (
 <>
 <img
-src={editCat.imagePath}
+src={resolveImgUrl(editCat.imagePath, apiBaseUrl)}
 alt=''
 className='h-full w-full object-cover'
 />
@@ -607,12 +619,13 @@ type='file'
 accept='image/*'
 className='hidden'
 onChange={async e => {
-const file = e.target.files?.[0]
+const input = e.currentTarget
+const file = input.files?.[0]
 if (!file) return
 try {
 await handleUploadImage(file)
 } finally {
-e.currentTarget.value = ''
+input.value = ''
 }
 }}
 />
@@ -636,12 +649,13 @@ type='file'
 accept='image/*'
 className='hidden'
 onChange={async e => {
-const file = e.target.files?.[0]
+const input = e.currentTarget
+const file = input.files?.[0]
 if (!file) return
 try {
 await handleUploadImage(file)
 } finally {
-e.currentTarget.value = ''
+input.value = ''
 }
 }}
 />
@@ -653,6 +667,9 @@ e.currentTarget.value = ''
 </div>
 )}
 </div>
+{uploadError && (
+<p className='text-[10px] text-red-500 text-center leading-tight'>{uploadError}</p>
+)}
 
 <div className='flex flex-1 flex-col gap-3'>
 <div>

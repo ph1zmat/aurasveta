@@ -13,9 +13,10 @@ import {
 	ChevronDown,
 	ArrowUpDown,
 } from 'lucide-react'
-import { getApiUrl, getToken } from '../lib/store'
+import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
 
 export function ProductsPage() {
+	const apiBaseUrl = useApiBaseUrl()
 	const [page, setPage] = useState(1)
 	const [search, setSearch] = useState('')
 	const [showForm, setShowForm] = useState(false)
@@ -248,9 +249,12 @@ export function ProductsPage() {
 
 						{/* Image */}
 						<div className='aspect-square w-full bg-muted/50'>
-							{product.imagePath ? (
+							{product.images?.[0] ? (
 								<img
-									src={product.imagePath}
+									src={resolveImgUrl(
+										product.images[0].url ?? product.images[0].key,
+										apiBaseUrl,
+									)}
 									alt={product.name}
 									className='h-full w-full object-cover'
 								/>
@@ -326,6 +330,8 @@ function ProductFormModal({
 	onClose: () => void
 	onSuccess: () => void
 }) {
+	const apiBaseUrl = useApiBaseUrl()
+	const utils = trpc.useUtils()
 	const { data: categories } = trpc.categories.getAll.useQuery()
 	const { data: allProperties } = trpc.properties.getAll.useQuery()
 	const { data: editProduct } = trpc.products.getById.useQuery(editId!, {
@@ -335,9 +341,11 @@ function ProductFormModal({
 	const createMut = trpc.products.create.useMutation({ onSuccess })
 	const updateMut = trpc.products.update.useMutation({ onSuccess })
 	const updateImageMut = trpc.products.updateImagePath.useMutation({
-		onSuccess,
+		onSuccess: () => utils.products.getById.invalidate(editId!),
 	})
-	const removeImageMut = trpc.products.removeImage.useMutation({ onSuccess })
+	const removeImageMut = trpc.products.removeImage.useMutation({
+		onSuccess: () => utils.products.getById.invalidate(editId!),
+	})
 
 	const initialForm = useMemo(
 		() => ({
@@ -360,6 +368,7 @@ function ProductFormModal({
 	const [propRows, setPropRows] = useState<
 		{ propertyId: string; value: string }[]
 	>([])
+	const [uploadError, setUploadError] = useState<string | null>(null)
 
 	// Populate form when editing
 	useEffect(() => {
@@ -425,6 +434,7 @@ function ProductFormModal({
 
 	const handleUploadImage = async (file: File) => {
 		if (!editId) return
+		setUploadError(null)
 		const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
 		const token = await getToken()
 		if (!token) throw new Error('Нет токена сессии')
@@ -439,12 +449,15 @@ function ProductFormModal({
 		})
 
 		if (!res.ok) {
-			const text = await res.text()
-			throw new Error(text || `Upload failed: ${res.status}`)
+			const body = await res.json().catch(() => null)
+			const msg = body?.error ?? `Upload failed: ${res.status}`
+			setUploadError(msg)
+			throw new Error(msg)
 		}
 
 		const out = await res.json()
-		const imagePath = out.path as string | undefined
+		const imagePath =
+			(out.key as string | undefined) ?? (out.path as string | undefined)
 		const originalName = out.originalName as string | undefined
 		if (!imagePath) throw new Error('Upload: не вернулся путь')
 
@@ -496,10 +509,13 @@ function ProductFormModal({
 						{/* Left: Photo */}
 						<div className='flex flex-col items-center gap-3'>
 							<div className='relative group w-full aspect-square rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden'>
-								{editId && editProduct?.imagePath ? (
+								{editId && editProduct?.images?.[0] ? (
 									<>
 										<img
-											src={editProduct.imagePath}
+											src={resolveImgUrl(
+												editProduct.images[0].url ?? editProduct.images[0].key,
+												apiBaseUrl,
+											)}
 											alt=''
 											className='h-full w-full object-cover'
 										/>
@@ -511,12 +527,13 @@ function ProductFormModal({
 													accept='image/*'
 													className='hidden'
 													onChange={async e => {
-														const file = e.target.files?.[0]
+														const input = e.currentTarget
+														const file = input.files?.[0]
 														if (!file) return
 														try {
 															await handleUploadImage(file)
 														} finally {
-															e.currentTarget.value = ''
+															input.value = ''
 														}
 													}}
 												/>
@@ -540,12 +557,13 @@ function ProductFormModal({
 											accept='image/*'
 											className='hidden'
 											onChange={async e => {
-												const file = e.target.files?.[0]
+												const input = e.currentTarget
+												const file = input.files?.[0]
 												if (!file) return
 												try {
 													await handleUploadImage(file)
 												} finally {
-													e.currentTarget.value = ''
+													input.value = ''
 												}
 											}}
 										/>
@@ -559,6 +577,11 @@ function ProductFormModal({
 									</div>
 								)}
 							</div>
+							{uploadError && (
+								<p className='text-xs text-red-500 text-center'>
+									{uploadError}
+								</p>
+							)}
 						</div>
 
 						{/* Right: Name, Price, Compare price */}

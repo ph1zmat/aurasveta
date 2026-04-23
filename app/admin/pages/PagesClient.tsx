@@ -40,16 +40,16 @@ export default function PagesClient() {
 	})
 	const [slugTouched, setSlugTouched] = useState(false)
 	const [pendingImage, setPendingImage] = useState<{
-		path: string
+		key: string
 		originalName: string
 	} | null>(null)
 
 	const createMut = trpc.pages.create.useMutation({
 		onSuccess: (created) => {
-			if (pendingImage?.path) {
+			if (pendingImage?.key) {
 				updateImageMut.mutate({
 					pageId: created.id,
-					imagePath: pendingImage.path,
+					imagePath: pendingImage.key,
 					imageOriginalName: pendingImage.originalName,
 				})
 			}
@@ -191,10 +191,10 @@ export default function PagesClient() {
 						{editPage && (
 							<FileUploader
 								currentImage={editPage.imagePath}
-								onUploaded={(filePath, originalName) =>
+								onUploaded={(key, originalName) =>
 									updateImageMut.mutate({
 										pageId: editPage.id,
-										imagePath: filePath,
+										imagePath: key,
 										imageOriginalName: originalName,
 									})
 								}
@@ -204,9 +204,9 @@ export default function PagesClient() {
 						)}
 						{!editPage && (
 							<FileUploader
-								currentImage={pendingImage?.path ?? null}
-								onUploaded={(filePath, originalName) =>
-									setPendingImage({ path: filePath, originalName })
+								currentImage={pendingImage?.key ?? null}
+								onUploaded={(key, originalName) =>
+									setPendingImage({ key, originalName })
 								}
 								onRemove={() => setPendingImage(null)}
 								isLoading={createMut.isPending || updateImageMut.isPending}

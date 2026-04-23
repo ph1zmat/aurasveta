@@ -26,7 +26,6 @@ class AdminEventBus {
 }
 
 declare global {
-	// eslint-disable-next-line no-var
 	var __adminEventBus: AdminEventBus | undefined
 }
 

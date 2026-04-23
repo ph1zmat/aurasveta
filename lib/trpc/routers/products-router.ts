@@ -1,10 +1,65 @@
 import { z } from 'zod'
-import { unlink } from 'fs/promises'
-import path from 'path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { validateWebhookUrl } from '@/shared/lib/validateUrl'
+import { deleteFile } from '@/lib/storage'
+import {
+	isExternalOrLegacyImageKey,
+	normalizeProductImagesForWrite,
+	productImageInputSchema,
+	productImageSelect,
+	type ProductImageInput,
+} from '@/lib/products/product-images'
+import { getMainImage } from '@/shared/lib/product-utils'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' },
+	select: productImageSelect,
+} as const satisfies Prisma.Product$imagesArgs
+
+const productCardSelect = {
+	id: true,
+	slug: true,
+	name: true,
+	description: true,
+	price: true,
+	compareAtPrice: true,
+	stock: true,
+	images: orderedProductImages,
+	brand: true,
+	brandCountry: true,
+	rating: true,
+	reviewsCount: true,
+	badges: true,
+	isActive: true,
+	categoryId: true,
+	createdAt: true,
+	category: { select: { id: true, name: true, slug: true } },
+} as const satisfies Prisma.ProductSelect
+
+const productCatalogSelect = {
+	...productCardSelect,
+	sku: true,
+	properties: { include: { property: true } },
+} as const satisfies Prisma.ProductSelect
+
+const productDetailInclude = {
+	category: true,
+	images: orderedProductImages,
+	properties: { include: { property: true } },
+} as const satisfies Prisma.ProductInclude
+
+const propertyValueSchema = z.object({
+	propertyId: z.string(),
+	value: z.string(),
+})
+
+const incomingProductImageSchema = z.union([
+	z.string(),
+	productImageInputSchema,
+])
+type IncomingProductImage = z.infer<typeof incomingProductImageSchema>
 
 const productFilters = z.object({
 	categorySlug: z.string().optional(),
@@ -37,12 +92,81 @@ function buildCategoryWhere(
 	if (includeChildren && children.length > 0) {
 		return {
 			categoryId: {
-				in: [categoryId, ...children.map(c => c.id)],
+				in: [categoryId, ...children.map(child => child.id)],
 			},
 		}
 	}
 
 	return { categoryId }
+}
+
+function toIncomingProductImages(
+	images: readonly IncomingProductImage[] | undefined,
+): ProductImageInput[] {
+	return (images ?? []).map((image, index) => {
+		if (typeof image === 'string') {
+			const key = image.trim()
+			return {
+				key,
+				url: key,
+				originalName: null,
+				size: null,
+				mimeType: null,
+				order: index,
+				isMain: index === 0,
+			}
+		}
+
+		return {
+			...image,
+			key: image.key.trim(),
+			url: image.url.trim(),
+			order: image.order,
+		}
+	})
+}
+
+function resolvePropertyValues(input: {
+	properties?: Array<{ propertyId: string; value: string }>
+	propertyValues?: Array<{ propertyId: string; value: string }>
+}) {
+	return input.properties ?? input.propertyValues ?? []
+}
+
+async function syncProductImages(
+	tx: Prisma.TransactionClient,
+	productId: string,
+	images: readonly IncomingProductImage[],
+) {
+	const normalizedImages = normalizeProductImagesForWrite(
+		toIncomingProductImages(images),
+	)
+	const existingImages = await tx.productImage.findMany({
+		where: { productId },
+		select: { key: true },
+	})
+
+	const nextKeys = new Set(normalizedImages.map(image => image.key))
+	const keysToDelete = existingImages
+		.map(image => image.key)
+		.filter(key => !nextKeys.has(key) && !isExternalOrLegacyImageKey(key))
+
+	await tx.productImage.deleteMany({ where: { productId } })
+
+	if (normalizedImages.length > 0) {
+		await tx.productImage.createMany({
+			data: normalizedImages.map(image => ({
+				productId,
+				...image,
+			})),
+		})
+	}
+
+	return keysToDelete
+}
+
+async function deleteStorageKeys(keys: readonly string[]) {
+	await Promise.allSettled(keys.map(key => deleteFile(key)))
 }
 
 export const productsRouter = createTRPCRouter({
@@ -72,6 +196,7 @@ export const productsRouter = createTRPCRouter({
 				where: { slug: categorySlug },
 				select: { id: true, children: { select: { id: true } } },
 			})
+
 			if (category) {
 				Object.assign(
 					where,
@@ -114,15 +239,17 @@ export const productsRouter = createTRPCRouter({
 		}
 
 		if (properties && Object.keys(properties).length > 0) {
-			const propertyOr = Object.entries(properties).flatMap(([key, rawValue]) => {
-				const values = Array.isArray(rawValue) ? rawValue : [rawValue]
-				return values
-					.filter(value => value && value.trim().length > 0)
-					.map(value => ({
-						property: { key },
-						value,
-					}))
-			})
+			const propertyOr = Object.entries(properties).flatMap(
+				([key, rawValue]) => {
+					const values = Array.isArray(rawValue) ? rawValue : [rawValue]
+					return values
+						.filter(value => value && value.trim().length > 0)
+						.map(value => ({
+							property: { key },
+							value,
+						}))
+				},
+			)
 
 			if (propertyOr.length > 0) {
 				andConditions.push({
@@ -164,28 +291,7 @@ export const productsRouter = createTRPCRouter({
 				orderBy,
 				skip: (page - 1) * limit,
 				take: limit,
-				select: {
-					id: true,
-					slug: true,
-					name: true,
-					description: true,
-					price: true,
-					compareAtPrice: true,
-					stock: true,
-					sku: true,
-					images: true,
-					imagePath: true,
-					brand: true,
-					brandCountry: true,
-					rating: true,
-					reviewsCount: true,
-					badges: true,
-					isActive: true,
-					categoryId: true,
-					createdAt: true,
-					category: { select: { name: true, slug: true } },
-					properties: { include: { property: true } },
-				},
+				select: productCatalogSelect,
 			}),
 			ctx.prisma.product.count({ where }),
 		])
@@ -208,7 +314,6 @@ export const productsRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const { categorySlug, includeChildren } = input
-
 			const baseWhere: Prisma.ProductWhereInput = { isActive: true }
 
 			if (categorySlug) {
@@ -239,50 +344,53 @@ export const productsRouter = createTRPCRouter({
 				)
 			}
 
-			const [newCount, saleCount, freeShippingCount, values] = await Promise.all([
-				ctx.prisma.product.count({
-					where: {
-						...baseWhere,
-						badges: { array_contains: ['Новинка'] },
-					},
-				}),
-				ctx.prisma.product.count({
-					where: {
-						...baseWhere,
-						compareAtPrice: { not: null },
-					},
-				}),
-				ctx.prisma.product.count({
-					where: {
-						...baseWhere,
-						properties: {
-							some: {
-								property: { key: 'free_shipping' },
-								OR: TRUE_VALUES.map(value => ({ value })),
+			const [newCount, saleCount, freeShippingCount, values] =
+				await Promise.all([
+					ctx.prisma.product.count({
+						where: {
+							...baseWhere,
+							badges: { array_contains: ['Новинка'] },
+						},
+					}),
+					ctx.prisma.product.count({
+						where: {
+							...baseWhere,
+							compareAtPrice: { not: null },
+						},
+					}),
+					ctx.prisma.product.count({
+						where: {
+							...baseWhere,
+							properties: {
+								some: {
+									property: { key: 'free_shipping' },
+									OR: TRUE_VALUES.map(value => ({ value })),
+								},
 							},
 						},
-					},
-				}),
-				ctx.prisma.productPropertyValue.findMany({
-					where: {
-						product: baseWhere,
-					},
-					select: {
-						value: true,
-						property: {
-							select: {
-								key: true,
-								name: true,
-								type: true,
+					}),
+					ctx.prisma.productPropertyValue.findMany({
+						where: { product: baseWhere },
+						select: {
+							value: true,
+							property: {
+								select: {
+									key: true,
+									name: true,
+									type: true,
+								},
 							},
 						},
-					},
-				}),
-			])
+					}),
+				])
 
 			const staticFilters = [
 				{ key: 'isNew' as const, label: 'Новинки', count: newCount },
-				{ key: 'onSale' as const, label: 'Товары со скидкой', count: saleCount },
+				{
+					key: 'onSale' as const,
+					label: 'Товары со скидкой',
+					count: saleCount,
+				},
 				{
 					key: 'freeShipping' as const,
 					label: 'Бесплатная доставка',
@@ -333,7 +441,9 @@ export const productsRouter = createTRPCRouter({
 							label: value,
 							count,
 						}))
-						.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+						.sort(
+							(a, b) => b.count - a.count || a.label.localeCompare(b.label),
+						),
 				}))
 				.filter(group => group.options.length > 0)
 				.sort((a, b) => a.label.localeCompare(b.label))
@@ -347,20 +457,14 @@ export const productsRouter = createTRPCRouter({
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
 		return ctx.prisma.product.findUnique({
 			where: { slug: input },
-			include: {
-				category: true,
-				properties: { include: { property: true } },
-			},
+			include: productDetailInclude,
 		})
 	}),
 
 	getById: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
 		return ctx.prisma.product.findUnique({
 			where: { id: input },
-			include: {
-				category: true,
-				properties: { include: { property: true } },
-			},
+			include: productDetailInclude,
 		})
 	}),
 
@@ -370,7 +474,8 @@ export const productsRouter = createTRPCRouter({
 			select: { brand: true },
 			distinct: ['brand'],
 		})
-		return products.map(p => p.brand).filter(Boolean) as string[]
+
+		return products.map(product => product.brand).filter(Boolean) as string[]
 	}),
 
 	create: adminProcedure
@@ -378,31 +483,32 @@ export const productsRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				slug: z.string().optional(),
-				description: z.string().optional(),
+				description: z.string().nullable().optional(),
 				price: z.number().positive().optional(),
-				compareAtPrice: z.number().positive().optional(),
+				compareAtPrice: z.number().positive().nullable().optional(),
 				stock: z.number().int().min(0).default(0),
-				sku: z.string().optional(),
-				images: z.array(z.string()).default([]),
-				categoryId: z.string().optional(),
+				sku: z.string().nullable().optional(),
+				images: z.array(incomingProductImageSchema).optional(),
+				categoryId: z.string().nullable().optional(),
 				isActive: z.boolean().default(true),
-				brand: z.string().optional(),
-				brandCountry: z.string().optional(),
+				brand: z.string().nullable().optional(),
+				brandCountry: z.string().nullable().optional(),
 				badges: z.array(z.string()).default([]),
-				metaTitle: z.string().optional(),
-				metaDesc: z.string().optional(),
-				properties: z
-					.array(
-						z.object({
-							propertyId: z.string(),
-							value: z.string(),
-						}),
-					)
-					.default([]),
+				metaTitle: z.string().nullable().optional(),
+				metaDesc: z.string().nullable().optional(),
+				properties: z.array(propertyValueSchema).optional(),
+				propertyValues: z.array(propertyValueSchema).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { properties, ...productData } = input
+			const { properties, propertyValues, images, ...productData } = input
+			const resolvedProperties = resolvePropertyValues({
+				properties,
+				propertyValues,
+			})
+			const normalizedImages = normalizeProductImagesForWrite(
+				toIncomingProductImages(images),
+			)
 
 			let slug = productData.slug?.trim() || generateSlug(productData.name)
 			let suffix = 0
@@ -416,22 +522,24 @@ export const productsRouter = createTRPCRouter({
 					...productData,
 					slug,
 					userId: ctx.userId,
-					properties: {
-						create: properties.map(p => ({
-							propertyId: p.propertyId,
-							value: p.value,
-						})),
-					},
+					images:
+						normalizedImages.length > 0
+							? { create: normalizedImages }
+							: undefined,
+					properties:
+						resolvedProperties.length > 0
+							? {
+									create: resolvedProperties.map(property => ({
+										propertyId: property.propertyId,
+										value: property.value,
+									})),
+								}
+							: undefined,
 				},
-				include: {
-					category: true,
-					properties: { include: { property: true } },
-				},
+				include: productDetailInclude,
 			})
 
-			// Fire webhooks
 			void fireWebhooks(ctx.prisma, 'product.created', product)
-
 			return product
 		}),
 
@@ -441,12 +549,12 @@ export const productsRouter = createTRPCRouter({
 				id: z.string(),
 				name: z.string().min(1).optional(),
 				slug: z.string().optional(),
-				description: z.string().optional(),
+				description: z.string().nullable().optional(),
 				price: z.number().positive().optional(),
 				compareAtPrice: z.number().positive().nullable().optional(),
 				stock: z.number().int().min(0).optional(),
 				sku: z.string().nullable().optional(),
-				images: z.array(z.string()).optional(),
+				images: z.array(incomingProductImageSchema).optional(),
 				categoryId: z.string().nullable().optional(),
 				isActive: z.boolean().optional(),
 				brand: z.string().nullable().optional(),
@@ -454,18 +562,16 @@ export const productsRouter = createTRPCRouter({
 				badges: z.array(z.string()).optional(),
 				metaTitle: z.string().nullable().optional(),
 				metaDesc: z.string().nullable().optional(),
-				properties: z
-					.array(
-						z.object({
-							propertyId: z.string(),
-							value: z.string(),
-						}),
-					)
-					.optional(),
+				properties: z.array(propertyValueSchema).optional(),
+				propertyValues: z.array(propertyValueSchema).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, properties, ...data } = input
+			const { id, properties, propertyValues, images, ...data } = input
+			const resolvedProperties =
+				properties === undefined && propertyValues === undefined
+					? undefined
+					: resolvePropertyValues({ properties, propertyValues })
 
 			if (data.name && !data.slug) {
 				let slug = generateSlug(data.name)
@@ -481,32 +587,78 @@ export const productsRouter = createTRPCRouter({
 				data.slug = slug
 			}
 
-			if (properties) {
-				await ctx.prisma.productPropertyValue.deleteMany({
-					where: { productId: id },
-				})
-				if (properties.length > 0) {
-					await ctx.prisma.productPropertyValue.createMany({
-						data: properties.map(p => ({
-							productId: id,
-							propertyId: p.propertyId,
-							value: p.value,
-						})),
+			const { product, keysToDelete } = await ctx.prisma.$transaction(
+				async tx => {
+					if (resolvedProperties) {
+						await tx.productPropertyValue.deleteMany({
+							where: { productId: id },
+						})
+
+						if (resolvedProperties.length > 0) {
+							await tx.productPropertyValue.createMany({
+								data: resolvedProperties.map(property => ({
+									productId: id,
+									propertyId: property.propertyId,
+									value: property.value,
+								})),
+							})
+						}
+					}
+
+					await tx.product.update({
+						where: { id },
+						data,
 					})
-				}
-			}
 
-			const product = await ctx.prisma.product.update({
-				where: { id },
-				data,
-				include: {
-					category: true,
-					properties: { include: { property: true } },
+					const removableKeys =
+						images !== undefined ? await syncProductImages(tx, id, images) : []
+
+					const updatedProduct = await tx.product.findUniqueOrThrow({
+						where: { id },
+						include: productDetailInclude,
+					})
+
+					return { product: updatedProduct, keysToDelete: removableKeys }
 				},
-			})
+			)
 
+			await deleteStorageKeys(keysToDelete)
 			void fireWebhooks(ctx.prisma, 'product.updated', product)
+			return product
+		}),
 
+	updateProductImages: adminProcedure
+		.input(
+			z.object({
+				productId: z.string(),
+				images: z.array(productImageInputSchema),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { product, keysToDelete } = await ctx.prisma.$transaction(
+				async tx => {
+					await tx.product.findUniqueOrThrow({
+						where: { id: input.productId },
+						select: { id: true },
+					})
+
+					const removableKeys = await syncProductImages(
+						tx,
+						input.productId,
+						input.images,
+					)
+
+					const product = await tx.product.findUniqueOrThrow({
+						where: { id: input.productId },
+						include: productDetailInclude,
+					})
+
+					return { product, keysToDelete: removableKeys }
+				},
+			)
+
+			await deleteStorageKeys(keysToDelete)
+			void fireWebhooks(ctx.prisma, 'product.updated', product)
 			return product
 		}),
 
@@ -520,24 +672,7 @@ export const productsRouter = createTRPCRouter({
 				},
 				orderBy: { createdAt: 'desc' },
 				take: limit,
-				select: {
-					id: true,
-					slug: true,
-					name: true,
-					description: true,
-					price: true,
-					compareAtPrice: true,
-					stock: true,
-					images: true,
-					imagePath: true,
-					brand: true,
-					brandCountry: true,
-					rating: true,
-					reviewsCount: true,
-					badges: true,
-					createdAt: true,
-					category: { select: { name: true, slug: true } },
-				},
+				select: productCardSelect,
 			})
 		}),
 
@@ -551,24 +686,7 @@ export const productsRouter = createTRPCRouter({
 				},
 				orderBy: { createdAt: 'desc' },
 				take: limit,
-				select: {
-					id: true,
-					slug: true,
-					name: true,
-					description: true,
-					price: true,
-					compareAtPrice: true,
-					stock: true,
-					images: true,
-					imagePath: true,
-					brand: true,
-					brandCountry: true,
-					rating: true,
-					reviewsCount: true,
-					badges: true,
-					createdAt: true,
-					category: { select: { name: true, slug: true } },
-				},
+				select: productCardSelect,
 			})
 		}),
 
@@ -576,27 +694,10 @@ export const productsRouter = createTRPCRouter({
 		.input(z.array(z.string()).max(50))
 		.query(async ({ ctx, input: ids }) => {
 			if (ids.length === 0) return []
+
 			return ctx.prisma.product.findMany({
 				where: { id: { in: ids }, isActive: true },
-				select: {
-					id: true,
-					slug: true,
-					name: true,
-					description: true,
-					price: true,
-					compareAtPrice: true,
-					stock: true,
-					images: true,
-					imagePath: true,
-					brand: true,
-					brandCountry: true,
-					rating: true,
-					reviewsCount: true,
-					badges: true,
-					createdAt: true,
-					category: { select: { id: true, name: true, slug: true } },
-					properties: { include: { property: true } },
-				},
+				select: productCatalogSelect,
 			})
 		}),
 
@@ -608,11 +709,12 @@ export const productsRouter = createTRPCRouter({
 				include: { property: true },
 				orderBy: { property: { name: 'asc' } },
 			})
-			return values.map(v => ({
-				key: v.property.key,
-				label: v.property.name,
-				value: v.value,
-				type: v.property.type,
+
+			return values.map(value => ({
+				key: value.property.key,
+				label: value.property.name,
+				value: value.value,
+				type: value.property.type,
 			}))
 		}),
 
@@ -621,9 +723,10 @@ export const productsRouter = createTRPCRouter({
 		.query(async ({ ctx, input: productId }) => {
 			const product = await ctx.prisma.product.findUnique({
 				where: { id: productId },
-				select: { imagePath: true },
+				select: { images: orderedProductImages },
 			})
-			return product?.imagePath ?? null
+
+			return getMainImage(product ?? { images: [] })?.url ?? null
 		}),
 
 	updateImagePath: adminProcedure
@@ -635,48 +738,90 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.product.update({
-				where: { id: input.productId },
-				data: {
-					imagePath: input.imagePath,
-					imageOriginalName: input.imageOriginalName ?? null,
+			const singleImage = input.imagePath
+				? [
+						{
+							key: input.imagePath,
+							url: input.imagePath,
+							originalName: input.imageOriginalName ?? null,
+							size: null,
+							mimeType: null,
+							order: 0,
+							isMain: true,
+						},
+					]
+				: []
+
+			const { product, keysToDelete } = await ctx.prisma.$transaction(
+				async tx => {
+					await tx.product.findUniqueOrThrow({
+						where: { id: input.productId },
+						select: { id: true },
+					})
+
+					const removableKeys = await syncProductImages(
+						tx,
+						input.productId,
+						singleImage,
+					)
+
+					const product = await tx.product.findUniqueOrThrow({
+						where: { id: input.productId },
+						select: {
+							id: true,
+							images: orderedProductImages,
+						},
+					})
+
+					return { product, keysToDelete: removableKeys }
 				},
-				select: { id: true, imagePath: true },
-			})
+			)
+
+			await deleteStorageKeys(keysToDelete)
+			const image = getMainImage(product)
+
+			return {
+				id: product.id,
+				image,
+				imagePath: image?.url ?? null,
+			}
 		}),
 
 	removeImage: adminProcedure
 		.input(z.string())
 		.mutation(async ({ ctx, input }) => {
-			const product = await ctx.prisma.product.findUnique({
-				where: { id: input },
-				select: { imagePath: true },
-			})
+			const { product, keysToDelete } = await ctx.prisma.$transaction(
+				async tx => {
+					const removableKeys = await syncProductImages(tx, input, [])
 
-			if (product?.imagePath) {
-				const fileName = path.basename(product.imagePath)
-				const fullPath = path.join(
-					process.cwd(),
-					'public',
-					'productimg',
-					fileName,
-				)
-				try {
-					await unlink(fullPath)
-				} catch {
-					/* file may not exist */
-				}
-			}
+					const product = await tx.product.findUniqueOrThrow({
+						where: { id: input },
+						select: { id: true },
+					})
 
-			return ctx.prisma.product.update({
-				where: { id: input },
-				data: { imagePath: null, imageOriginalName: null },
-				select: { id: true },
-			})
+					return { product, keysToDelete: removableKeys }
+				},
+			)
+
+			await deleteStorageKeys(keysToDelete)
+			return product
 		}),
 
 	delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
-		return ctx.prisma.product.delete({ where: { id: input } })
+		const product = await ctx.prisma.product.findUnique({
+			where: { id: input },
+			select: { images: { select: { key: true } } },
+		})
+
+		const keysToDelete = (product?.images ?? [])
+			.map(image => image.key)
+			.filter(key => !isExternalOrLegacyImageKey(key))
+
+		const deletedProduct = await ctx.prisma.product.delete({
+			where: { id: input },
+		})
+		await deleteStorageKeys(keysToDelete)
+		return deletedProduct
 	}),
 })
 
@@ -685,11 +830,12 @@ async function fireWebhooks(db: PrismaClient, event: string, data: unknown) {
 		const webhooks = await db.webhook.findMany({
 			where: { events: { has: event } },
 		})
+
 		await Promise.allSettled(
 			webhooks
-				.filter(wh => validateWebhookUrl(wh.url).valid)
-				.map(wh =>
-					fetch(wh.url, {
+				.filter(webhook => validateWebhookUrl(webhook.url).valid)
+				.map(webhook =>
+					fetch(webhook.url, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({

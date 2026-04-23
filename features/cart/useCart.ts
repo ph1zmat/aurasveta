@@ -51,12 +51,14 @@ export function useCart() {
 
 	const rawItems: AnonymousCartItem[] = isAuth
 		? (serverItems ?? []).map(item => ({
-				productId: typeof item === 'object' && item !== null && 'productId' in item
-					? String((item as Record<string, unknown>).productId)
-					: '',
-				quantity: typeof item === 'object' && item !== null && 'quantity' in item
-					? Number((item as Record<string, unknown>).quantity)
-					: 1,
+				productId:
+					typeof item === 'object' && item !== null && 'productId' in item
+						? String((item as Record<string, unknown>).productId)
+						: '',
+				quantity:
+					typeof item === 'object' && item !== null && 'quantity' in item
+						? Number((item as Record<string, unknown>).quantity)
+						: 1,
 			}))
 		: anonCart
 

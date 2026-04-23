@@ -70,8 +70,7 @@ export async function getMetadataForProduct(product: {
 	name: string
 	description?: string | null
 	price?: number | null
-	images?: string[]
-	imagePath?: string | null
+	images?: Array<{ url?: string | null } | string>
 	brand?: string | null
 }): Promise<SeoResult> {
 	const auto = generateProductSeo(product)

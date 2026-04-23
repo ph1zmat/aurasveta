@@ -4,7 +4,13 @@ import {
 	toProductCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
+import { productImageSelect } from '@/lib/products/product-images'
 import { prisma } from '@/lib/prisma'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 const productSelect = {
 	id: true,
@@ -14,8 +20,7 @@ const productSelect = {
 	price: true,
 	compareAtPrice: true,
 	stock: true,
-	images: true,
-	imagePath: true,
+	images: orderedProductImages,
 	brand: true,
 	brandCountry: true,
 	badges: true,

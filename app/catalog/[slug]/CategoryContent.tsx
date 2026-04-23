@@ -14,7 +14,12 @@ import Pagination from '@/features/catalog-filter/ui/Pagination'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { Button } from '@/shared/ui/Button'
 import { X } from 'lucide-react'
-import type { Product } from '@/shared/types/product'
+import { CategoryContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import {
+	type DbProduct,
+	toCatalogCardProps,
+	toFrontendProduct,
+} from '@/entities/product/model/adapters'
 
 const STATIC_FILTER_KEYS = {
 	isNew: 'isNew',
@@ -63,56 +68,6 @@ function clearFilterParams(params: URLSearchParams) {
 	}
 }
 
-function dbProductToFrontend(p: Record<string, unknown>): Product {
-	const price = p.price ? Number(p.price) : 0
-	const compareAtPrice = p.compareAtPrice ? Number(p.compareAtPrice) : undefined
-	return {
-		id: p.id as string,
-		slug: p.slug as string,
-		name: p.name as string,
-		description: (p.description as string) ?? '',
-		price,
-		oldPrice: compareAtPrice,
-		discountPercent:
-			price && compareAtPrice
-				? Math.round((1 - price / compareAtPrice) * 100)
-				: undefined,
-		bonusAmount: price ? Math.round(price * 0.06) : undefined,
-		category: (p.category as { name: string })?.name ?? '',
-		brand: (p.brand as string) ?? undefined,
-		brandCountry: (p.brandCountry as string) ?? undefined,
-		images: Array.isArray(p.images) ? (p.images as string[]) : [],
-		imagePath: (p.imagePath as string) ?? null,
-		rating: p.rating ? Number(p.rating) : undefined,
-		reviewsCount: (p.reviewsCount as number) ?? 0,
-		inStock: (p.stock as number) > 0,
-		stockQuantity: p.stock as number,
-		badges: Array.isArray(p.badges) ? (p.badges as string[]) : [],
-		createdAt: String(p.createdAt ?? new Date().toISOString()),
-	}
-}
-
-function toCatalogCard(p: Product) {
-	return {
-		productId: String(p.id),
-		name: p.name,
-		href: `/product/${p.slug}`,
-		image: p.imagePath ?? p.images[0] ?? '/bulb.svg',
-		price: p.price,
-		oldPrice: p.oldPrice,
-		discountPercent: p.discountPercent,
-		bonusAmount: p.bonusAmount,
-		rating: p.rating,
-		reviewsCount: p.reviewsCount,
-		availability: p.inStock
-			? p.stockQuantity
-				? `В наличии ${p.stockQuantity} шт.`
-				: 'В наличии'
-			: 'Нет в наличии',
-		badges: p.badges,
-	}
-}
-
 export default function CategoryContent({ slug }: { slug: string }) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
@@ -135,45 +90,56 @@ export default function CategoryContent({ slug }: { slug: string }) {
 		: undefined
 	const isNew = searchParams.get(STATIC_FILTER_KEYS.isNew) === '1'
 	const onSale = searchParams.get(STATIC_FILTER_KEYS.onSale) === '1'
-	const freeShipping =
-		searchParams.get(STATIC_FILTER_KEYS.freeShipping) === '1'
+	const freeShipping = searchParams.get(STATIC_FILTER_KEYS.freeShipping) === '1'
 	const selectedPropertyFilters =
 		parsePropertyFiltersFromParams(searchParamsSnapshot)
 
 	const [searchInput, setSearchInput] = useState(search)
 
-	const { data: category } = trpc.categories.getBySlug.useQuery(slug, {
+	const { data: category, isLoading: isCategoryLoading } =
+		trpc.categories.getBySlug.useQuery(slug, {
 		staleTime: 5 * 60 * 1000,
-	})
+		})
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
 	})
-	const { data: availableFilters } = trpc.products.getAvailableFilters.useQuery({
-		categorySlug: slug,
-		includeChildren: true,
-	}, {
-		staleTime: 3 * 60 * 1000,
-	})
+	const { data: availableFilters, isLoading: isFiltersLoading } =
+		trpc.products.getAvailableFilters.useQuery(
+			{
+				categorySlug: slug,
+				includeChildren: true,
+			},
+			{
+				staleTime: 3 * 60 * 1000,
+			},
+		)
 
-	const { data: productsData, isLoading } = trpc.products.getMany.useQuery({
-		categorySlug: slug,
-		includeChildren: true,
-		page: currentPage,
-		limit: 12,
-		search: search || undefined,
-		sortBy,
-		minPrice,
-		maxPrice,
-		isNew: isNew || undefined,
-		onSale: onSale || undefined,
-		freeShipping: freeShipping || undefined,
-		properties:
-			Object.keys(selectedPropertyFilters).length > 0
-				? selectedPropertyFilters
-				: undefined,
-	}, {
-		placeholderData: keepPreviousData,
-	})
+	const { data: productsData, isLoading: isProductsLoading } =
+		trpc.products.getMany.useQuery(
+		{
+			categorySlug: slug,
+			includeChildren: true,
+			page: currentPage,
+			limit: 12,
+			search: search || undefined,
+			sortBy,
+			minPrice,
+			maxPrice,
+			isNew: isNew || undefined,
+			onSale: onSale || undefined,
+			freeShipping: freeShipping || undefined,
+			properties:
+				Object.keys(selectedPropertyFilters).length > 0
+					? selectedPropertyFilters
+					: undefined,
+		},
+		{
+			placeholderData: keepPreviousData,
+		},
+	)
+
+	const isInitialLoading =
+		!productsData && (isProductsLoading || isCategoryLoading || isFiltersLoading)
 
 	const categoryName = category?.name ?? slug
 	const parentCategory = category?.parent
@@ -201,8 +167,8 @@ export default function CategoryContent({ slug }: { slug: string }) {
 		})),
 	}))
 
-	const products = (productsData?.items ?? []).map(
-		(p: Record<string, unknown>) => dbProductToFrontend(p),
+	const products = (productsData?.items ?? []).map(p =>
+		toCatalogCardProps(toFrontendProduct(p as DbProduct)),
 	)
 	const totalProducts = productsData?.total ?? 0
 	const totalPages = productsData?.totalPages ?? 1
@@ -300,6 +266,10 @@ export default function CategoryContent({ slug }: { slug: string }) {
 		rating: 'По рейтингу',
 	}
 
+	if (isInitialLoading) {
+		return <CategoryContentSkeleton />
+	}
+
 	return (
 		<>
 			<Breadcrumbs items={breadcrumbItems} />
@@ -393,11 +363,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 								Найти
 							</Button>
 							{hasActiveFilters && (
-								<Button
-									variant='ghost'
-									size='sm'
-									onClick={resetFilters}
-								>
+								<Button variant='ghost' size='sm' onClick={resetFilters}>
 									Сбросить
 								</Button>
 							)}
@@ -437,8 +403,8 @@ export default function CategoryContent({ slug }: { slug: string }) {
 										}
 									>
 										<span>
-											Цена:{' '}
-											{minPrice !== undefined ? minPrice : '—'}–{maxPrice !== undefined ? maxPrice : '—'}
+											Цена: {minPrice !== undefined ? minPrice : '—'}–
+											{maxPrice !== undefined ? maxPrice : '—'}
 										</span>
 										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
 									</Button>
@@ -459,9 +425,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 									<Button
 										variant='subtle'
 										size='compact'
-										onClick={() =>
-											toggleStaticFilter('isNew', false)
-										}
+										onClick={() => toggleStaticFilter('isNew', false)}
 									>
 										<span>Новинки</span>
 										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
@@ -472,9 +436,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 									<Button
 										variant='subtle'
 										size='compact'
-										onClick={() =>
-											toggleStaticFilter('onSale', false)
-										}
+										onClick={() => toggleStaticFilter('onSale', false)}
 									>
 										<span>Товары со скидкой</span>
 										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
@@ -485,9 +447,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 									<Button
 										variant='subtle'
 										size='compact'
-										onClick={() =>
-											toggleStaticFilter('freeShipping', false)
-										}
+										onClick={() => toggleStaticFilter('freeShipping', false)}
 									>
 										<span>Бесплатная доставка</span>
 										<X className='h-3.5 w-3.5' strokeWidth={1.5} />
@@ -497,9 +457,10 @@ export default function CategoryContent({ slug }: { slug: string }) {
 								{Object.entries(selectedPropertyFilters).flatMap(
 									([propertyKey, values]) =>
 										values.map(value => {
-											const propertyMeta = availableFilters?.propertyFilters.find(
-												f => f.key === propertyKey,
-											)
+											const propertyMeta =
+												availableFilters?.propertyFilters.find(
+													f => f.key === propertyKey,
+												)
 											const optionMeta = propertyMeta?.options.find(
 												o => o.value === value,
 											)
@@ -536,7 +497,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							</div>
 						)}
 
-						{isLoading ? (
+						{isProductsLoading && !productsData ? (
 							<div className='py-12 text-center text-sm text-muted-foreground'>
 								Загрузка товаров...
 							</div>
@@ -548,8 +509,8 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
 								{products.map(product => (
 									<InteractiveCatalogCard
-										key={product.slug}
-										{...toCatalogCard(product)}
+										key={product.productId}
+										{...product}
 									/>
 								))}
 							</div>

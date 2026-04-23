@@ -4,6 +4,12 @@ import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
 import { sendPushToAdmins } from '@/lib/push/send'
 import { adminEventBus } from '@/lib/realtime/admin-events'
+import { productImageSelect } from '@/lib/products/product-images'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 export const ordersRouter = createTRPCRouter({
 	getMyOrders: protectedProcedure.query(async ({ ctx }) => {
@@ -13,7 +19,11 @@ export const ordersRouter = createTRPCRouter({
 				items: {
 					include: {
 						product: {
-							select: { name: true, slug: true, images: true, imagePath: true },
+							select: {
+								name: true,
+								slug: true,
+								images: orderedProductImages,
+							},
 						},
 					},
 				},
@@ -28,7 +38,16 @@ export const ordersRouter = createTRPCRouter({
 			return ctx.prisma.order.findFirst({
 				where: { id: input, userId: ctx.userId },
 				include: {
-					items: { include: { product: true } },
+					items: {
+						include: {
+							product: {
+								include: {
+									images: orderedProductImages,
+									category: { select: { id: true, name: true, slug: true } },
+								},
+							},
+						},
+					},
 				},
 			})
 		}),

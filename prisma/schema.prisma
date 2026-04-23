@@ -152,33 +152,31 @@ model ProductPropertyValue {
 }
 
 model Product {
-  id                String                   @id @default(cuid())
-  name              String
-  slug              String                   @unique
-  description       String?
-  price             Float?
-  compareAtPrice    Float?                   @map("compare_at_price")
-  stock             Int                      @default(0)
-  sku               String?                  @unique
-  images            Json                     @default("[]")
-  categoryId        String?                  @map("category_id")
-  category          Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  isActive          Boolean                  @default(true) @map("is_active")
-  brand             String?
-  brandCountry      String?                  @map("brand_country")
-  rating            Float?
-  reviewsCount      Int                      @default(0) @map("reviews_count")
-  badges            Json                     @default("[]")
-  imagePath         String?                  @map("image_path")
-  imageOriginalName String?                  @map("image_original_name")
-  metaTitle         String?                  @map("meta_title")
-  metaDesc          String?                  @map("meta_description")
-  searchVector      Unsupported("tsvector")? @map("search_vector")
-  createdAt         DateTime                 @default(now()) @map("created_at")
-  updatedAt         DateTime                 @updatedAt @map("updated_at")
-  userId            String?                  @map("user_id")
-  user              User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id             String                   @id @default(cuid())
+  name           String
+  slug           String                   @unique
+  description    String?
+  price          Float?
+  compareAtPrice Float?                   @map("compare_at_price")
+  stock          Int                      @default(0)
+  sku            String?                  @unique
+  categoryId     String?                  @map("category_id")
+  category       Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isActive       Boolean                  @default(true) @map("is_active")
+  brand          String?
+  brandCountry   String?                  @map("brand_country")
+  rating         Float?
+  reviewsCount   Int                      @default(0) @map("reviews_count")
+  badges         Json                     @default("[]")
+  metaTitle      String?                  @map("meta_title")
+  metaDesc       String?                  @map("meta_description")
+  searchVector   Unsupported("tsvector")? @map("search_vector")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  userId         String?                  @map("user_id")
+  user           User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  images       ProductImage[]
   properties   ProductPropertyValue[]
   orderItems   OrderItem[]
   favorites    Favorite[]
@@ -190,6 +188,25 @@ model Product {
   @@index([brand])
   @@index([searchVector], type: Gin)
   @@map("products")
+}
+
+model ProductImage {
+  id           String   @id @default(cuid())
+  productId    String   @map("product_id")
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url          String
+  key          String
+  originalName String?  @map("original_name")
+  size         Int?
+  mimeType     String?  @map("mime_type")
+  order        Int      @default(0)
+  isMain       Boolean  @default(false) @map("is_main")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([productId, isMain])
+  @@map("product_images")
 }
 
 model Page {

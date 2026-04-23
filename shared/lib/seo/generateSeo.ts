@@ -1,9 +1,11 @@
+import type { ProductImage } from '@/shared/types/product'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+
 interface ProductSeoInput {
 	name: string
 	description?: string | null
 	price?: number | null
-	images?: string[]
-	imagePath?: string | null
+	images?: Array<string | Pick<ProductImage, 'url'> | { url?: string | null }>
 	brand?: string | null
 	categoryName?: string | null
 }
@@ -34,6 +36,21 @@ function stripHtml(html: string): string {
 		.trim()
 }
 
+function getFirstImage(images: ProductSeoInput['images']): string | null {
+	for (const image of images ?? []) {
+		if (typeof image === 'string') {
+			const value = resolveStorageFileUrl(image)
+			if (value) return value
+			continue
+		}
+
+		const value = resolveStorageFileUrl(image?.url)
+		if (value) return value
+	}
+
+	return null
+}
+
 export function generateProductSeo(product: ProductSeoInput) {
 	const description = product.description
 		? truncate(stripHtml(product.description), 160)
@@ -48,7 +65,7 @@ export function generateProductSeo(product: ProductSeoInput) {
 		description: `${description}${priceStr}`,
 		ogTitle: product.name,
 		ogDescription: description,
-		ogImage: product.imagePath ?? product.images?.[0] ?? null,
+		ogImage: getFirstImage(product.images),
 	}
 }
 
@@ -77,6 +94,6 @@ export function generatePageSeo(page: PageSeoInput) {
 		description,
 		ogTitle: page.title,
 		ogDescription: description,
-		ogImage: page.imagePath ?? page.image ?? null,
+		ogImage: resolveStorageFileUrl(page.imagePath ?? page.image),
 	}
 }

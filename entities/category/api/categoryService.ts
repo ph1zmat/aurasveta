@@ -5,6 +5,7 @@ import type {
 	Tag,
 } from '@/entities/category/model/types'
 import { prisma } from '@/lib/prisma'
+import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
 interface DbCategory {
 	id: string
@@ -21,7 +22,9 @@ function toFrontendCategory(dbCat: DbCategory): Category {
 		slug: dbCat.slug,
 		name: dbCat.name,
 		href: `/catalog/${dbCat.slug}`,
-		image: dbCat.imagePath ?? dbCat.image ?? '/images/placeholder.jpg',
+		image:
+			resolveStorageFileUrl(dbCat.imagePath ?? dbCat.image) ??
+			'/images/placeholder.jpg',
 		productCount: dbCat._count?.products,
 	}
 }
@@ -48,7 +51,7 @@ export async function getAllCategories(): Promise<Category[]> {
 		subcategories: c.children.map(sub => ({
 			name: sub.name,
 			href: `/catalog/${sub.slug}`,
-			image: sub.imagePath ?? sub.image ?? undefined,
+			image: resolveStorageFileUrl(sub.imagePath ?? sub.image) ?? undefined,
 		})),
 	}))
 }
@@ -100,7 +103,7 @@ export async function getSubcategories(slug: string): Promise<Subcategory[]> {
 	return category.children.map(sub => ({
 		name: sub.name,
 		href: `/catalog/${sub.slug}`,
-		image: sub.imagePath ?? sub.image ?? undefined,
+		image: resolveStorageFileUrl(sub.imagePath ?? sub.image) ?? undefined,
 	}))
 }
 

@@ -28,6 +28,8 @@ import { useCart } from '@/features/cart/useCart'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 import type { CartItemData } from '@/shared/types/cart'
+import { getProductImageUrl } from '@/shared/lib/product-utils'
+import type { ProductImage } from '@/shared/types/product'
 
 export default function Header() {
 	const pathname = usePathname()
@@ -60,9 +62,14 @@ export default function Header() {
 					name: p ? String(p.name ?? '') : '',
 					href: p ? `/product/${p.slug}` : `/product/${item.productId}`,
 					image: p
-						? (p.imagePath as string) ??
-							(Array.isArray(p.images) ? (p.images as string[])[0] : null) ??
-							'/images/placeholder.jpg'
+						? getProductImageUrl(
+								{
+									images: Array.isArray(p.images)
+										? (p.images as ProductImage[])
+										: [],
+								},
+								'/images/placeholder.jpg',
+							)
 						: '/images/placeholder.jpg',
 					price: p ? Number(p.price ?? 0) : 0,
 					quantity: Number(item.quantity ?? 1),

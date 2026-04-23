@@ -4,7 +4,13 @@ import {
 	toProductCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
+import { productImageSelect } from '@/lib/products/product-images'
 import { prisma } from '@/lib/prisma'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 export default async function SaleProducts() {
 	const dbProducts = await prisma.product.findMany({
@@ -22,8 +28,7 @@ export default async function SaleProducts() {
 			price: true,
 			compareAtPrice: true,
 			stock: true,
-			images: true,
-			imagePath: true,
+			images: orderedProductImages,
 			brand: true,
 			createdAt: true,
 			badges: true,

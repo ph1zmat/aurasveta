@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { unlink } from 'fs/promises'
-import path from 'path'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
+import { deleteFile } from '@/lib/storage'
+import { productImageSelect } from '@/lib/products/product-images'
 
 export const categoriesRouter = createTRPCRouter({
 	getAll: baseProcedure.query(async ({ ctx }) => {
@@ -109,8 +109,10 @@ export const categoriesRouter = createTRPCRouter({
 						price: true,
 						compareAtPrice: true,
 						stock: true,
-						images: true,
-						imagePath: true,
+						images: {
+							orderBy: { order: 'asc' },
+							select: productImageSelect,
+						},
 						brand: true,
 						brandCountry: true,
 						rating: true,
@@ -205,15 +207,8 @@ export const categoriesRouter = createTRPCRouter({
 			})
 
 			if (category?.imagePath) {
-				const fileName = path.basename(category.imagePath)
-				const fullPath = path.join(
-					process.cwd(),
-					'public',
-					'productimg',
-					fileName,
-				)
 				try {
-					await unlink(fullPath)
+					await deleteFile(category.imagePath)
 				} catch {
 					/* file may not exist */
 				}

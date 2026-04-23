@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure } from '../init'
+import { productImageSelect } from '@/lib/products/product-images'
+
+const orderedProductImages = {
+	orderBy: { order: 'asc' as const },
+	select: productImageSelect,
+}
 
 interface CartItem {
 	productId: string
@@ -30,8 +36,7 @@ export const cartRouter = createTRPCRouter({
 				name: true,
 				price: true,
 				compareAtPrice: true,
-				images: true,
-				imagePath: true,
+				images: orderedProductImages,
 				stock: true,
 			},
 		})
@@ -50,7 +55,6 @@ export const cartRouter = createTRPCRouter({
 							price: p.price,
 							compareAtPrice: p.compareAtPrice,
 							images: p.images,
-							imagePath: p.imagePath,
 							stock: p.stock,
 						}
 					: null,

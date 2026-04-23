@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
 import { Plus, Pencil, Trash2, X, ImagePlus, Trash, FileText, Calendar } from 'lucide-react'
-import { getApiUrl, getToken } from '../lib/store'
+import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
 
 export function PagesPage() {
+	const apiBaseUrl = useApiBaseUrl()
 	const { data: pages, refetch } = trpc.pages.getAll.useQuery()
 	const deleteMut = trpc.pages.delete.useMutation({
 		onSuccess: () => refetch(),
@@ -74,7 +75,7 @@ export function PagesPage() {
 								{page.imagePath ? (
 									<div className='relative h-32 w-full'>
 										<img
-											src={page.imagePath}
+											src={resolveImgUrl(page.imagePath, apiBaseUrl)}
 											alt=''
 											className='h-full w-full object-cover'
 										/>
@@ -175,10 +176,16 @@ function PageFormModal({
 	const { data: editPage } = trpc.pages.getById.useQuery(editId!, {
 		enabled: !!editId,
 	})
+	const apiBaseUrl = useApiBaseUrl()
+	const utils = trpc.useUtils()
 	const createMut = trpc.pages.create.useMutation({ onSuccess })
 	const updateMut = trpc.pages.update.useMutation({ onSuccess })
-	const updateImageMut = trpc.pages.updateImagePath.useMutation({ onSuccess })
-	const removeImageMut = trpc.pages.removeImage.useMutation({ onSuccess })
+	const updateImageMut = trpc.pages.updateImagePath.useMutation({
+		onSuccess: () => utils.pages.getById.invalidate(editId!),
+	})
+	const removeImageMut = trpc.pages.removeImage.useMutation({
+		onSuccess: () => utils.pages.getById.invalidate(editId!),
+	})
 
 	const emptyForm = useMemo(
 		() => ({
@@ -193,6 +200,7 @@ function PageFormModal({
 	)
 
 	const [form, setForm] = useState(emptyForm)
+	const [uploadError, setUploadError] = useState<string | null>(null)
 
 	useEffect(() => {
 		if (!editId) {
@@ -213,6 +221,7 @@ function PageFormModal({
 
 	const handleUploadImage = async (file: File) => {
 		if (!editId) return
+		setUploadError(null)
 		const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
 		const token = await getToken()
 		if (!token) throw new Error('Нет токена сессии')
@@ -227,8 +236,10 @@ function PageFormModal({
 		})
 
 		if (!res.ok) {
-			const text = await res.text()
-			throw new Error(text || `Upload failed: ${res.status}`)
+			const body = await res.json().catch(() => null)
+			const msg = body?.error ?? `Upload failed: ${res.status}`
+			setUploadError(msg)
+			throw new Error(msg)
 		}
 
 		const out = await res.json()
@@ -302,7 +313,7 @@ function PageFormModal({
 							{editId && editPage?.imagePath ? (
 								<>
 									<img
-										src={editPage.imagePath}
+										src={resolveImgUrl(editPage.imagePath, apiBaseUrl)}
 										alt=''
 										className='h-full w-full object-cover'
 									/>
@@ -314,12 +325,13 @@ function PageFormModal({
 												accept='image/*'
 												className='hidden'
 												onChange={async e => {
-													const file = e.target.files?.[0]
+													const input = e.currentTarget
+													const file = input.files?.[0]
 													if (!file) return
 													try {
 														await handleUploadImage(file)
 													} finally {
-														e.currentTarget.value = ''
+														input.value = ''
 													}
 												}}
 											/>
@@ -343,12 +355,13 @@ function PageFormModal({
 										accept='image/*'
 										className='hidden'
 										onChange={async e => {
-											const file = e.target.files?.[0]
+											const input = e.currentTarget
+											const file = input.files?.[0]
 											if (!file) return
 											try {
 												await handleUploadImage(file)
 											} finally {
-												e.currentTarget.value = ''
+												input.value = ''
 											}
 										}}
 									/>
@@ -360,6 +373,9 @@ function PageFormModal({
 								</div>
 							)}
 						</div>
+						{uploadError && (
+							<p className='text-[10px] text-red-500 text-center leading-tight mt-1'>{uploadError}</p>
+						)}
 
 						{/* Title + Slug */}
 						<div className='flex flex-1 flex-col gap-3'>

@@ -1,12 +1,20 @@
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import { hashPassword } from 'better-auth/crypto'
+import {
+	CATEGORY_DEFINITIONS,
+	CONTENT_PAGES,
+	createCatalogProducts,
+	PROPERTY_DEFINITIONS,
+	SEARCH_QUERIES,
+} from './seed-catalog'
 
 if (process.env.NODE_ENV === 'production') {
 	throw new Error('Seeding is not allowed in production')
 }
 
 const databaseUrl = process.env.DATABASE_URL
+
 if (!databaseUrl) {
 	throw new Error(
 		'DATABASE_URL is not set. Run with: npx tsx --require dotenv/config prisma/seed.ts',
@@ -16,13 +24,464 @@ if (!databaseUrl) {
 const adapter = new PrismaPg(databaseUrl)
 const prisma = new PrismaClient({ adapter })
 
+const REQUIRED_TABLES = [
+	'users',
+	'accounts',
+	'categories',
+	'properties',
+	'product_property_values',
+	'products',
+	'pages',
+	'page_versions',
+	'webhooks',
+] as const
+
+type ExistingTableRow = {
+	table_name: string
+}
+
+async function getExistingPublicTables(): Promise<Set<string>> {
+	const rows = await prisma.$queryRaw<ExistingTableRow[]>`
+		SELECT table_name
+		FROM information_schema.tables
+		WHERE table_schema = 'public'
+	`
+
+	return new Set(rows.map(row => row.table_name))
+}
+
+function assertRequiredTables(existingTables: Set<string>) {
+	const missingTables = REQUIRED_TABLES.filter(tableName => !existingTables.has(tableName))
+
+	if (missingTables.length > 0) {
+		throw new Error(
+			`Database is missing required tables for seed: ${missingTables.join(', ')}. ` +
+				'Apply the Prisma migrations before running the seed.',
+		)
+	}
+}
+
+async function runIfTableExists(params: {
+	existingTables: Set<string>
+	tableName: string
+	label: string
+	action: () => Promise<void>
+}) {
+	if (!params.existingTables.has(params.tableName)) {
+		console.warn(
+			`⚠️ Skipping ${params.label}: table "${params.tableName}" is missing in the current database.`,
+		)
+		return false
+	}
+
+	await params.action()
+	return true
+}
+
+async function createManyInBatches<T>(params: {
+	label: string
+	items: T[]
+	batchSize: number
+	run: (batch: T[]) => Promise<void>
+}) {
+	for (let index = 0; index < params.items.length; index += params.batchSize) {
+		const batch = params.items.slice(index, index + params.batchSize)
+		await params.run(batch)
+
+		if ((index / params.batchSize + 1) % 5 === 0 || index + params.batchSize >= params.items.length) {
+			console.log(
+				`📦 ${params.label}: ${Math.min(index + batch.length, params.items.length)}/${params.items.length}`,
+			)
+		}
+	}
+}
+
+function serializePropertyValue(value: string | number | boolean): string {
+	if (typeof value === 'boolean') {
+		return value ? 'true' : 'false'
+	}
+
+	return String(value)
+}
+
+async function seedCredentialAccount(params: {
+	userId: string
+	password: string
+}) {
+	const passwordHash = await hashPassword(params.password)
+
+	await prisma.account.upsert({
+		where: {
+			providerId_providerAccountId: {
+				providerId: 'credential',
+				providerAccountId: params.userId,
+			},
+		},
+		update: {
+			password: passwordHash,
+		},
+		create: {
+			accountId: params.userId,
+			userId: params.userId,
+			providerId: 'credential',
+			providerAccountId: params.userId,
+			password: passwordHash,
+		},
+	})
+}
+
+async function clearCatalogData(existingTables: Set<string>) {
+	await runIfTableExists({
+		existingTables,
+		tableName: 'search_queries',
+		label: 'search query cleanup',
+		action: () => prisma.searchQuery.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'product_views',
+		label: 'product view cleanup',
+		action: () => prisma.productView.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'compare_items',
+		label: 'compare item cleanup',
+		action: () => prisma.compareItem.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'favorites',
+		label: 'favorite cleanup',
+		action: () => prisma.favorite.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'order_items',
+		label: 'order item cleanup',
+		action: () => prisma.orderItem.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'orders',
+		label: 'order cleanup',
+		action: () => prisma.order.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'anonymous_sessions',
+		label: 'anonymous session cleanup',
+		action: () => prisma.anonymousSession.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'carts',
+		label: 'cart cleanup',
+		action: () => prisma.cart.deleteMany().then(() => undefined),
+	})
+
+	await prisma.productPropertyValue.deleteMany()
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'product_images',
+		label: 'product image cleanup',
+		action: () => prisma.productImage.deleteMany().then(() => undefined),
+	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'seo_metadata',
+		label: 'SEO metadata cleanup',
+		action: () => prisma.seoMetadata.deleteMany().then(() => undefined),
+	})
+
+	await prisma.product.deleteMany()
+	await prisma.category.deleteMany()
+	await prisma.property.deleteMany()
+	await prisma.webhook.deleteMany()
+}
+
+async function seedCategories() {
+	const categoryIds = new Map<string, string>()
+
+	for (const category of CATEGORY_DEFINITIONS) {
+		const createdCategory = await prisma.category.create({
+			data: {
+				name: category.name,
+				slug: category.slug,
+				description: category.description,
+			},
+		})
+
+		categoryIds.set(category.slug, createdCategory.id)
+
+		for (const child of category.children ?? []) {
+			const createdChild = await prisma.category.create({
+				data: {
+					name: child.name,
+					slug: child.slug,
+					description: child.description,
+					parentId: createdCategory.id,
+				},
+			})
+
+			categoryIds.set(child.slug, createdChild.id)
+		}
+	}
+
+	return categoryIds
+}
+
+async function seedProperties() {
+	const propertyIds = new Map<string, string>()
+
+	for (const property of PROPERTY_DEFINITIONS) {
+		const createdProperty = await prisma.property.create({
+			data: {
+				key: property.key,
+				name: property.name,
+				type: property.type,
+				...(property.options
+					? { options: property.options as Prisma.InputJsonValue }
+					: {}),
+			},
+		})
+
+		propertyIds.set(property.key, createdProperty.id)
+	}
+
+	return propertyIds
+}
+
+async function seedProducts(params: {
+	adminId: string
+	categoryIds: Map<string, string>
+	propertyIds: Map<string, string>
+}) {
+	const catalogProducts = createCatalogProducts()
+	const productRows: Prisma.ProductCreateManyInput[] = []
+
+	for (const product of catalogProducts) {
+		const categoryId = params.categoryIds.get(product.categorySlug)
+
+		if (!categoryId) {
+			throw new Error(`Category not found for slug: ${product.categorySlug}`)
+		}
+
+		productRows.push({
+			name: product.name,
+			slug: product.slug,
+			description: product.description,
+			price: product.price,
+			compareAtPrice: product.compareAtPrice,
+			stock: product.stock,
+			sku: product.sku,
+			categoryId,
+			isActive: true,
+			brand: product.brand,
+			brandCountry: product.brandCountry,
+			rating: product.rating,
+			reviewsCount: product.reviewsCount,
+			badges: product.badges as Prisma.InputJsonValue,
+			metaTitle: product.metaTitle,
+			metaDesc: product.metaDesc,
+			userId: params.adminId,
+		})
+	}
+
+	await createManyInBatches({
+		label: 'Products inserted',
+		items: productRows,
+		batchSize: 50,
+		run: async batch => {
+			await prisma.product.createMany({
+				data: batch,
+			})
+		},
+	})
+
+	const createdProducts = await prisma.product.findMany({
+		where: {
+			slug: {
+				in: catalogProducts.map(product => product.slug),
+			},
+		},
+		select: {
+			id: true,
+			slug: true,
+		},
+	})
+
+	const productIdsBySlug = new Map(
+		createdProducts.map(product => [product.slug, product.id]),
+	)
+
+	const resolvedPropertyRows: Prisma.ProductPropertyValueCreateManyInput[] = []
+
+	for (const product of catalogProducts) {
+		const productId = productIdsBySlug.get(product.slug)
+
+		if (!productId) {
+			throw new Error(`Product ID not found after createMany for slug: ${product.slug}`)
+		}
+
+		for (const propertyValue of product.propertyValues) {
+			const propertyId = params.propertyIds.get(propertyValue.key)
+
+			if (!propertyId) {
+				throw new Error(`Property not found for key: ${propertyValue.key}`)
+			}
+
+			resolvedPropertyRows.push({
+				productId,
+				propertyId,
+				value: serializePropertyValue(propertyValue.value),
+			})
+		}
+	}
+
+	await createManyInBatches({
+		label: 'Product properties inserted',
+		items: resolvedPropertyRows,
+		batchSize: 500,
+		run: async batch => {
+			await prisma.productPropertyValue.createMany({
+				data: batch,
+			})
+		},
+	})
+
+	return createdProducts
+}
+
+async function seedPages(adminId: string) {
+	for (const pageData of CONTENT_PAGES) {
+		const page = await prisma.page.upsert({
+			where: { slug: pageData.slug },
+			update: {
+				title: pageData.title,
+				content: pageData.content,
+				metaTitle: pageData.metaTitle,
+				metaDesc: pageData.metaDesc,
+				isPublished: pageData.isPublished,
+				publishedAt: pageData.isPublished ? new Date('2025-01-15T09:00:00.000Z') : null,
+				authorId: adminId,
+			},
+			create: {
+				title: pageData.title,
+				slug: pageData.slug,
+				content: pageData.content,
+				metaTitle: pageData.metaTitle,
+				metaDesc: pageData.metaDesc,
+				isPublished: pageData.isPublished,
+				publishedAt: pageData.isPublished ? new Date('2025-01-15T09:00:00.000Z') : null,
+				authorId: adminId,
+			},
+		})
+
+		await prisma.pageVersion.deleteMany({
+			where: { pageId: page.id },
+		})
+
+		await prisma.pageVersion.create({
+			data: {
+				pageId: page.id,
+				title: pageData.title,
+				content: pageData.content,
+				metaTitle: pageData.metaTitle,
+				metaDesc: pageData.metaDesc,
+				version: 1,
+				createdBy: adminId,
+			},
+		})
+	}
+}
+
+async function seedWebhook() {
+	await prisma.webhook.create({
+		data: {
+			url: 'https://webhook.site/test',
+			events: ['product.created', 'product.updated', 'order.created'],
+		},
+	})
+}
+
+async function seedBehavioralData(params: {
+	userId: string
+	products: Array<{ id: string; slug: string }>
+	existingTables: Set<string>
+}) {
+	const hasProductViews = params.existingTables.has('product_views')
+	const hasSearchQueries = params.existingTables.has('search_queries')
+
+	if (!hasProductViews && !hasSearchQueries) {
+		console.warn(
+			'⚠️ Skipping behavioral seed data: tables "product_views" and "search_queries" are missing.',
+		)
+		return
+	}
+
+	const productViews: Prisma.ProductViewCreateManyInput[] = []
+	const sessions = Array.from({ length: 12 }, (_, index) => `seed-session-${String(index + 1).padStart(3, '0')}`)
+
+	for (const [sessionIndex, sessionId] of sessions.entries()) {
+		for (let offset = 0; offset < 10; offset += 1) {
+			const product = params.products[(sessionIndex * 7 + offset) % params.products.length]
+			const viewedAt = new Date(Date.UTC(2025, 0, 20 - sessionIndex, 9 + offset, 0, 0))
+
+			productViews.push({
+				sessionId,
+				userId: sessionIndex === 0 ? params.userId : null,
+				productId: product.id,
+				viewedAt,
+			})
+		}
+	}
+
+	if (hasProductViews) {
+		await prisma.productView.createMany({
+			data: productViews,
+		})
+	} else {
+		console.warn('⚠️ Skipping product view seed: table "product_views" is missing.')
+	}
+
+	const searchQueryRows: Prisma.SearchQueryCreateManyInput[] = SEARCH_QUERIES.flatMap((query, queryIndex) => {
+		return Array.from({ length: 3 }, (_, occurrenceIndex) => ({
+			sessionId: sessions[(queryIndex + occurrenceIndex) % sessions.length]!,
+			userId: queryIndex % 5 === 0 ? params.userId : null,
+			query,
+			createdAt: new Date(Date.UTC(2025, 0, 10 + queryIndex, 8 + occurrenceIndex, 15, 0)),
+		}))
+	})
+
+	if (hasSearchQueries) {
+		await prisma.searchQuery.createMany({
+			data: searchQueryRows,
+		})
+	} else {
+		console.warn('⚠️ Skipping search query seed: table "search_queries" is missing.')
+	}
+}
+
 async function main() {
 	console.log('🌱 Seeding database...')
 
-	// ── Admin user (better-auth stores password in Account) ──
 	const admin = await prisma.user.upsert({
 		where: { email: 'admin@example.com' },
-		update: {},
+		update: {
+			name: 'Администратор',
+			role: 'ADMIN',
+			emailVerified: true,
+		},
 		create: {
 			email: 'admin@example.com',
 			name: 'Администратор',
@@ -31,29 +490,14 @@ async function main() {
 		},
 	})
 
-	// better-auth credential account with proper hash
-	const adminPasswordHash = await hashPassword('admin123')
-	await prisma.account.upsert({
-		where: {
-			providerId_providerAccountId: {
-				providerId: 'credential',
-				providerAccountId: admin.id,
-			},
-		},
-		update: { password: adminPasswordHash },
-		create: {
-			accountId: admin.id,
-			userId: admin.id,
-			providerId: 'credential',
-			providerAccountId: admin.id,
-			password: adminPasswordHash,
-		},
-	})
-
-	// ── Regular user ──
 	const user = await prisma.user.upsert({
 		where: { email: 'user@example.com' },
-		update: {},
+		update: {
+			name: 'Иван Петров',
+			role: 'USER',
+			emailVerified: true,
+			phone: '+375291234567',
+		},
 		create: {
 			email: 'user@example.com',
 			name: 'Иван Петров',
@@ -63,1068 +507,58 @@ async function main() {
 		},
 	})
 
-	const userPasswordHash = await hashPassword('admin123')
-	await prisma.account.upsert({
-		where: {
-			providerId_providerAccountId: {
-				providerId: 'credential',
-				providerAccountId: user.id,
-			},
-		},
-		update: { password: userPasswordHash },
-		create: {
-			accountId: user.id,
-			userId: user.id,
-			providerId: 'credential',
-			providerAccountId: user.id,
-			password: userPasswordHash,
-		},
+	await seedCredentialAccount({
+		userId: admin.id,
+		password: 'admin123',
 	})
 
-	console.log('✅ Users created')
-
-	// ── Categories (hierarchical) ──
-	const electronics = await prisma.category.upsert({
-		where: { slug: 'lustry' },
-		update: {},
-		create: {
-			name: 'Люстры',
-			slug: 'lustry',
-			description: 'Потолочные люстры для дома',
-			image: '/bulb.svg',
-		},
+	await seedCredentialAccount({
+		userId: user.id,
+		password: 'user123',
 	})
 
-	await prisma.category.upsert({
-		where: { slug: 'lustry-potolochnye' },
-		update: {},
-		create: {
-			name: 'Потолочные люстры',
-			slug: 'lustry-potolochnye',
-			parentId: electronics.id,
-		},
+	console.log('✅ Users prepared')
+
+	const existingTables = await getExistingPublicTables()
+	assertRequiredTables(existingTables)
+
+	await clearCatalogData(existingTables)
+	console.log('✅ Old catalog data removed')
+
+	const categoryIds = await seedCategories()
+	console.log(`✅ Categories created: ${categoryIds.size}`)
+
+	const propertyIds = await seedProperties()
+	console.log(`✅ Properties created: ${propertyIds.size}`)
+
+	const products = await seedProducts({
+		adminId: admin.id,
+		categoryIds,
+		propertyIds,
 	})
+	console.log(`✅ Products created: ${products.length}`)
 
-	await prisma.category.upsert({
-		where: { slug: 'lustry-podvesnye' },
-		update: {},
-		create: {
-			name: 'Подвесные люстры',
-			slug: 'lustry-podvesnye',
-			parentId: electronics.id,
-		},
+	await seedPages(admin.id)
+	console.log(`✅ Content pages created: ${CONTENT_PAGES.length}`)
+
+	await seedWebhook()
+	console.log('✅ Webhook created')
+
+	await seedBehavioralData({
+		userId: user.id,
+		products,
+		existingTables,
 	})
+	console.log('✅ Product views and search queries created')
 
-	const bra = await prisma.category.upsert({
-		where: { slug: 'bra' },
-		update: {},
-		create: {
-			name: 'Бра',
-			slug: 'bra',
-			description: 'Настенные бра и светильники',
-			image: '/bulb.svg',
-		},
-	})
-
-	await prisma.category.upsert({
-		where: { slug: 'bra-klassicheskie' },
-		update: {},
-		create: {
-			name: 'Классические бра',
-			slug: 'bra-klassicheskie',
-			parentId: bra.id,
-		},
-	})
-
-	await prisma.category.upsert({
-		where: { slug: 'bra-sovremennye' },
-		update: {},
-		create: {
-			name: 'Современные бра',
-			slug: 'bra-sovremennye',
-			parentId: bra.id,
-		},
-	})
-
-	const torshery = await prisma.category.upsert({
-		where: { slug: 'torshery' },
-		update: {},
-		create: {
-			name: 'Торшеры',
-			slug: 'torshery',
-			description: 'Напольные торшеры',
-			image: '/bulb.svg',
-		},
-	})
-
-	const spoty = await prisma.category.upsert({
-		where: { slug: 'spoty' },
-		update: {},
-		create: {
-			name: 'Споты',
-			slug: 'spoty',
-			description: 'Точечные светильники',
-			image: '/bulb.svg',
-		},
-	})
-
-	const ulichnye = await prisma.category.upsert({
-		where: { slug: 'ulichnye' },
-		update: {},
-		create: {
-			name: 'Уличные светильники',
-			slug: 'ulichnye',
-			description: 'Наружное освещение',
-			image: '/bulb.svg',
-		},
-	})
-
-	const ledLenty = await prisma.category.upsert({
-		where: { slug: 'svetodiodnye-lenty' },
-		update: {},
-		create: {
-			name: 'Светодиодные ленты',
-			slug: 'svetodiodnye-lenty',
-			description: 'LED ленты и профили',
-			image: '/bulb.svg',
-		},
-	})
-
-	const nastolnye = await prisma.category.upsert({
-		where: { slug: 'nastolnye-lampy' },
-		update: {},
-		create: {
-			name: 'Настольные лампы',
-			slug: 'nastolnye-lampy',
-			description: 'Настольные светильники',
-			image: '/bulb.svg',
-		},
-	})
-
-	void [electronics, bra, torshery, spoty, ulichnye, ledLenty, nastolnye]
-
-	console.log('✅ Categories created')
-
-	// ── Properties ──
-	const colorProp = await prisma.property.upsert({
-		where: { key: 'color' },
-		update: {},
-		create: {
-			key: 'color',
-			name: 'Цвет',
-			type: 'SELECT',
-			options: ['Белый', 'Чёрный', 'Золотой', 'Серебристый', 'Бронзовый'],
-		},
-	})
-
-	const materialProp = await prisma.property.upsert({
-		where: { key: 'material' },
-		update: {},
-		create: {
-			key: 'material',
-			name: 'Материал',
-			type: 'SELECT',
-			options: ['Металл', 'Стекло', 'Хрусталь', 'Дерево', 'Пластик'],
-		},
-	})
-
-	const styleProp = await prisma.property.upsert({
-		where: { key: 'style' },
-		update: {},
-		create: {
-			key: 'style',
-			name: 'Стиль',
-			type: 'SELECT',
-			options: ['Классический', 'Современный', 'Лофт', 'Минимализм', 'Прованс'],
-		},
-	})
-
-	const lampCountProp = await prisma.property.upsert({
-		where: { key: 'lamp_count' },
-		update: {},
-		create: { key: 'lamp_count', name: 'Количество ламп', type: 'NUMBER' },
-	})
-
-	const powerProp = await prisma.property.upsert({
-		where: { key: 'power' },
-		update: {},
-		create: { key: 'power', name: 'Мощность (Вт)', type: 'NUMBER' },
-	})
-
-	await prisma.property.upsert({
-		where: { key: 'brand' },
-		update: {},
-		create: { key: 'brand', name: 'Бренд', type: 'STRING' },
-	})
-
-	const ipRatingProp = await prisma.property.upsert({
-		where: { key: 'ip_rating' },
-		update: {},
-		create: {
-			key: 'ip_rating',
-			name: 'Степень защиты (IP)',
-			type: 'SELECT',
-			options: ['IP20', 'IP44', 'IP54', 'IP65', 'IP67'],
-		},
-	})
-
-	await prisma.property.upsert({
-		where: { key: 'dimmable' },
-		update: {},
-		create: { key: 'dimmable', name: 'Диммирование', type: 'BOOLEAN' },
-	})
-
-	console.log('✅ Properties created')
-
-	// ── Products ──
-	const productData = [
-		{
-			name: 'Люстра Elegance Gold 8',
-			slug: 'lustry-elegance-gold-8',
-			price: 15990,
-			compareAtPrice: 19990,
-			stock: 12,
-			sku: 'LU-EG-008',
-			categoryId: electronics.id,
-			brand: 'Maytoni',
-			brandCountry: 'Германия',
-			images: ['/bulb.svg'],
-			badges: ['Хит'],
-			rating: 4.8,
-			reviewsCount: 24,
-		},
-		{
-			name: 'Люстра Crystal Dream 6',
-			slug: 'lustry-crystal-dream-6',
-			price: 24500,
-			stock: 5,
-			sku: 'LU-CD-006',
-			categoryId: electronics.id,
-			brand: 'Favourite',
-			brandCountry: 'Германия',
-			images: ['/bulb.svg'],
-			badges: ['Новинка'],
-			rating: 4.9,
-			reviewsCount: 12,
-		},
-		{
-			name: 'Люстра Modern Ring LED',
-			slug: 'lustry-modern-ring-led',
-			price: 32000,
-			compareAtPrice: 38000,
-			stock: 8,
-			sku: 'LU-MR-LED',
-			categoryId: electronics.id,
-			brand: 'ST Luce',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Хит', 'LED'],
-			rating: 4.7,
-			reviewsCount: 18,
-		},
-		{
-			name: 'Люстра Provance White 5',
-			slug: 'lustry-provance-white-5',
-			price: 11990,
-			stock: 15,
-			sku: 'LU-PW-005',
-			categoryId: electronics.id,
-			brand: 'Arte Lamp',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			rating: 4.5,
-			reviewsCount: 8,
-		},
-		{
-			name: 'Люстра Loft Industrial',
-			slug: 'lustry-loft-industrial',
-			price: 8990,
-			compareAtPrice: 11990,
-			stock: 20,
-			sku: 'LU-LI-001',
-			categoryId: electronics.id,
-			brand: 'Lussole',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Скидка'],
-			rating: 4.3,
-			reviewsCount: 31,
-		},
-
-		{
-			name: 'Бра Classic Arm Bronze',
-			slug: 'bra-classic-arm-bronze',
-			price: 4990,
-			stock: 25,
-			sku: 'BR-CA-BRZ',
-			categoryId: bra.id,
-			brand: 'Maytoni',
-			brandCountry: 'Германия',
-			images: ['/bulb.svg'],
-			rating: 4.6,
-			reviewsCount: 14,
-		},
-		{
-			name: 'Бра Modern Glass Tube',
-			slug: 'bra-modern-glass-tube',
-			price: 6500,
-			compareAtPrice: 7990,
-			stock: 10,
-			sku: 'BR-MG-TB',
-			categoryId: bra.id,
-			brand: 'Odeon Light',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Новинка'],
-			rating: 4.7,
-			reviewsCount: 6,
-		},
-		{
-			name: 'Бра Minimalist Wall LED',
-			slug: 'bra-minimalist-wall-led',
-			price: 3490,
-			stock: 30,
-			sku: 'BR-MW-LED',
-			categoryId: bra.id,
-			brand: 'Elektrostandard',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			badges: ['LED'],
-			rating: 4.4,
-			reviewsCount: 22,
-		},
-
-		{
-			name: 'Торшер Arc Floor Chrome',
-			slug: 'torsher-arc-floor-chrome',
-			price: 12990,
-			stock: 7,
-			sku: 'TR-AF-CHR',
-			categoryId: torshery.id,
-			brand: 'ST Luce',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Хит'],
-			rating: 4.8,
-			reviewsCount: 16,
-		},
-		{
-			name: 'Торшер Tripod Wood',
-			slug: 'torsher-tripod-wood',
-			price: 9990,
-			compareAtPrice: 13990,
-			stock: 4,
-			sku: 'TR-TW-001',
-			categoryId: torshery.id,
-			brand: 'Lussole',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Скидка'],
-			rating: 4.5,
-			reviewsCount: 9,
-		},
-		{
-			name: 'Торшер Reading LED Flex',
-			slug: 'torsher-reading-led-flex',
-			price: 7490,
-			stock: 18,
-			sku: 'TR-RL-FLX',
-			categoryId: torshery.id,
-			brand: 'Arte Lamp',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['LED'],
-			rating: 4.3,
-			reviewsCount: 7,
-		},
-
-		{
-			name: 'Спот встраиваемый LED 12W',
-			slug: 'spot-vstraivaemyj-led-12w',
-			price: 1990,
-			stock: 50,
-			sku: 'SP-VL-12W',
-			categoryId: spoty.id,
-			brand: 'Elektrostandard',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			badges: ['LED'],
-			rating: 4.6,
-			reviewsCount: 45,
-		},
-		{
-			name: 'Спот поворотный тройной',
-			slug: 'spot-povorotnyj-trojnoj',
-			price: 5490,
-			stock: 15,
-			sku: 'SP-PT-003',
-			categoryId: spoty.id,
-			brand: 'Arte Lamp',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			rating: 4.4,
-			reviewsCount: 11,
-		},
-		{
-			name: 'Спот трековый GU10 Black',
-			slug: 'spot-trekovyj-gu10-black',
-			price: 2990,
-			compareAtPrice: 3990,
-			stock: 35,
-			sku: 'SP-TG-BLK',
-			categoryId: spoty.id,
-			brand: 'Novotech',
-			brandCountry: 'Венгрия',
-			images: ['/bulb.svg'],
-			badges: ['Скидка'],
-			rating: 4.2,
-			reviewsCount: 19,
-		},
-
-		{
-			name: 'Уличный светильник столбик',
-			slug: 'ulichnyj-svetilnik-stolbik',
-			price: 8990,
-			stock: 10,
-			sku: 'UL-SS-001',
-			categoryId: ulichnye.id,
-			brand: 'Novotech',
-			brandCountry: 'Венгрия',
-			images: ['/bulb.svg'],
-			badges: ['IP65'],
-			rating: 4.7,
-			reviewsCount: 13,
-		},
-		{
-			name: 'Уличный фасадный LED Up/Down',
-			slug: 'ulichnyj-fasadnyj-led',
-			price: 4990,
-			compareAtPrice: 6990,
-			stock: 20,
-			sku: 'UL-FL-UD',
-			categoryId: ulichnye.id,
-			brand: 'Elektrostandard',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			badges: ['LED', 'Скидка'],
-			rating: 4.5,
-			reviewsCount: 27,
-		},
-		{
-			name: 'Уличный подвесной фонарь',
-			slug: 'ulichnyj-podvesnoj-fonar',
-			price: 11990,
-			stock: 6,
-			sku: 'UL-PF-001',
-			categoryId: ulichnye.id,
-			brand: 'Maytoni',
-			brandCountry: 'Германия',
-			images: ['/bulb.svg'],
-			rating: 4.8,
-			reviewsCount: 5,
-		},
-
-		{
-			name: 'LED лента 5м тёплый белый',
-			slug: 'led-lenta-5m-teplyj-belyj',
-			price: 1490,
-			stock: 100,
-			sku: 'LD-5T-WW',
-			categoryId: ledLenty.id,
-			brand: 'Gauss',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			rating: 4.3,
-			reviewsCount: 56,
-		},
-		{
-			name: 'LED лента RGB 5м с пультом',
-			slug: 'led-lenta-rgb-5m-pult',
-			price: 2990,
-			compareAtPrice: 3990,
-			stock: 40,
-			sku: 'LD-5R-RGB',
-			categoryId: ledLenty.id,
-			brand: 'Gauss',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			badges: ['Хит', 'Скидка'],
-			rating: 4.6,
-			reviewsCount: 78,
-		},
-		{
-			name: 'LED профиль алюминиевый 2м',
-			slug: 'led-profil-alyuminievyj-2m',
-			price: 890,
-			stock: 60,
-			sku: 'LD-PA-2M',
-			categoryId: ledLenty.id,
-			brand: 'Arlight',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			rating: 4.1,
-			reviewsCount: 12,
-		},
-
-		{
-			name: 'Настольная лампа Office LED',
-			slug: 'nastolnaya-lampa-office-led',
-			price: 3990,
-			stock: 22,
-			sku: 'NL-OL-LED',
-			categoryId: nastolnye.id,
-			brand: 'Elektrostandard',
-			brandCountry: 'Россия',
-			images: ['/bulb.svg'],
-			badges: ['LED'],
-			rating: 4.5,
-			reviewsCount: 33,
-		},
-		{
-			name: 'Настольная лампа Tiffany',
-			slug: 'nastolnaya-lampa-tiffany',
-			price: 14990,
-			stock: 3,
-			sku: 'NL-TF-001',
-			categoryId: nastolnye.id,
-			brand: 'Favourite',
-			brandCountry: 'Германия',
-			images: ['/bulb.svg'],
-			badges: ['Премиум'],
-			rating: 4.9,
-			reviewsCount: 4,
-		},
-		{
-			name: 'Настольная лампа с зажимом',
-			slug: 'nastolnaya-lampa-s-zazhimom',
-			price: 2490,
-			compareAtPrice: 3490,
-			stock: 28,
-			sku: 'NL-ZH-001',
-			categoryId: nastolnye.id,
-			brand: 'Arte Lamp',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Скидка'],
-			rating: 4.2,
-			reviewsCount: 15,
-		},
-
-		{
-			name: 'Люстра потолочная LED Saturn',
-			slug: 'lustry-potolochnaya-led-saturn',
-			price: 19990,
-			stock: 9,
-			sku: 'LU-PL-SAT',
-			categoryId: electronics.id,
-			brand: 'Citilux',
-			brandCountry: 'Дания',
-			images: ['/bulb.svg'],
-			badges: ['LED', 'Новинка'],
-			rating: 4.7,
-			reviewsCount: 10,
-		},
-		{
-			name: 'Люстра каскадная хрустальная',
-			slug: 'lustry-kaskadnaya-hrustalnaya',
-			price: 45000,
-			stock: 2,
-			sku: 'LU-KH-001',
-			categoryId: electronics.id,
-			brand: 'Bohemia',
-			brandCountry: 'Чехия',
-			images: ['/bulb.svg'],
-			badges: ['Премиум'],
-			rating: 5.0,
-			reviewsCount: 3,
-		},
-
-		{
-			name: 'Бра поворотное с выключателем',
-			slug: 'bra-povorotnoe-s-vyklyuchatelem',
-			price: 3990,
-			stock: 17,
-			sku: 'BR-PV-SW',
-			categoryId: bra.id,
-			brand: 'Odeon Light',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			rating: 4.3,
-			reviewsCount: 19,
-		},
-		{
-			name: 'Бра хрустальное Asfour',
-			slug: 'bra-hrustalnoe-asfour',
-			price: 8990,
-			stock: 6,
-			sku: 'BR-HA-001',
-			categoryId: bra.id,
-			brand: 'Osgona',
-			brandCountry: 'Италия',
-			images: ['/bulb.svg'],
-			badges: ['Премиум'],
-			rating: 4.9,
-			reviewsCount: 2,
-		},
-	]
-
-	for (const p of productData) {
-		await prisma.product.upsert({
-			where: { slug: p.slug },
-			update: {},
-			create: {
-				name: p.name,
-				slug: p.slug,
-				price: p.price,
-				compareAtPrice: p.compareAtPrice,
-				stock: p.stock,
-				sku: p.sku,
-				categoryId: p.categoryId,
-				brand: p.brand,
-				brandCountry: p.brandCountry,
-				images: p.images,
-				badges: p.badges ?? [],
-				rating: p.rating,
-				reviewsCount: p.reviewsCount ?? 0,
-				isActive: true,
-				userId: admin.id,
-			},
-		})
-	}
-
-	console.log(`✅ ${productData.length} products created`)
-
-	// ── Assign properties to some products ──
-	const allProducts = await prisma.product.findMany({
-		select: { id: true, slug: true, categoryId: true },
-	})
-
-	const propertyAssignments: {
-		productSlug: string
-		propertyId: string
-		value: string
-	}[] = [
-		{
-			productSlug: 'lustry-elegance-gold-8',
-			propertyId: colorProp.id,
-			value: 'Золотой',
-		},
-		{
-			productSlug: 'lustry-elegance-gold-8',
-			propertyId: materialProp.id,
-			value: 'Металл',
-		},
-		{
-			productSlug: 'lustry-elegance-gold-8',
-			propertyId: styleProp.id,
-			value: 'Классический',
-		},
-		{
-			productSlug: 'lustry-elegance-gold-8',
-			propertyId: lampCountProp.id,
-			value: '8',
-		},
-		{
-			productSlug: 'lustry-elegance-gold-8',
-			propertyId: powerProp.id,
-			value: '480',
-		},
-
-		{
-			productSlug: 'lustry-crystal-dream-6',
-			propertyId: colorProp.id,
-			value: 'Серебристый',
-		},
-		{
-			productSlug: 'lustry-crystal-dream-6',
-			propertyId: materialProp.id,
-			value: 'Хрусталь',
-		},
-		{
-			productSlug: 'lustry-crystal-dream-6',
-			propertyId: styleProp.id,
-			value: 'Классический',
-		},
-		{
-			productSlug: 'lustry-crystal-dream-6',
-			propertyId: lampCountProp.id,
-			value: '6',
-		},
-
-		{
-			productSlug: 'lustry-modern-ring-led',
-			propertyId: colorProp.id,
-			value: 'Белый',
-		},
-		{
-			productSlug: 'lustry-modern-ring-led',
-			propertyId: materialProp.id,
-			value: 'Металл',
-		},
-		{
-			productSlug: 'lustry-modern-ring-led',
-			propertyId: styleProp.id,
-			value: 'Современный',
-		},
-		{
-			productSlug: 'lustry-modern-ring-led',
-			propertyId: powerProp.id,
-			value: '120',
-		},
-
-		{
-			productSlug: 'lustry-loft-industrial',
-			propertyId: colorProp.id,
-			value: 'Чёрный',
-		},
-		{
-			productSlug: 'lustry-loft-industrial',
-			propertyId: styleProp.id,
-			value: 'Лофт',
-		},
-		{
-			productSlug: 'lustry-loft-industrial',
-			propertyId: materialProp.id,
-			value: 'Металл',
-		},
-
-		{
-			productSlug: 'bra-classic-arm-bronze',
-			propertyId: colorProp.id,
-			value: 'Бронзовый',
-		},
-		{
-			productSlug: 'bra-classic-arm-bronze',
-			propertyId: styleProp.id,
-			value: 'Классический',
-		},
-		{
-			productSlug: 'bra-classic-arm-bronze',
-			propertyId: materialProp.id,
-			value: 'Металл',
-		},
-
-		{
-			productSlug: 'bra-minimalist-wall-led',
-			propertyId: colorProp.id,
-			value: 'Белый',
-		},
-		{
-			productSlug: 'bra-minimalist-wall-led',
-			propertyId: styleProp.id,
-			value: 'Минимализм',
-		},
-		{
-			productSlug: 'bra-minimalist-wall-led',
-			propertyId: powerProp.id,
-			value: '12',
-		},
-
-		{
-			productSlug: 'torsher-arc-floor-chrome',
-			propertyId: colorProp.id,
-			value: 'Серебристый',
-		},
-		{
-			productSlug: 'torsher-arc-floor-chrome',
-			propertyId: styleProp.id,
-			value: 'Современный',
-		},
-
-		{
-			productSlug: 'spot-vstraivaemyj-led-12w',
-			propertyId: powerProp.id,
-			value: '12',
-		},
-		{
-			productSlug: 'spot-vstraivaemyj-led-12w',
-			propertyId: ipRatingProp.id,
-			value: 'IP44',
-		},
-
-		{
-			productSlug: 'ulichnyj-svetilnik-stolbik',
-			propertyId: ipRatingProp.id,
-			value: 'IP65',
-		},
-		{
-			productSlug: 'ulichnyj-svetilnik-stolbik',
-			propertyId: colorProp.id,
-			value: 'Чёрный',
-		},
-
-		{
-			productSlug: 'ulichnyj-fasadnyj-led',
-			propertyId: ipRatingProp.id,
-			value: 'IP65',
-		},
-		{
-			productSlug: 'ulichnyj-fasadnyj-led',
-			propertyId: powerProp.id,
-			value: '24',
-		},
-
-		{
-			productSlug: 'led-lenta-5m-teplyj-belyj',
-			propertyId: powerProp.id,
-			value: '60',
-		},
-		{
-			productSlug: 'led-lenta-rgb-5m-pult',
-			propertyId: powerProp.id,
-			value: '72',
-		},
-	]
-
-	for (const pa of propertyAssignments) {
-		const product = allProducts.find(p => p.slug === pa.productSlug)
-		if (!product) continue
-
-		await prisma.productPropertyValue.upsert({
-			where: {
-				productId_propertyId: {
-					productId: product.id,
-					propertyId: pa.propertyId,
-				},
-			},
-			update: { value: pa.value },
-			create: {
-				productId: product.id,
-				propertyId: pa.propertyId,
-				value: pa.value,
-			},
-		})
-	}
-
-	console.log('✅ Product properties assigned')
-
-	// ── Content pages ──
-	const contentPages = [
-		{
-			title: 'О нас',
-			slug: 'about',
-			content: `# О магазине «Аура Света»
-
-Мы — интернет-магазин светильников и люстр в Мозыре, работающий с 2015 года. Предлагаем широкий ассортимент осветительных приборов от ведущих европейских и российских производителей.
-
-## Наши преимущества
-
-- **Более 5000 товаров** в каталоге
-- **Бесплатная доставка** по Мозырю
-- **Гарантия** от 1 до 5 лет на всю продукцию
-- **Профессиональная** консультация по подбору освещения
-- **Дизайн-проекты** освещения для дома и офиса
-
-## Контакты
-
-📞 +375 (29) 123-45-67
-📧 info@aurasveta.by
-📍 г. Мозырь, ул. Интернациональная, 5`,
-			metaTitle: 'О магазине Аура Света — интернет-магазин светильников',
-			metaDesc:
-				'Интернет-магазин люстр и светильников в Мозыре. Более 5000 товаров, бесплатная доставка, гарантия.',
-			isPublished: true,
-		},
-		{
-			title: 'Доставка и оплата',
-			slug: 'delivery',
-			content: `# Доставка и оплата
-
-## Доставка
-
-### По Мозырю
-- **Бесплатно** при заказе от 100 BYN
-- Стоимость доставки при заказе до 100 BYN — **5 BYN**
-- Срок доставки: **1-2 рабочих дня**
-
-### По Беларуси
-- Доставка курьерской службой — от **8 BYN**
-- Доставка почтой — от **5 BYN**
-- Срок доставки: **2-5 рабочих дней**
-
-## Оплата
-
-- Наличными при получении
-- Банковская карта (Visa, MasterCard)
-- Оплата через ЕРИП
-- Безналичный расчёт (для юр. лиц)
-
-## Возврат
-
-Возврат товара надлежащего качества в течение 14 дней с момента покупки.`,
-			metaTitle: 'Доставка и оплата — Аура Света',
-			metaDesc:
-				'Условия доставки и оплаты в интернет-магазине Аура Света. Бесплатная доставка по Мозырю.',
-			isPublished: true,
-		},
-		{
-			title: 'Контакты',
-			slug: 'contacts',
-			content: `# Контакты
-
-## Магазин «Аура Света»
-
-📍 **Адрес:** г. Мозырь, ул. Интернациональная, 5
-📞 **Телефон:** +375 (29) 123-45-67
-📧 **Email:** info@aurasveta.by
-
-### Режим работы
-- Пн–Пт: 9:00 – 19:00
-- Сб: 10:00 – 17:00
-- Вс: выходной
-
-### Реквизиты
-ИП Иванов И.И.
-УНП 123456789`,
-			metaTitle: 'Контакты — Аура Света',
-			metaDesc:
-				'Контакты интернет-магазина Аура Света в Мозыре. Адрес, телефон, режим работы.',
-			isPublished: true,
-		},
-	]
-
-	for (const p of contentPages) {
-		const page = await prisma.page.upsert({
-			where: { slug: p.slug },
-			update: {},
-			create: {
-				title: p.title,
-				slug: p.slug,
-				content: p.content,
-				metaTitle: p.metaTitle,
-				metaDesc: p.metaDesc,
-				isPublished: p.isPublished,
-				publishedAt: p.isPublished ? new Date() : null,
-				authorId: admin.id,
-			},
-		})
-
-		// Create initial version
-		const existingVersion = await prisma.pageVersion.findFirst({
-			where: { pageId: page.id },
-		})
-		if (!existingVersion) {
-			await prisma.pageVersion.create({
-				data: {
-					pageId: page.id,
-					title: page.title,
-					content: page.content,
-					metaTitle: page.metaTitle,
-					metaDesc: page.metaDesc,
-					version: 1,
-					createdBy: admin.id,
-				},
-			})
-		}
-	}
-
-	console.log('✅ Content pages created')
-
-	// ── Test webhook (optional) ──
-	await prisma.webhook.upsert({
-		where: { id: 'seed-webhook' },
-		update: {},
-		create: {
-			id: 'seed-webhook',
-			url: 'https://webhook.site/test',
-			events: ['product.created', 'product.updated', 'order.created'],
-		},
-	})
-
-	console.log('✅ Test webhook created')
-
-	// ── Seed recommendation data (ProductView + SearchQuery) ──
-	const allProductsForSeed = await prisma.product.findMany({
-		select: { id: true },
-	})
-	const testSessionId = 'seed-session-001'
-
-	// Generate product views (simulate browsing)
-	for (let i = 0; i < Math.min(allProductsForSeed.length, 15); i++) {
-		const prod = allProductsForSeed[i]
-		const daysAgo = Math.floor(Math.random() * 14)
-		const viewedAt = new Date()
-		viewedAt.setDate(viewedAt.getDate() - daysAgo)
-
-		await prisma.productView.upsert({
-			where: {
-				sessionId_productId: {
-					sessionId: testSessionId,
-					productId: prod.id,
-				},
-			},
-			update: { viewedAt },
-			create: {
-				sessionId: testSessionId,
-				userId: user.id,
-				productId: prod.id,
-				viewedAt,
-			},
-		})
-	}
-
-	// Add more views from different "sessions" to create popularity
-	const popularProductIds = allProductsForSeed.slice(0, 5).map(p => p.id)
-	for (let s = 2; s <= 10; s++) {
-		for (const productId of popularProductIds) {
-			const viewedAt = new Date()
-			viewedAt.setDate(viewedAt.getDate() - Math.floor(Math.random() * 7))
-			await prisma.productView.upsert({
-				where: {
-					sessionId_productId: {
-						sessionId: `seed-session-${String(s).padStart(3, '0')}`,
-						productId,
-					},
-				},
-				update: { viewedAt },
-				create: {
-					sessionId: `seed-session-${String(s).padStart(3, '0')}`,
-					productId,
-					viewedAt,
-				},
-			})
-		}
-	}
-
-	console.log('✅ Product views seeded')
-
-	// Seed search queries
-	const searchQueries = [
-		'люстра для кухни',
-		'светодиодная лента',
-		'бра настенное',
-		'торшер напольный',
-		'споты потолочные',
-		'люстра хрустальная',
-		'led светильник',
-		'уличный фонарь',
-		'настольная лампа',
-		'трековый светильник',
-		'maytoni люстра',
-		'люстра лофт',
-	]
-
-	for (const query of searchQueries) {
-		const count = Math.floor(Math.random() * 8) + 2
-		for (let i = 0; i < count; i++) {
-			const createdAt = new Date()
-			createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 7))
-			createdAt.setHours(Math.floor(Math.random() * 24))
-
-			await prisma.searchQuery.create({
-				data: {
-					sessionId: `seed-session-${String(Math.floor(Math.random() * 50)).padStart(3, '0')}`,
-					query,
-					createdAt,
-				},
-			})
-		}
-	}
-
-	console.log('✅ Search queries seeded')
 	console.log('🎉 Seeding complete!')
 }
 
 main()
-	.catch(console.error)
-	.finally(() => prisma.$disconnect())
+	.catch(error => {
+		console.error('❌ Seed failed:', error)
+		process.exitCode = 1
+	})
+	.finally(async () => {
+		await prisma.$disconnect()
+	})
