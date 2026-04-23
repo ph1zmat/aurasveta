@@ -1,6 +1,16 @@
 import type { Product, ProductImage } from '@/shared/types/product'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
+export function getResolvedProductImageUrl(
+	image: Pick<ProductImage, 'displayUrl' | 'imageAsset' | 'url' | 'key'> | null | undefined,
+): string | null {
+	return (
+		image?.displayUrl ??
+		image?.imageAsset?.url ??
+		resolveStorageFileUrl(image?.url ?? image?.key ?? null)
+	)
+}
+
 export function sortProductImages<
 	T extends Pick<ProductImage, 'order' | 'isMain'>,
 >(images: readonly T[]): T[] {
@@ -27,9 +37,7 @@ export function getProductImageUrl(
 	fallback = '/bulb.svg',
 ): string {
 	const mainImage = getMainImage(product)
-	return (
-		resolveStorageFileUrl(mainImage?.url ?? mainImage?.key ?? null) ?? fallback
-	)
+	return getResolvedProductImageUrl(mainImage) ?? fallback
 }
 
 export function normalizeProductImages(

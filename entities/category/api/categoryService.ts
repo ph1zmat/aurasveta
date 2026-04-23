@@ -4,6 +4,7 @@ import type {
 	Subcategory,
 	Tag,
 } from '@/entities/category/model/types'
+import { withResolvedImageAsset } from '@/lib/storage-image-assets'
 import { prisma } from '@/lib/prisma'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 
@@ -46,14 +47,22 @@ export async function getAllCategories(): Promise<Category[]> {
 		},
 		orderBy: { name: 'asc' },
 	})
-	return dbCats.map(c => ({
-		...toFrontendCategory(c),
-		subcategories: c.children.map(sub => ({
-			name: sub.name,
-			href: `/catalog/${sub.slug}`,
-			image: resolveStorageFileUrl(sub.imagePath ?? sub.image) ?? undefined,
+	const cache = new Map()
+	return Promise.all(
+		dbCats.map(async c => ({
+			...toFrontendCategory(await withResolvedImageAsset(c, { cache })),
+			subcategories: await Promise.all(
+				c.children.map(async sub => {
+					const enrichedSub = await withResolvedImageAsset(sub, { cache })
+					return {
+						name: sub.name,
+						href: `/catalog/${sub.slug}`,
+						image: enrichedSub.imageUrl ?? undefined,
+					}
+				}),
+			),
 		})),
-	}))
+	)
 }
 
 export async function getCategoryBySlug(
@@ -63,7 +72,9 @@ export async function getCategoryBySlug(
 		where: { slug },
 		include: { _count: { select: { products: true } } },
 	})
-	return dbCat ? toFrontendCategory(dbCat) : undefined
+	if (!dbCat) return undefined
+
+	return toFrontendCategory(await withResolvedImageAsset(dbCat))
 }
 
 export async function getCategoryTree(
@@ -100,11 +111,17 @@ export async function getSubcategories(slug: string): Promise<Subcategory[]> {
 		},
 	})
 	if (!category) return []
-	return category.children.map(sub => ({
-		name: sub.name,
-		href: `/catalog/${sub.slug}`,
-		image: resolveStorageFileUrl(sub.imagePath ?? sub.image) ?? undefined,
-	}))
+	const cache = new Map()
+	return Promise.all(
+		category.children.map(async sub => {
+			const enrichedSub = await withResolvedImageAsset(sub, { cache })
+			return {
+				name: sub.name,
+				href: `/catalog/${sub.slug}`,
+				image: enrichedSub.imageUrl ?? undefined,
+			}
+		}),
+	)
 }
 
 export async function getPopularTags(slug: string): Promise<Tag[]> {

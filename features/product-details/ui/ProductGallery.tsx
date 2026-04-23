@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/Button'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 interface ProductGalleryProps {
 	images: string[]
@@ -51,12 +51,14 @@ export default function ProductGallery({ images, alt }: ProductGalleryProps) {
 									: 'border-border hover:border-muted-foreground',
 							)}
 						>
-							<Image
+							<DeferredImage
 								src={img}
 								alt={`${alt} — фото ${realIndex + 1}`}
 								fill
 								sizes='64px'
-								className='object-contain p-1'
+								imageClassName='object-contain p-1'
+								fallbackClassName='rounded-sm'
+								showSpinner={false}
 							/>
 						</button>
 					)
@@ -76,12 +78,13 @@ export default function ProductGallery({ images, alt }: ProductGalleryProps) {
 			{/* Main image */}
 			<div className='relative flex-1 overflow-hidden rounded-md'>
 				<div className='relative aspect-square w-full'>
-					<Image
+					<DeferredImage
 						src={images[activeIndex]}
 						alt={alt}
 						fill
 						sizes='(max-width: 768px) 100vw, 55vw'
-						className='object-contain p-4'
+						imageClassName='object-contain p-4'
+						fallbackClassName='rounded-md'
 						priority
 					/>
 				</div>
@@ -122,12 +125,14 @@ export default function ProductGallery({ images, alt }: ProductGalleryProps) {
 								i === activeIndex ? 'border-foreground' : 'border-border',
 							)}
 						>
-							<Image
+							<DeferredImage
 								src={img}
 								alt={`${alt} — фото ${i + 1}`}
 								fill
 								sizes='56px'
-								className='object-contain p-1'
+								imageClassName='object-contain p-1'
+								fallbackClassName='rounded-sm'
+								showSpinner={false}
 							/>
 						</button>
 					))}

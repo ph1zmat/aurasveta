@@ -24,6 +24,7 @@ export default function CatalogContent() {
 		name: cat.name,
 		href: `/catalog/${cat.slug}`,
 		image:
+			cat.imageUrl ??
 			resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
 			'/images/categories/default.jpg',
 		productCount: cat._count?.products ?? 0,

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import UnderlineAnimation from '@/shared/ui/UnderlineAnimation'
 import { Slider } from '@/shared/ui/Slider'
 import type { Category } from '@/entities/category/model/types'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export type { Category as CatalogCategory }
 
@@ -44,11 +44,13 @@ export default function CatalogCategoryCarousel({
 						className='group flex flex-col items-center gap-2 p-3'
 					>
 						<div className='relative h-28 w-28'>
-							<Image
+							<DeferredImage
 								src={cat.image}
 								alt={cat.name}
 								fill
-								className='object-contain'
+								imageClassName='object-contain'
+								fallbackClassName='rounded-full'
+								showSpinner={false}
 							/>
 						</div>
 						<UnderlineAnimation>

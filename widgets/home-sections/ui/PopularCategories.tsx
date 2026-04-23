@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import UnderlineAnimation from '@/shared/ui/UnderlineAnimation'
 import { prisma } from '@/lib/prisma'
-import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+import { withResolvedImageAsset } from '@/lib/storage-image-assets'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export default async function PopularCategories() {
 	const dbCategories = await prisma.category.findMany({
@@ -12,13 +12,14 @@ export default async function PopularCategories() {
 		take: 7,
 	})
 
-	const categories = dbCategories.map(c => ({
+	const cache = new Map()
+	const categories = await Promise.all(dbCategories.map(async c => ({
 		label: c.name.toUpperCase(),
 		href: `/catalog/${c.slug}`,
 		image:
-			resolveStorageFileUrl(c.imagePath ?? c.image) ??
+			(await withResolvedImageAsset(c, { cache })).imageUrl ??
 			'/images/placeholder.jpg',
-	}))
+	})))
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
@@ -33,11 +34,13 @@ export default async function PopularCategories() {
 						className='group flex flex-col items-center gap-3 p-4'
 					>
 						<div className='relative h-24 w-24'>
-							<Image
+							<DeferredImage
 								src={cat.image}
 								alt={cat.label}
 								fill
-								className='object-contain'
+								imageClassName='object-contain'
+								fallbackClassName='rounded-full'
+								showSpinner={false}
 							/>
 						</div>
 						<UnderlineAnimation>

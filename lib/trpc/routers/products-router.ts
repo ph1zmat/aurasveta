@@ -4,6 +4,8 @@ import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { validateWebhookUrl } from '@/shared/lib/validateUrl'
 import { deleteFile } from '@/lib/storage'
+import type { StorageImageAsset } from '@/shared/types/storage'
+import { withResolvedProductImages } from '@/lib/storage-image-assets'
 import {
 	isExternalOrLegacyImageKey,
 	normalizeProductImagesForWrite,
@@ -169,6 +171,33 @@ async function deleteStorageKeys(keys: readonly string[]) {
 	await Promise.allSettled(keys.map(key => deleteFile(key)))
 }
 
+type ProductImageReadShape = {
+	key?: string | null
+	url?: string | null
+	isMain?: boolean | null
+	order?: number | null
+}
+
+type ProductWithImagesReadShape = {
+	images?: readonly ProductImageReadShape[] | null
+}
+
+async function enrichProduct<T extends ProductWithImagesReadShape>(
+	product: T,
+	cache?: Map<string, StorageImageAsset | null>,
+) {
+	return withResolvedProductImages(product, {
+		cache,
+	})
+}
+
+async function enrichProducts<T extends ProductWithImagesReadShape>(
+	products: readonly T[],
+) {
+	const cache = new Map()
+	return Promise.all(products.map(product => enrichProduct(product, cache)))
+}
+
 export const productsRouter = createTRPCRouter({
 	getMany: baseProcedure.input(productFilters).query(async ({ ctx, input }) => {
 		const {
@@ -297,7 +326,7 @@ export const productsRouter = createTRPCRouter({
 		])
 
 		return {
-			items,
+			items: await enrichProducts(items),
 			total,
 			page,
 			limit,
@@ -455,17 +484,21 @@ export const productsRouter = createTRPCRouter({
 		}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.product.findUnique({
+		const product = await ctx.prisma.product.findUnique({
 			where: { slug: input },
 			include: productDetailInclude,
 		})
+
+		return product ? enrichProduct(product) : null
 	}),
 
 	getById: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.product.findUnique({
+		const product = await ctx.prisma.product.findUnique({
 			where: { id: input },
 			include: productDetailInclude,
 		})
+
+		return product ? enrichProduct(product) : null
 	}),
 
 	getBrands: baseProcedure.query(async ({ ctx }) => {
@@ -665,7 +698,7 @@ export const productsRouter = createTRPCRouter({
 	getNew: baseProcedure
 		.input(z.number().min(1).max(50).default(8))
 		.query(async ({ ctx, input: limit }) => {
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: {
 					isActive: true,
 					badges: { array_contains: ['Новинка'] },
@@ -674,12 +707,14 @@ export const productsRouter = createTRPCRouter({
 				take: limit,
 				select: productCardSelect,
 			})
+
+			return enrichProducts(products)
 		}),
 
 	getSale: baseProcedure
 		.input(z.number().min(1).max(50).default(8))
 		.query(async ({ ctx, input: limit }) => {
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: {
 					isActive: true,
 					compareAtPrice: { not: null },
@@ -688,6 +723,8 @@ export const productsRouter = createTRPCRouter({
 				take: limit,
 				select: productCardSelect,
 			})
+
+			return enrichProducts(products)
 		}),
 
 	getByIds: baseProcedure
@@ -695,10 +732,12 @@ export const productsRouter = createTRPCRouter({
 		.query(async ({ ctx, input: ids }) => {
 			if (ids.length === 0) return []
 
-			return ctx.prisma.product.findMany({
+			const products = await ctx.prisma.product.findMany({
 				where: { id: { in: ids }, isActive: true },
 				select: productCatalogSelect,
 			})
+
+			return enrichProducts(products)
 		}),
 
 	getSpecs: baseProcedure
@@ -726,7 +765,8 @@ export const productsRouter = createTRPCRouter({
 				select: { images: orderedProductImages },
 			})
 
-			return getMainImage(product ?? { images: [] })?.url ?? null
+			const enriched = product ? await enrichProduct(product) : null
+			return enriched?.imageUrl ?? null
 		}),
 
 	updateImagePath: adminProcedure

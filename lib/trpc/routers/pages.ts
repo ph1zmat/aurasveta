@@ -1,38 +1,49 @@
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, editorProcedure } from '../init'
 import { deleteFile } from '@/lib/storage'
+import { withResolvedImageAsset } from '@/lib/storage-image-assets'
 
 export const pagesRouter = createTRPCRouter({
 	getPublished: baseProcedure.query(async ({ ctx }) => {
-		return ctx.prisma.page.findMany({
+		const pages = await ctx.prisma.page.findMany({
 			where: { isPublished: true },
 			orderBy: { publishedAt: 'desc' },
 		})
+
+		const cache = new Map()
+		return Promise.all(pages.map(page => withResolvedImageAsset(page, { cache })))
 	}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.page.findUnique({
+		const page = await ctx.prisma.page.findUnique({
 			where: { slug: input, isPublished: true },
 		})
+
+		return page ? withResolvedImageAsset(page) : null
 	}),
 
 	getAll: editorProcedure.query(async ({ ctx }) => {
-		return ctx.prisma.page.findMany({
+		const pages = await ctx.prisma.page.findMany({
 			include: {
 				author: { select: { name: true, email: true } },
 				_count: { select: { versions: true } },
 			},
 			orderBy: { updatedAt: 'desc' },
 		})
+
+		const cache = new Map()
+		return Promise.all(pages.map(page => withResolvedImageAsset(page, { cache })))
 	}),
 
 	getById: editorProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.page.findUnique({
+		const page = await ctx.prisma.page.findUnique({
 			where: { id: input },
 			include: {
 				versions: { orderBy: { version: 'desc' }, take: 10 },
 			},
 		})
+
+		return page ? withResolvedImageAsset(page) : null
 	}),
 
 	create: editorProcedure

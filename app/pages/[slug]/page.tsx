@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import { trpc } from '@/lib/trpc/server'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/Header'
@@ -9,6 +8,7 @@ import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +21,7 @@ export async function generateMetadata({
 	const page = await trpc.pages.getBySlug(slug)
 
 	if (!page) return { title: 'Страница не найдена' }
-	const resolvedImage = resolveStorageFileUrl(page.imagePath ?? page.image)
+	const resolvedImage = page.imageUrl ?? resolveStorageFileUrl(page.imagePath ?? page.image)
 
 	return {
 		title: page.metaTitle || page.title,
@@ -43,7 +43,7 @@ export default async function ContentPage({
 	const page = await trpc.pages.getBySlug(slug)
 
 	if (!page) notFound()
-	const resolvedImage = resolveStorageFileUrl(page.imagePath ?? page.image)
+	const resolvedImage = page.imageUrl ?? resolveStorageFileUrl(page.imagePath ?? page.image)
 
 	return (
 		<div className='flex flex-col bg-background'>
@@ -58,12 +58,14 @@ export default async function ContentPage({
 
 				<article className='prose prose-neutral dark:prose-invert mx-auto max-w-3xl py-8'>
 					{resolvedImage && (
-						<Image
+						<DeferredImage
 							src={resolvedImage}
 							alt={page.title}
 							width={800}
 							height={400}
-							className='mb-8 w-full rounded-lg object-cover'
+							className='mb-8 w-full rounded-lg'
+							imageClassName='w-full rounded-lg object-cover'
+							fallbackClassName='rounded-lg'
 						/>
 					)}
 					<h1>{page.title}</h1>

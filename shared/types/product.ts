@@ -1,8 +1,12 @@
+import type { StorageImageAsset } from '@/shared/types/storage'
+
 export interface ProductImage {
 	id: string
 	productId?: string
 	url: string
 	key: string
+	displayUrl?: string | null
+	imageAsset?: StorageImageAsset | null
 	originalName?: string | null
 	size?: number | null
 	mimeType?: string | null

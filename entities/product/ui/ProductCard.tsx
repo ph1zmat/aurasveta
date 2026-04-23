@@ -1,6 +1,6 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { cn } from '@/shared/lib/utils'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export interface ProductCardProps {
 	name: string
@@ -30,11 +30,12 @@ export default function ProductCard({
 			)}
 		>
 			<div className='relative mb-3 h-40 w-full rounded-sm z-10'>
-				<Image
+				<DeferredImage
 					src={image}
 					alt={name}
 					fill
-					className='object-contain transition-transform group-hover:scale-115 duration-1000'
+					imageClassName='object-contain transition-transform group-hover:scale-115 duration-1000'
+					fallbackClassName='rounded-sm'
 				/>
 			</div>
 

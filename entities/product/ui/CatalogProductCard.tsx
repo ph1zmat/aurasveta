@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, BarChart3, Heart } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/Button'
+import DeferredImage from '@/shared/ui/DeferredImage'
 
 export interface CatalogProductCardProps {
 	name: string
@@ -45,8 +45,7 @@ export default function CatalogProductCard({
 }: CatalogProductCardProps) {
 	return (
 		<div className={cn('group relative flex flex-col', className)}>
-			{/* Action icons */}
-			<div className='flex items-center gap-1 mb-1'>
+			<div className='mb-1 flex items-center gap-1'>
 				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
 				</Button>
@@ -67,14 +66,13 @@ export default function CatalogProductCard({
 				</Button>
 			</div>
 
-			{/* Image + Badges */}
-			<Link href={href} className='relative block overflow-hidden mb-3'>
+			<Link href={href} className='relative mb-3 block overflow-hidden'>
 				{badges.length > 0 && (
-					<div className='absolute top-2 left-2 z-10 flex flex-wrap gap-1'>
+					<div className='absolute left-2 top-2 z-10 flex flex-wrap gap-1'>
 						{badges.map(badge => (
 							<span
 								key={badge}
-								className='rounded-sm bg-card border border-border px-2 py-0.5 text-[10px] font-medium text-foreground'
+								className='rounded-sm border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-foreground'
 							>
 								{badge}
 							</span>
@@ -82,33 +80,30 @@ export default function CatalogProductCard({
 					</div>
 				)}
 				<div className='relative h-56 w-full'>
-					<Image
+					<DeferredImage
 						src={image}
 						alt={name}
 						fill
-						className='object-contain transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-contain transition-transform duration-500 group-hover:scale-105'
+						fallbackClassName='bg-muted/30'
 					/>
 				</div>
-				{/* Color indicator line */}
 				<div className='mt-2 h-[3px] w-12 bg-foreground' />
 			</Link>
 
-			{/* Name */}
 			<Link href={href} className='mb-1'>
-				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground hover:text-primary transition-colors'>
+				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
 					{name}
 				</h3>
 			</Link>
 
-			{/* Brand */}
 			{brand && (
 				<p className='mb-2 text-xs tracking-wider text-muted-foreground'>
 					{brand}
 				</p>
 			)}
 
-			{/* Price row */}
-			<div className='mb-3 flex items-center gap-2 flex-wrap'>
+			<div className='mb-3 flex flex-wrap items-center gap-2'>
 				<span className='text-lg font-semibold text-foreground'>
 					{price.toLocaleString('ru-RU')} ₽
 				</span>
@@ -123,7 +118,6 @@ export default function CatalogProductCard({
 				) : null}
 			</div>
 
-			{/* Button + Stock */}
 			<div className='mt-auto flex items-center gap-3'>
 				{onAddToCart ? (
 					<Button
