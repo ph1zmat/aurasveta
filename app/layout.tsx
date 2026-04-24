@@ -43,7 +43,7 @@ export default async function RootLayout({
 					<HydrateClient>
 						<Toaster />
 						<MobileHeader />
-						{children}
+						<div className='mobile-content-offset'>{children}</div>
 						<MobileBottomNav />
 					</HydrateClient>
 				</TRPCProvider>

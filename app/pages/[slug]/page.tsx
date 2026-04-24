@@ -47,7 +47,7 @@ export default async function ContentPage({
 
 	return (
 		<div className='flex flex-col bg-background'>
-			<main className='min-h-screen flex-1 container mx-auto max-w-7xl pb-16 md:pb-0'>
+			<main className='mobile-page-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
 				<TopBar />
 				<Header />
 				<CategoryNav />

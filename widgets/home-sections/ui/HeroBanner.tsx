@@ -33,7 +33,7 @@ const slides = [
 
 export default function HeroBanner() {
 	return (
-		<section className='mx-auto max-w-7xl md:px-4 py-2 md:py-4'>
+		<section className='mx-auto max-w-7xl px-3 py-2 sm:px-4 md:py-4'>
 			<Slider
 				visibleItems={1}
 				dots
@@ -59,15 +59,15 @@ export default function HeroBanner() {
 					<div
 						key={slide.id}
 						className={cn(
-							'relative flex min-h-[280px] items-center overflow-hidden bg-gradient-to-r md:min-h-[320px] md:rounded-xl',
+							'relative flex min-h-[220px] items-center overflow-hidden rounded-xl bg-linear-to-r sm:min-h-[260px] md:min-h-[320px]',
 							slide.bg,
 						)}
 					>
-						<div className='relative z-10 max-w-lg px-6 py-8 md:px-16 md:py-12'>
-							<h2 className='mb-2 text-2xl font-semibold tracking-wider text-card md:text-5xl'>
+						<div className='relative z-10 max-w-lg px-5 py-6 md:px-16 md:py-12'>
+							<h2 className='mb-2 text-xl font-semibold tracking-wider text-card sm:text-2xl md:text-5xl'>
 								{slide.title}
 							</h2>
-							<p className='mb-6 tracking-wide text-card/80 md:text-lg'>{slide.subtitle}</p>
+							<p className='mb-5 text-sm tracking-wide text-card/80 md:mb-6 md:text-lg'>{slide.subtitle}</p>
 							<a
 								href={slide.href}
 								className='inline-block rounded-md bg-destructive px-8 py-3 font-normal text-destructive-foreground transition-colors hover:bg-destructive/90'

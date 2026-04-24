@@ -40,14 +40,14 @@ export default function RoomCategories() {
 			<h2 className='mb-4 text-base font-semibold uppercase tracking-widest text-foreground md:mb-6 md:text-lg'>
 				Товары по расположению
 			</h2>
-			<div className='grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-7'>
+			<div className='grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4 md:grid-cols-7'>
 				{rooms.map(room => (
 					<Link
 						key={room.href}
 						href={room.href}
-						className='group flex flex-col items-center gap-3 p-4'
+						className='group flex flex-col items-center gap-2 p-2 sm:gap-3 sm:p-4'
 					>
-						<div className='relative h-24 w-24'>
+						<div className='relative h-16 w-16 sm:h-24 sm:w-24'>
 							<Image
 								src={room.image}
 								alt={room.label}

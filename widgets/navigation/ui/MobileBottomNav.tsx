@@ -42,8 +42,9 @@ export default function MobileBottomNav() {
 	]
 
 	return (
-		<nav className='fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card md:hidden'>
-			<ul className='flex items-stretch'>
+		<nav className='fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/85 md:hidden'>
+			<div className='mobile-edge-padding pb-[calc(env(safe-area-inset-bottom)+0.25rem)]'>
+				<ul className='flex items-stretch'>
 				{tabs
 					.filter(tab => !('hidden' in tab && tab.hidden))
 					.map(tab => {
@@ -58,7 +59,7 @@ export default function MobileBottomNav() {
 										await authClient.signOut()
 										router.push('/')
 									}}
-									className='flex w-full flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors'
+									className='flex w-full flex-col items-center gap-0.5 rounded-lg py-2.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
 									aria-label='Выйти'
 								>
 									<tab.icon className='h-5 w-5' strokeWidth={1.5} />
@@ -73,10 +74,10 @@ export default function MobileBottomNav() {
 							<Link
 								href={tab.href}
 								className={cn(
-									'flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors',
+									'flex flex-col items-center gap-0.5 rounded-lg py-2.5 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
 									isActive
 										? 'text-primary font-medium'
-										: 'text-muted-foreground',
+										: 'text-muted-foreground hover:text-foreground',
 								)}
 							>
 								<div className='relative'>
@@ -88,7 +89,8 @@ export default function MobileBottomNav() {
 						</li>
 					)
 				})}
-			</ul>
+				</ul>
+			</div>
 		</nav>
 	)
 }
