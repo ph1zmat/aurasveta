@@ -25,6 +25,61 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { Readable } from 'stream'
 
+const STORAGE_MAX_ATTEMPTS = Math.max(
+	1,
+	parseInt(process.env.STORAGE_MAX_ATTEMPTS ?? '3', 10) || 3,
+)
+
+function isRetryableStorageError(error: unknown): boolean {
+	if (!error || typeof error !== 'object') return false
+	const value = error as { name?: string; code?: string; message?: string }
+	const name = (value.name ?? '').toLowerCase()
+	const code = (value.code ?? '').toLowerCase()
+	const message = (value.message ?? '').toLowerCase()
+
+	return (
+		name.includes('timeout') ||
+		name.includes('throttl') ||
+		code.includes('timeout') ||
+		code.includes('socket') ||
+		code.includes('econnreset') ||
+		code.includes('etimedout') ||
+		message.includes('timeout') ||
+		message.includes('socket') ||
+		message.includes('connection reset') ||
+		message.includes('temporar')
+	)
+}
+
+async function withStorageRetry<T>(
+	operationName: string,
+	fn: () => Promise<T>,
+): Promise<T> {
+	let attempt = 0
+	let lastError: unknown
+
+	while (attempt < STORAGE_MAX_ATTEMPTS) {
+		attempt += 1
+		try {
+			return await fn()
+		} catch (error) {
+			lastError = error
+			const retryable = isRetryableStorageError(error)
+			if (!retryable || attempt >= STORAGE_MAX_ATTEMPTS) {
+				throw error
+			}
+
+			const backoffMs = 150 * 2 ** (attempt - 1)
+			console.warn(
+				`storage ${operationName} retry ${attempt}/${STORAGE_MAX_ATTEMPTS} in ${backoffMs}ms`,
+			)
+			await new Promise(resolve => setTimeout(resolve, backoffMs))
+		}
+	}
+
+	throw lastError
+}
+
 // ─── Конфигурация ─────────────────────────────────────────────────────────────
 
 interface StorageConfig {
@@ -100,14 +155,16 @@ export async function uploadFile(
 	contentType = 'application/octet-stream',
 ): Promise<void> {
 	const { bucket } = getConfig()
-	await getClient().send(
-		new PutObjectCommand({
-			Bucket: bucket,
-			Key: key,
-			Body: body,
-			ContentType: contentType,
-		}),
-	)
+	await withStorageRetry('putObject', async () => {
+		await getClient().send(
+			new PutObjectCommand({
+				Bucket: bucket,
+				Key: key,
+				Body: body,
+				ContentType: contentType,
+			}),
+		)
+	})
 }
 
 /**
@@ -129,9 +186,11 @@ export async function getFileUrl(
 		return `${publicUrl}/${key}`
 	}
 
-	const command = new GetObjectCommand({ Bucket: bucket, Key: key })
-	return getSignedUrl(getClient(), command, {
-		expiresIn: expiresIn ?? presignTtl,
+	return withStorageRetry('getSignedUrl', async () => {
+		const command = new GetObjectCommand({ Bucket: bucket, Key: key })
+		return getSignedUrl(getClient(), command, {
+			expiresIn: expiresIn ?? presignTtl,
+		})
 	})
 }
 
@@ -141,7 +200,11 @@ export async function getFileUrl(
  */
 export async function deleteFile(key: string): Promise<void> {
 	const { bucket } = getConfig()
-	await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+	await withStorageRetry('deleteObject', async () => {
+		await getClient().send(
+			new DeleteObjectCommand({ Bucket: bucket, Key: key }),
+		)
+	})
 }
 
 /**
@@ -150,7 +213,11 @@ export async function deleteFile(key: string): Promise<void> {
 export async function fileExists(key: string): Promise<boolean> {
 	const { bucket } = getConfig()
 	try {
-		await getClient().send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+		await withStorageRetry('headObject', async () => {
+			await getClient().send(
+				new HeadObjectCommand({ Bucket: bucket, Key: key }),
+			)
+		})
 		return true
 	} catch {
 		return false
