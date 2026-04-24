@@ -40,7 +40,13 @@ export default function DeferredImage({
 	const shouldRenderImage = normalizedSrc.length > 0 && !hasError
 
 	return (
-		<div className={cn('relative overflow-hidden', className)}>
+		<div
+			className={cn(
+				'relative overflow-hidden',
+				fill && 'h-full w-full',
+				className,
+			)}
+		>
 			{shouldRenderImage ? (
 				<Image
 					src={normalizedSrc}
