@@ -11,7 +11,10 @@ import type { AppRouter } from '../../../lib/trpc/routers/_app'
 export const trpc = createTRPCReact<AppRouter>()
 
 // В production, API URL берётся из secure store при инициализации
-let API_URL = __DEV__ ? 'http://localhost:3000' : 'https://aurasveta.ru'
+// На Android-эмуляторе localhost == сам эмулятор, хост-машина доступна по 10.0.2.2
+const _devUrl =
+	Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000'
+let API_URL = __DEV__ ? _devUrl : 'https://aurasveta.ru'
 export function setApiUrlForTRPC(url: string) { API_URL = url }
 
 export function TRPCProvider({ children }: { children: ReactNode }) {

@@ -10,7 +10,7 @@
  */
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
@@ -31,27 +31,24 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 			staleTime: 5 * 60 * 1000,
 		},
 	)
+	const defaultActiveId = useMemo(
+		() => categoriesTree?.[0]?.slug ?? '',
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[categoriesTree?.[0]?.slug],
+	)
 	const [activeId, setActiveId] = useState<string>('')
 	const panelRef = useRef<HTMLDivElement>(null)
 
+	// Sync activeId when categories load: keep current selection if still valid,
+	// otherwise fall back to the first category.
+	const resolvedActiveId =
+		activeId && categoriesTree?.some(c => c.slug === activeId)
+			? activeId
+			: defaultActiveId
+
 	const activeItem: CategoryTreeNode | undefined = categoriesTree?.find(
-		c => c.slug === activeId,
+		c => c.slug === resolvedActiveId,
 	)
-
-	useEffect(() => {
-		if (!categoriesTree?.length) return
-
-		setActiveId(currentActiveId => {
-			if (
-				currentActiveId &&
-				categoriesTree.some(category => category.slug === currentActiveId)
-			) {
-				return currentActiveId
-			}
-
-			return categoriesTree[0]?.slug ?? ''
-		})
-	}, [categoriesTree])
 
 	/* Закрытие по Escape */
 	useEffect(() => {
@@ -99,7 +96,7 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 										onClick={onClose}
 										className={cn(
 											'block px-5 py-2.5 text-sm transition-colors',
-											item.slug === activeId
+											item.slug === resolvedActiveId
 												? 'bg-foreground font-medium text-card'
 												: 'text-foreground hover:bg-accent',
 										)}

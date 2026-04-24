@@ -89,13 +89,67 @@ export function useApiBaseUrl(): string {
 	return url
 }
 
+function safeDecode(value: string): string {
+	try {
+		return decodeURIComponent(value)
+	} catch {
+		return value
+	}
+}
+
+function normalizeImageCandidate(value: string): string {
+	let normalized = value.trim()
+
+	for (let i = 0; i < 4; i++) {
+		const decoded = safeDecode(normalized)
+		if (decoded !== normalized) {
+			normalized = decoded.trim()
+			continue
+		}
+
+		if (normalized.startsWith('/api/storage/file')) {
+			try {
+				const nested = new URL(normalized, 'http://localhost')
+					.searchParams.get('key')
+					?.trim()
+				if (nested) {
+					normalized = nested
+					continue
+				}
+			} catch {
+				// ignore invalid value
+			}
+		}
+
+		if (/^https?:\/\//i.test(normalized)) {
+			try {
+				const url = new URL(normalized)
+				if (url.pathname === '/api/storage/file') {
+					const nested = url.searchParams.get('key')?.trim()
+					if (nested) {
+						normalized = nested
+						continue
+					}
+				}
+			} catch {
+				// keep as-is
+			}
+		}
+
+		break
+	}
+
+	return normalized
+}
+
 /** Resolve an absolute URL, app-relative path, or raw storage key for display in Electron. */
 export function resolveImgUrl(
 	imagePath: string | null | undefined,
 	apiBaseUrl: string,
 ): string | undefined {
 	if (!imagePath) return undefined
-	if (imagePath.startsWith('http')) return imagePath
-	if (imagePath.startsWith('/')) return `${apiBaseUrl}${imagePath}`
-	return `${apiBaseUrl}/api/storage/file?key=${encodeURIComponent(imagePath)}`
+	const normalized = normalizeImageCandidate(imagePath)
+	if (normalized.startsWith('http')) return normalized
+	if (normalized.startsWith('/')) return `${apiBaseUrl}${normalized}`
+	return `${apiBaseUrl}/api/storage/file?key=${encodeURIComponent(normalized)}`
 }

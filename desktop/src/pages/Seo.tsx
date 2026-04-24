@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
+import { useApiBaseUrl, resolveImgUrl } from '../lib/store'
 import {
 Globe,
 Save,
@@ -208,7 +209,7 @@ targetType='category'
 targetId={c.id}
 name={c.name}
 subtitle={`/${c.slug}`}
-image={c.imagePath}
+image={c.imageUrl ?? c.imagePath}
 onEdit={() => onEdit({ type: 'category', id: c.id, name: c.name })}
 />
 ))}
@@ -251,7 +252,14 @@ targetType='product'
 targetId={p.id}
 name={p.name}
 subtitle={`/${p.slug}`}
-image={p.imagePath}
+image={
+	p.imageUrl ??
+	p.images?.[0]?.displayUrl ??
+	p.images?.[0]?.imageAsset?.url ??
+	p.images?.[0]?.url ??
+	p.images?.[0]?.key ??
+	null
+}
 onEdit={() => onEdit({ type: 'product', id: p.id, name: p.name })}
 />
 ))}
@@ -300,6 +308,8 @@ subtitle?: string
 image?: string
 onEdit: () => void
 }) {
+const apiBaseUrl = useApiBaseUrl()
+const resolvedImage = image ? resolveImgUrl(image, apiBaseUrl) ?? image : null
 const { data } = trpc.seo.getByTarget.useQuery({ targetType, targetId })
 
 const filledCount = useMemo(() => {
@@ -334,8 +344,8 @@ return (
 <div className='group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-muted/10 transition-colors hover:bg-muted/20'>
 {/* Image area */}
 <div className='relative aspect-4/3 w-full bg-muted/30'>
-{image ? (
-<img src={image} alt='' className='h-full w-full object-cover' />
+{resolvedImage ? (
+<img src={resolvedImage} alt='' className='h-full w-full object-cover' />
 ) : (
 <div className='flex h-full w-full items-center justify-center'>
 <Globe className='h-10 w-10 text-muted-foreground/15' />
