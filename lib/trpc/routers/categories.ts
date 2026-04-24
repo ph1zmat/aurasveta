@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
@@ -7,6 +8,56 @@ import {
 	withResolvedImageAsset,
 	withResolvedProductImages,
 } from '@/lib/storage-image-assets'
+
+async function withResolvedCategoryImage<
+	T extends {
+		id: string
+		image?: string | null
+		imagePath?: string | null
+	},
+>(
+	ctx: { prisma: PrismaClient },
+	category: T,
+	options?: {
+		cache?: Map<string, Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']>
+		preferProxy?: boolean
+	},
+) {
+	const resolvedCategory = await withResolvedImageAsset(category, options)
+	if (resolvedCategory.imageUrl) {
+		return resolvedCategory
+	}
+
+	const fallbackProduct = await ctx.prisma.product.findFirst({
+		where: {
+			isActive: true,
+			images: { some: {} },
+			OR: [{ categoryId: category.id }, { category: { parentId: category.id } }],
+		},
+		orderBy: { createdAt: 'desc' },
+		select: {
+			images: {
+				orderBy: [{ isMain: 'desc' }, { order: 'asc' }],
+				select: productImageSelect,
+			},
+		},
+	})
+
+	if (!fallbackProduct) {
+		return resolvedCategory
+	}
+
+	const resolvedProduct = await withResolvedProductImages(fallbackProduct, options)
+	if (!resolvedProduct.imageUrl) {
+		return resolvedCategory
+	}
+
+	return {
+		...resolvedCategory,
+		imageUrl: resolvedProduct.imageUrl,
+		imageAsset: resolvedProduct.imageAsset,
+	}
+}
 
 export const categoriesRouter = createTRPCRouter({
 	getAll: baseProcedure.query(async ({ ctx }) => {
@@ -18,9 +69,11 @@ export const categoriesRouter = createTRPCRouter({
 		const cache = new Map()
 		return Promise.all(
 			categories.map(async category => ({
-				...(await withResolvedImageAsset(category, { cache })),
+				...(await withResolvedCategoryImage(ctx, category, { cache })),
 				children: await Promise.all(
-					category.children.map(child => withResolvedImageAsset(child, { cache })),
+					category.children.map(child =>
+						withResolvedCategoryImage(ctx, child, { cache }),
+					),
 				),
 			})),
 		)
@@ -44,13 +97,13 @@ export const categoriesRouter = createTRPCRouter({
 		const cache = new Map()
 		return Promise.all(
 			categories.map(async category => ({
-				...(await withResolvedImageAsset(category, { cache })),
+				...(await withResolvedCategoryImage(ctx, category, { cache })),
 				children: await Promise.all(
 					category.children.map(async child => ({
-						...(await withResolvedImageAsset(child, { cache })),
+						...(await withResolvedCategoryImage(ctx, child, { cache })),
 						children: await Promise.all(
 							child.children.map(grandChild =>
-								withResolvedImageAsset(grandChild, { cache }),
+								withResolvedCategoryImage(ctx, grandChild, { cache }),
 							),
 						),
 					})),
@@ -73,12 +126,12 @@ export const categoriesRouter = createTRPCRouter({
 
 		const cache = new Map()
 		return {
-			...(await withResolvedImageAsset(category, { cache })),
+			...(await withResolvedCategoryImage(ctx, category, { cache })),
 			children: await Promise.all(
-				category.children.map(child => withResolvedImageAsset(child, { cache })),
+				category.children.map(child => withResolvedCategoryImage(ctx, child, { cache })),
 			),
 			parent: category.parent
-				? await withResolvedImageAsset(category.parent, { cache })
+				? await withResolvedCategoryImage(ctx, category.parent, { cache })
 				: null,
 		}
 	}),
