@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
 	View,
 	Text,
@@ -37,6 +37,13 @@ export function ImagePicker({
 	height = 160,
 }: ImagePickerProps) {
 	const [uploading, setUploading] = useState(false)
+	const [apiUrlSync, setApiUrlSync] = useState<string>('https://aurasveta.ru')
+
+	useEffect(() => {
+		void getApiUrl().then(url => {
+			if (url) setApiUrlSync(url.replace(/\/+$/, ''))
+		})
+	}, [])
 
 	const pickImage = async () => {
 		const result = await ExpoImagePicker.launchImageLibraryAsync({
@@ -79,7 +86,6 @@ export function ImagePicker({
 		}
 	}
 
-	const apiUrlSync = 'https://aurasveta.ru' // fallback for display
 	const fullUrl = resolveImageUrl(imageUrl, apiUrlSync)
 
 	if (!fullUrl) {

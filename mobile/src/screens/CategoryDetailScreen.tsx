@@ -29,7 +29,9 @@ import {
 	ImagePlus,
 } from 'lucide-react-native'
 import type { CategoryDetailProps } from '../navigation/types'
+import { getApiUrl } from '../lib/store'
 import { resolveImageUrl } from '../lib/resolveImageUrl'
+import { useEffect, useState } from 'react'
 
 export function CategoryDetailScreen({
 	route,
@@ -80,7 +82,14 @@ export function CategoryDetailScreen({
 
 	const children = cat.children ?? []
 	const imageUrl = cat.imageUrl || cat.image || cat.imagePath || null
-	const apiUrl = 'https://aurasveta.ru'
+	const [apiUrl, setApiUrl] = useState('https://aurasveta.ru')
+
+	useEffect(() => {
+		void getApiUrl().then(url => {
+			if (url) setApiUrl(url.replace(/\/+$/, ''))
+		})
+	}, [])
+
 	const fullImageUrl = resolveImageUrl(imageUrl, apiUrl)
 
 	return (

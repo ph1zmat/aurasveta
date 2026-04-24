@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Image, StyleSheet, Alert } from 'react-native'
+import { useEffect, useState } from 'react'
 import {
 	colors,
 	fontSize,
@@ -12,6 +13,7 @@ import { Button } from '../components/ui/Button'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
 import { trpc } from '../lib/trpc'
+import { getApiUrl } from '../lib/store'
 import { useToast } from '../components/ui/Toast'
 import {
 	User,
@@ -44,18 +46,26 @@ const STATUS_LABELS: Record<string, string> = {
 
 function resolveOrderItemImage(
 	image: { key?: string | null; url?: string | null } | null | undefined,
+	apiUrl: string,
 ) {
 	const value = image?.url ?? image?.key ?? null
 	if (!value) return null
 	if (value.startsWith('http')) return value
-	if (value.startsWith('/')) return `https://aurasveta.ru${value}`
-	return `https://aurasveta.ru/api/storage/file?key=${encodeURIComponent(value)}`
+	if (value.startsWith('/')) return `${apiUrl}${value}`
+	return `${apiUrl}/api/storage/file?key=${encodeURIComponent(value)}`
 }
 
 export function OrderDetailScreen({ route, navigation }: OrderDetailProps) {
 	const order = route.params.order
+	const [apiUrl, setApiUrl] = useState('https://aurasveta.ru')
 	const utils = trpc.useUtils()
 	const { showToast } = useToast()
+
+	useEffect(() => {
+		void getApiUrl().then(url => {
+			if (url) setApiUrl(url.replace(/\/+$/, ''))
+		})
+	}, [])
 	const updateStatus = trpc.orders.updateStatus.useMutation({
 		onSuccess: () => {
 			utils.orders.getAllOrders.invalidate()
@@ -119,7 +129,7 @@ export function OrderDetailScreen({ route, navigation }: OrderDetailProps) {
 			<Card style={styles.card}>
 				<Text style={styles.sectionTitle}>Товары ({items.length})</Text>
 				{items.map((item: any, i: number) => {
-					const imageUrl = resolveOrderItemImage(item.product?.images?.[0])
+					const imageUrl = resolveOrderItemImage(item.product?.images?.[0], apiUrl)
 
 					return (
 						<View
