@@ -242,7 +242,8 @@ throw new Error(body?.error ?? `Upload failed: ${res.status}`)
 }
 
 const out = await res.json()
-const imagePath = out.path as string | undefined
+const imagePath =
+	(out.key as string | undefined) ?? (out.path as string | undefined)
 const originalName = out.originalName as string | undefined
 if (!imagePath) throw new Error('Upload: path missing')
 
@@ -551,8 +552,9 @@ setUploadError(msg)
 throw new Error(msg)
 }
 
-const out = await res.json()
-const imagePath = out.path as string | undefined
+		const out = await res.json()
+		const imagePath =
+			(out.key as string | undefined) ?? (out.path as string | undefined)
 const originalName = out.originalName as string | undefined
 if (!imagePath) throw new Error('Upload: path missing')
 

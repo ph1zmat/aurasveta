@@ -244,7 +244,8 @@ function PageFormModal({
 		}
 
 		const out = await res.json()
-		const imagePath = out.path as string | undefined
+		const imagePath =
+			(out.key as string | undefined) ?? (out.path as string | undefined)
 		const originalName = out.originalName as string | undefined
 		if (!imagePath) throw new Error('Upload: не вернулся путь')
 
