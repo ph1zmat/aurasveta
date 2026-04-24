@@ -16,9 +16,61 @@ function inferMimeType(key: string): string | null {
 	return EXT_TO_MIME[path.extname(key).toLowerCase()] ?? null
 }
 
+function safeDecode(value: string): string {
+	try {
+		return decodeURIComponent(value)
+	} catch {
+		return value
+	}
+}
+
+function normalizeStorageKey(rawKey: string, reqUrl: string): string {
+	let key = rawKey.trim()
+
+	for (let i = 0; i < 4; i++) {
+		const decoded = safeDecode(key)
+		if (decoded !== key) {
+			key = decoded.trim()
+			continue
+		}
+
+		if (key.startsWith('/api/storage/file')) {
+			try {
+				const nested = new URL(key, reqUrl).searchParams.get('key')?.trim()
+				if (nested) {
+					key = nested
+					continue
+				}
+			} catch {
+				// ignore invalid nested URL and keep current key
+			}
+		}
+
+		if (/^https?:\/\//i.test(key)) {
+			try {
+				const url = new URL(key)
+				if (url.pathname === '/api/storage/file') {
+					const nested = url.searchParams.get('key')?.trim()
+					if (nested) {
+						key = nested
+						continue
+					}
+				}
+			} catch {
+				// leave as-is
+			}
+		}
+
+		break
+	}
+
+	return key
+}
+
 export async function GET(req: Request) {
 	const { searchParams } = new URL(req.url)
-	const key = searchParams.get('key')?.trim()
+	const rawKey = searchParams.get('key')?.trim()
+	const key = rawKey ? normalizeStorageKey(rawKey, req.url) : null
 
 	if (!key) {
 		return NextResponse.json({ error: 'Missing key' }, { status: 400 })
@@ -31,7 +83,7 @@ export async function GET(req: Request) {
 			upstreamUrl = key
 		}
 
-		if (key.startsWith('/')) {
+		if (key.startsWith('/') && !key.startsWith('/api/storage/file')) {
 			return NextResponse.redirect(new URL(key, req.url))
 		}
 
