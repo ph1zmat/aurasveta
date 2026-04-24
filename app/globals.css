@@ -96,6 +96,10 @@
 }
 
 :root {
+	--mobile-gutter: 0.875rem;
+	--mobile-header-height: 6.75rem;
+	--mobile-bottom-nav-height: 4.25rem;
+
 	--background: oklch(0.9618 0.0208 88.7194);
 	--foreground: oklch(0.3795 0.0309 64.7091);
 	--card: oklch(0.9914 0.0098 87.4695);
@@ -229,6 +233,7 @@
 @layer base {
 	body {
 		letter-spacing: var(--tracking-normal);
+		overflow-x: hidden;
 		@apply bg-background text-foreground;
 	}
 	* {
@@ -236,6 +241,33 @@
 	}
 	html {
 		@apply font-sans;
+	}
+}
+
+@layer utilities {
+	.mobile-content-offset {
+		padding-top: calc(var(--mobile-header-height) + env(safe-area-inset-top));
+	}
+
+	.mobile-page-padding {
+		padding-bottom: calc(
+			var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom)
+		);
+	}
+
+	.mobile-edge-padding {
+		padding-left: max(var(--mobile-gutter), env(safe-area-inset-left));
+		padding-right: max(var(--mobile-gutter), env(safe-area-inset-right));
+	}
+
+	@media (min-width: 768px) {
+		.mobile-content-offset {
+			padding-top: 0;
+		}
+
+		.mobile-page-padding {
+			padding-bottom: 0;
+		}
 	}
 }
 

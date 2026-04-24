@@ -52,19 +52,21 @@ export default async function NewProducts() {
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
+			<div className='mb-4 flex items-center justify-between md:mb-6'>
+				<h2 className='text-base font-semibold uppercase tracking-widest text-foreground md:text-lg'>
+					Новинки
+				</h2>
+				<Link
+					href='/new'
+					className='text-xs text-muted-foreground underline-offset-4 hover:underline md:text-sm'
+				>
+					Все новинки
+				</Link>
+			</div>
 			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
 				{newProducts.map(product => (
 					<ProductCard key={product.href} {...product} />
 				))}
-			</div>
-
-			<div className='mt-8 flex justify-center'>
-				<Link
-					href='/new'
-					className='rounded-md border-2 border-foreground px-8 py-3 text-sm font-normal uppercase tracking-widest text-foreground transition-colors hover:bg-foreground hover:text-card'
-				>
-					Все новинки
-				</Link>
 			</div>
 		</section>
 	)

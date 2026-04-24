@@ -94,7 +94,7 @@ export default function ProductGallery({ images, alt }: ProductGalleryProps) {
 						<button
 							onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
 							disabled={activeIndex === 0}
-							className='absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-card/70 p-1.5 shadow-sm backdrop-blur-sm disabled:opacity-30 md:hidden'
+							className='absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-card/80 p-2 shadow backdrop-blur-sm transition-opacity disabled:opacity-20 active:scale-95 md:hidden'
 							aria-label='Предыдущее фото'
 						>
 							<ChevronLeft className='h-5 w-5' strokeWidth={1.5} />
@@ -104,11 +104,27 @@ export default function ProductGallery({ images, alt }: ProductGalleryProps) {
 								setActiveIndex(Math.min(images.length - 1, activeIndex + 1))
 							}
 							disabled={activeIndex === images.length - 1}
-							className='absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-card/70 p-1.5 shadow-sm backdrop-blur-sm disabled:opacity-30 md:hidden'
+							className='absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-card/80 p-2 shadow backdrop-blur-sm transition-opacity disabled:opacity-20 active:scale-95 md:hidden'
 							aria-label='Следующее фото'
 						>
 							<ChevronRight className='h-5 w-5' strokeWidth={1.5} />
 						</button>
+						{/* Dot indicators */}
+						<div className='absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 md:hidden'>
+							{images.map((_, i) => (
+								<button
+									key={i}
+									onClick={() => setActiveIndex(i)}
+									aria-label={`Фото ${i + 1}`}
+									className={cn(
+										'h-1.5 rounded-full transition-all duration-200',
+										i === activeIndex
+											? 'w-4 bg-foreground'
+											: 'w-1.5 bg-foreground/30',
+									)}
+								/>
+							))}
+						</div>
 					</>
 				)}
 			</div>

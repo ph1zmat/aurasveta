@@ -40,19 +40,21 @@ export default async function SaleProducts() {
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
+			<div className='mb-4 flex items-center justify-between md:mb-6'>
+				<h2 className='text-base font-semibold uppercase tracking-widest text-foreground md:text-lg'>
+					Акции и скидки
+				</h2>
+				<Link
+					href='/clearance'
+					className='text-xs text-muted-foreground underline-offset-4 hover:underline md:text-sm'
+				>
+					Все акции
+				</Link>
+			</div>
 			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
 				{saleProducts.map(product => (
 					<ProductCard key={product.href} {...product} />
 				))}
-			</div>
-
-			<div className='mt-8 flex justify-center'>
-				<Link
-					href='/clearance'
-					className='rounded-md border-2 border-foreground px-8 py-3 text-sm font-normal uppercase tracking-widest text-foreground transition-colors hover:bg-foreground hover:text-card'
-				>
-					Все товары по акции
-				</Link>
 			</div>
 		</section>
 	)

@@ -25,14 +25,14 @@ export default function MobileCatalogMenu({ onClose }: MobileCatalogMenuProps) {
 			}))
 		: []
 	return (
-		<div className='fixed inset-0 top-[108px] z-40 overflow-y-auto bg-background pb-20 md:hidden'>
-			<ul>
+		<div className='fixed inset-x-0 bottom-0 top-[calc(var(--mobile-header-height)+env(safe-area-inset-top))] z-40 overflow-y-auto bg-background pb-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+0.75rem)] md:hidden'>
+			<ul className='mobile-edge-padding'>
 				{categories.map(cat => (
 					<li key={cat.href} className='border-b border-border'>
 						<Link
 							href={cat.href}
 							onClick={onClose}
-							className='flex items-center justify-between px-4 py-4 text-base font-normal text-foreground active:bg-accent'
+							className='flex items-center justify-between py-4 text-base font-normal text-foreground transition-colors hover:bg-accent/60 active:bg-accent'
 						>
 							{cat.name}
 							<ChevronRight className='h-5 w-5 text-muted-foreground' strokeWidth={1.5} />
@@ -41,13 +41,13 @@ export default function MobileCatalogMenu({ onClose }: MobileCatalogMenuProps) {
 				))}
 			</ul>
 
-			<div className='px-4 pt-4 pb-8'>
+			<div className='mobile-edge-padding pt-4 pb-8'>
 				{extraLinks.map(link => (
 					<Link
 						key={link.href}
 						href={link.href}
 						onClick={onClose}
-						className='block py-2 text-base text-foreground'
+						className='block rounded-md py-2 text-base text-foreground transition-colors hover:text-primary'
 					>
 						{link.name}
 					</Link>
