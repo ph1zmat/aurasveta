@@ -21,12 +21,12 @@ const catalogLinks = [
 	{ label: 'Все бренды', href: '/brands' },
 	{ label: 'Новинки', href: '/new' },
 	{ label: 'Светильники', href: '/catalog/svetilniki' },
-	{ label: 'Люстры', href: '/catalog/lustry' },
+	{ label: 'Люстры', href: '/catalog/lyustry' },
 	{ label: 'Бра и подсветки', href: '/catalog/bra' },
 	{ label: 'Споты', href: '/catalog/spoty' },
-	{ label: 'Настольные лампы', href: '/catalog/nastolnye' },
+	{ label: 'Настольные лампы', href: '/catalog/nastolnye-lampy' },
 	{ label: 'Торшеры', href: '/catalog/torshery' },
-	{ label: 'Уличное освещение', href: '/catalog/ulichnye' },
+	{ label: 'Уличное освещение', href: '/catalog/ulichnoe-osveshenie' },
 ]
 
 const brandLinks = [
