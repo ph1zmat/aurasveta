@@ -268,6 +268,11 @@
 		.mobile-page-padding {
 			padding-bottom: 0;
 		}
+
+		.mobile-edge-padding {
+			padding-left: 0;
+			padding-right: 0;
+		}
 	}
 }
 
