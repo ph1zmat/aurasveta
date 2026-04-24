@@ -15,23 +15,43 @@ import Link from 'next/link'
 import { X } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/Button'
-import {
-	catalogMenuItems,
-	type CatalogMenuItem,
-} from '@/shared/config/catalogMenu'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 
 interface CatalogDropdownProps {
 	open: boolean
 	onClose: () => void
 }
 
+type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
+
 export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps) {
-	const [activeId, setActiveId] = useState<string>(catalogMenuItems[0]?.id ?? '')
+	const { data: categoriesTree, isLoading } = trpc.categories.getTree.useQuery(
+		undefined,
+		{
+			staleTime: 5 * 60 * 1000,
+		},
+	)
+	const [activeId, setActiveId] = useState<string>('')
 	const panelRef = useRef<HTMLDivElement>(null)
 
-	const activeItem: CatalogMenuItem | undefined = catalogMenuItems.find(
-		c => c.id === activeId,
+	const activeItem: CategoryTreeNode | undefined = categoriesTree?.find(
+		c => c.slug === activeId,
 	)
+
+	useEffect(() => {
+		if (!categoriesTree?.length) return
+
+		setActiveId(currentActiveId => {
+			if (
+				currentActiveId &&
+				categoriesTree.some(category => category.slug === currentActiveId)
+			) {
+				return currentActiveId
+			}
+
+			return categoriesTree[0]?.slug ?? ''
+		})
+	}, [categoriesTree])
 
 	/* Закрытие по Escape */
 	useEffect(() => {
@@ -71,15 +91,15 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 					{/* ─── Левая колонка: категории ─── */}
 					<nav className='w-52 shrink-0 border-r border-border py-4'>
 						<ul className='space-y-0'>
-							{catalogMenuItems.map(item => (
+							{(categoriesTree ?? []).map(item => (
 								<li key={item.id}>
 									<Link
-										href={item.href}
-										onMouseEnter={() => handleHover(item.id)}
+										href={`/catalog/${item.slug}`}
+										onMouseEnter={() => handleHover(item.slug)}
 										onClick={onClose}
 										className={cn(
 											'block px-5 py-2.5 text-sm transition-colors',
-											item.id === activeId
+											item.slug === activeId
 												? 'bg-foreground font-medium text-card'
 												: 'text-foreground hover:bg-accent',
 										)}
@@ -88,33 +108,83 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 									</Link>
 								</li>
 							))}
+							{!isLoading && (categoriesTree?.length ?? 0) === 0 && (
+								<li className='px-5 py-2.5 text-sm text-muted-foreground'>
+									Категории загружаются
+								</li>
+							)}
 						</ul>
 					</nav>
 
 					{/* ─── Правая часть: колонки подкатегорий ─── */}
 					<div className='flex-1 px-8 py-5'>
-						{activeItem && (
-							<div className='grid grid-cols-4 gap-x-8 gap-y-6'>
-								{activeItem.groups.map(group => (
-									<div key={group.title}>
-										<h3 className='mb-3 text-xs font-semibold uppercase tracking-widest text-foreground'>
-											{group.title}
-										</h3>
-										<ul className='space-y-2'>
-											{group.links.map(link => (
-												<li key={link.href}>
-													<Link
-														href={link.href}
-														onClick={onClose}
-														className='text-sm text-foreground transition-colors hover:text-primary'
-													>
-														{link.name}
-													</Link>
-												</li>
-											))}
-										</ul>
+						{isLoading ? (
+							<div className='py-6 text-sm text-muted-foreground'>
+								Загружаем категории…
+							</div>
+						) : activeItem ? (
+							<div className='space-y-6'>
+								<div className='flex items-center justify-between gap-4 border-b border-border pb-4'>
+									<div>
+										<p className='text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground'>
+											Категория
+										</p>
+										<h2 className='mt-2 text-xl font-semibold text-foreground'>
+											{activeItem.name}
+										</h2>
 									</div>
-								))}
+									<Button asChild variant='outline' size='sm'>
+										<Link href={`/catalog/${activeItem.slug}`} onClick={onClose}>
+											Смотреть категорию
+										</Link>
+									</Button>
+								</div>
+
+								{activeItem.children.length > 0 ? (
+									<div className='grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2 xl:grid-cols-3'>
+										{activeItem.children.map(child => (
+											<div key={child.id}>
+												<Link
+													href={`/catalog/${child.slug}`}
+													onClick={onClose}
+													className='mb-3 block text-xs font-semibold uppercase tracking-widest text-foreground transition-colors hover:text-primary'
+												>
+													{child.name}
+												</Link>
+												<ul className='space-y-2'>
+													<li>
+														<Link
+															href={`/catalog/${child.slug}`}
+															onClick={onClose}
+															className='text-sm text-muted-foreground transition-colors hover:text-primary'
+														>
+															Все товары
+														</Link>
+													</li>
+													{child.children.map(grandChild => (
+														<li key={grandChild.id}>
+															<Link
+																href={`/catalog/${grandChild.slug}`}
+																onClick={onClose}
+																className='text-sm text-foreground transition-colors hover:text-primary'
+															>
+																{grandChild.name}
+															</Link>
+														</li>
+													))}
+												</ul>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className='text-sm text-muted-foreground'>
+										Для этой категории пока нет подкатегорий.
+									</p>
+								)}
+							</div>
+						) : (
+							<div className='py-6 text-sm text-muted-foreground'>
+								Категории пока недоступны.
 							</div>
 						)}
 					</div>
