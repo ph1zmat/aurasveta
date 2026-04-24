@@ -11,6 +11,59 @@ const STORAGE_PRESIGN_TTL = Math.max(
 	parseInt(process.env.STORAGE_PRESIGN_TTL ?? '3600', 10) || 3600,
 )
 
+function safeDecode(value: string): string {
+	try {
+		return decodeURIComponent(value)
+	} catch {
+		return value
+	}
+}
+
+function normalizeStorageCandidate(value: string): string {
+	let normalized = value.trim()
+
+	for (let i = 0; i < 4; i++) {
+		const decoded = safeDecode(normalized)
+		if (decoded !== normalized) {
+			normalized = decoded.trim()
+			continue
+		}
+
+		if (normalized.startsWith('/api/storage/file')) {
+			try {
+				const nested = new URL(normalized, 'http://localhost')
+					.searchParams.get('key')
+					?.trim()
+				if (nested) {
+					normalized = nested
+					continue
+				}
+			} catch {
+				// ignore
+			}
+		}
+
+		if (/^https?:\/\//i.test(normalized)) {
+			try {
+				const url = new URL(normalized)
+				if (url.pathname === '/api/storage/file') {
+					const nested = url.searchParams.get('key')?.trim()
+					if (nested) {
+						normalized = nested
+						continue
+					}
+				}
+			} catch {
+				// keep value as-is
+			}
+		}
+
+		break
+	}
+
+	return normalized
+}
+
 export function isStorageKey(value: string): boolean {
 	return STORAGE_KEY_PATTERN.test(value)
 }
@@ -32,8 +85,9 @@ export async function createStorageImageAsset(
 ): Promise<StorageImageAsset | null> {
 	const normalizedValue = value?.trim()
 	if (!normalizedValue) return null
+	const normalizedCandidate = normalizeStorageCandidate(normalizedValue)
 
-	const cacheKey = `${options?.preferProxy ? 'proxy' : 'display'}:${normalizedValue}`
+	const cacheKey = `${options?.preferProxy ? 'proxy' : 'display'}:${normalizedCandidate}`
 	const cached = options?.cache?.get(cacheKey)
 	if (cached !== undefined) {
 		return cached
@@ -41,32 +95,35 @@ export async function createStorageImageAsset(
 
 	let result: StorageImageAsset | null = null
 
-	if (isLegacyImageValue(normalizedValue) || !isStorageKey(normalizedValue)) {
+	if (
+		isLegacyImageValue(normalizedCandidate) ||
+		!isStorageKey(normalizedCandidate)
+	) {
 		result = {
-			key: isStorageKey(normalizedValue) ? normalizedValue : null,
-			url: normalizedValue,
-			source: isStorageKey(normalizedValue) ? 'proxy' : 'legacy',
+			key: isStorageKey(normalizedCandidate) ? normalizedCandidate : null,
+			url: normalizedCandidate,
+			source: isStorageKey(normalizedCandidate) ? 'proxy' : 'legacy',
 			expiresAt: null,
 		}
 	} else if (options?.preferProxy) {
 		result = {
-			key: normalizedValue,
-			url: getStorageFileUrl(normalizedValue),
+			key: normalizedCandidate,
+			url: getStorageFileUrl(normalizedCandidate),
 			source: 'proxy',
 			expiresAt: null,
 		}
 	} else {
 		try {
 			result = {
-				key: normalizedValue,
-				url: await getFileUrl(normalizedValue),
+				key: normalizedCandidate,
+				url: await getFileUrl(normalizedCandidate),
 				source: STORAGE_PUBLIC_URL ? 'public' : 'signed',
 				expiresAt: STORAGE_PUBLIC_URL ? null : computeExpiresAt(),
 			}
 		} catch {
 			result = {
-				key: normalizedValue,
-				url: getStorageFileUrl(normalizedValue),
+				key: normalizedCandidate,
+				url: getStorageFileUrl(normalizedCandidate),
 				source: 'proxy',
 				expiresAt: null,
 			}
