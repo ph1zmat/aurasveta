@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import crypto from 'crypto'
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto'
 
 const COOKIE_NAME = 'anon-session-id'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 function generateSessionId(): string {
-	return crypto.randomUUID()
+	if (typeof randomUUID === 'function') {
+		return randomUUID()
+	}
+	return randomBytes(16).toString('hex')
 }
 
 function signSessionId(sessionId: string): string {
 	const secret = process.env.BETTER_AUTH_SECRET
 	if (!secret) throw new Error('BETTER_AUTH_SECRET is required')
-	return crypto.createHmac('sha256', secret).update(sessionId).digest('hex')
+	return createHmac('sha256', secret).update(sessionId).digest('hex')
 }
 
 export async function GET() {
@@ -25,7 +28,7 @@ export async function GET() {
 			const expected = signSessionId(sessionId)
 			if (
 				expected.length === signature.length &&
-				crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+				timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
 			) {
 				return NextResponse.json({ sessionId })
 			}

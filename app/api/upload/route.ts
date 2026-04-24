@@ -1,5 +1,5 @@
 import path from 'path'
-import crypto from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/auth'
 import { headers } from 'next/headers'
@@ -22,6 +22,13 @@ const EXT_TO_MIME: Record<string, string> = {
 	'.png': 'image/png',
 	'.webp': 'image/webp',
 	'.gif': 'image/gif',
+}
+
+function createUuid(): string {
+	if (typeof randomUUID === 'function') {
+		return randomUUID()
+	}
+	return randomBytes(16).toString('hex')
 }
 
 function resolveFileType(file: File): string {
@@ -167,7 +174,7 @@ export async function POST(req: Request) {
 
 			const ext = path.extname(file.name).toLowerCase() || '.jpg'
 			const safeName = sanitizeFilename(path.basename(file.name, ext))
-			const uuid = crypto.randomUUID()
+			const uuid = createUuid()
 			const key = `products/${uuid}/${safeName}${ext}`
 			const url = getStorageFileUrl(key)
 

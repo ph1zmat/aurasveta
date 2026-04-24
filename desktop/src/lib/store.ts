@@ -11,11 +11,24 @@ function normalizeApiUrl(url: string): string {
 		.trim()
 		.replace(/\/+$/, '')
 	if (!trimmed) return DEFAULT_API_URL
+
+	let parsed: URL
+	try {
+		parsed = new URL(trimmed)
+	} catch {
+		return DEFAULT_API_URL
+	}
+
+	if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+		return DEFAULT_API_URL
+	}
+
+	const normalizedUrl = parsed.toString().replace(/\/+$/, '')
 	// In dev, `localhost` and `127.0.0.1` are treated as different origins by the browser.
 	// Force loopback IP to avoid renderer CORS issues.
 	if (import.meta.env.DEV)
-		return trimmed.replace('://localhost', '://127.0.0.1')
-	return trimmed
+		return normalizedUrl.replace('://localhost', '://127.0.0.1')
+	return normalizedUrl
 }
 
 export async function getApiUrl(): Promise<string> {
