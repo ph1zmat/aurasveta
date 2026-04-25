@@ -2,11 +2,16 @@
 
 import { Slider } from '@/shared/ui/Slider'
 
-interface BrandsCarouselProps {
-	brands: { name: string; slug: string }[]
+interface BrandItem {
+	name: string
+	slug: string
 }
 
-export default function BrandsCarousel({ brands }: BrandsCarouselProps) {
+interface BrandsCarouselProps {
+	brands?: BrandItem[]
+}
+
+export default function BrandsCarousel({ brands = [] }: BrandsCarouselProps) {
 	if (brands.length === 0) return null
 
 	return (

@@ -9,6 +9,8 @@ import {
 	ShoppingCart,
 	Download,
 	Webhook,
+	LayoutGrid,
+	Settings,
 } from 'lucide-react'
 import AdminNotificationsClient from './AdminNotificationsClient'
 import AdminNotificationsWidget from './AdminNotificationsWidget'
@@ -19,9 +21,11 @@ const navItems = {
 		{ href: '/admin/products', label: 'Товары', icon: Package },
 		{ href: '/admin/categories', label: 'Категории', icon: FolderTree },
 		{ href: '/admin/properties', label: 'Свойства', icon: SlidersHorizontal },
+		{ href: '/admin/home-sections', label: 'Главная страница', icon: LayoutGrid },
 		{ href: '/admin/pages', label: 'Страницы', icon: FileText },
 		{ href: '/admin/orders', label: 'Заказы', icon: ShoppingCart },
 		{ href: '/admin/import-export', label: 'Импорт/Экспорт', icon: Download },
+		{ href: '/admin/settings', label: 'Настройки', icon: Settings },
 		{ href: '/admin/webhooks', label: 'Вебхуки', icon: Webhook },
 		{ href: '/admin/seo', label: 'SEO', icon: FileText },
 	],
