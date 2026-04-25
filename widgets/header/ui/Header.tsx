@@ -86,14 +86,14 @@ export default function Header() {
 			icon: BarChart3,
 			label: 'Сравнение',
 			href: '/compare',
-			badge: compareCount,
+			badge: mounted ? compareCount : 0,
 			hidden: pathname === '/compare',
 		},
 		{
 			icon: Heart,
 			label: 'Избранное',
 			href: '/favorites',
-			badge: favoritesCount,
+			badge: mounted ? favoritesCount : 0,
 			hidden: pathname === '/favorites',
 		},
 		...(clientSession
@@ -122,7 +122,7 @@ export default function Header() {
 			icon: ShoppingCart,
 			label: 'Корзина',
 			href: '/cart',
-			badge: cartCount,
+			badge: mounted ? cartCount : 0,
 			hidden: pathname === '/cart',
 		},
 	]

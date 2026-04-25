@@ -2,10 +2,11 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2, SlidersHorizontal } from 'lucide-react'
+import { Loader2, SlidersHorizontal, Home, RotateCcw, LogOut } from 'lucide-react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { useDebounce } from '@/shared/lib/useDebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingSession'
+import { authClient } from '@/lib/auth/auth-client'
 import EmptyState from '@/shared/ui/EmptyState'
 import Skeleton from '@/shared/ui/Skeleton'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
@@ -134,22 +135,65 @@ export default function SearchContent() {
 		[],
 	)
 
+	const handleReset = useCallback(() => {
+		router.push('/catalog')
+	}, [router])
+
+	const handleGoHome = useCallback(() => {
+		router.push('/')
+	}, [router])
+
+	const handleSignOut = useCallback(async () => {
+		await authClient.signOut()
+		router.push('/')
+	}, [router])
+
 	return (
 		<div className='mx-auto max-w-7xl px-4 py-6'>
 			{/* Header */}
-			<div className='mb-6'>
-				<h1 className='text-2xl font-semibold text-foreground'>
-					{debouncedSearch.length >= 2
-						? `Результаты поиска: «${debouncedSearch}»`
-						: 'Поиск товаров'}
-				</h1>
-				{debouncedSearch.length >= 2 && !isLoading && (
-					<p className='mt-1 text-sm text-muted-foreground'>
-						{total > 0
-							? `Найдено ${total} ${pluralize(total, 'товар', 'товара', 'товаров')}`
-							: 'Ничего не найдено'}
-					</p>
-				)}
+			<div className='mb-4 flex flex-wrap items-start justify-between gap-4'>
+				<div>
+					<h1 className='text-2xl font-semibold text-foreground'>
+						{debouncedSearch.length >= 2
+							? `Результаты поиска: «${debouncedSearch}»`
+							: 'Поиск товаров'}
+					</h1>
+					{debouncedSearch.length >= 2 && !isLoading && (
+						<p className='mt-1 text-sm text-muted-foreground'>
+							{total > 0
+								? `Найдено ${total} ${pluralize(total, 'товар', 'товара', 'товаров')}`
+								: 'Ничего не найдено'}
+						</p>
+					)}
+				</div>
+
+				{/* Navigation controls */}
+				<div className='flex flex-wrap gap-2'>
+					<button
+						type='button'
+						onClick={handleReset}
+						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
+					>
+						<RotateCcw className='h-3.5 w-3.5' strokeWidth={1.5} />
+						Сбросить
+					</button>
+					<button
+						type='button'
+						onClick={handleGoHome}
+						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
+					>
+						<Home className='h-3.5 w-3.5' strokeWidth={1.5} />
+						На главную
+					</button>
+					<button
+						type='button'
+						onClick={handleSignOut}
+						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
+					>
+						<LogOut className='h-3.5 w-3.5' strokeWidth={1.5} />
+						Выйти
+					</button>
+				</div>
 			</div>
 
 			{/* Filters bar */}

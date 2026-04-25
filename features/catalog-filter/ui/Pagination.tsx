@@ -32,9 +32,10 @@ export default function Pagination({
 			className='flex items-center justify-center gap-1 py-6'
 		>
 			<button
+				type='button'
 				disabled={currentPage === 1}
 				onClick={() => onPageChange?.(currentPage - 1)}
-				className='p-2 text-foreground transition-colors hover:text-primary disabled:text-muted-foreground'
+				className='cursor-pointer p-2 text-foreground transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
 				aria-label='Предыдущая страница'
 			>
 				<ChevronLeft className='h-4 w-4' strokeWidth={1.5} />
@@ -50,10 +51,11 @@ export default function Pagination({
 					</span>
 				) : (
 					<button
+						type='button'
 						key={page}
 						onClick={() => onPageChange?.(page as number)}
 						className={cn(
-							'min-w-[36px] rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
+							'min-w-[36px] cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
 							page === currentPage
 								? 'border border-foreground bg-card text-foreground'
 								: 'text-foreground hover:bg-accent',
@@ -65,9 +67,10 @@ export default function Pagination({
 			)}
 
 			<button
+				type='button'
 				disabled={currentPage === totalPages}
 				onClick={() => onPageChange?.(currentPage + 1)}
-				className='p-2 text-foreground transition-colors hover:text-primary disabled:text-muted-foreground'
+				className='cursor-pointer p-2 text-foreground transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-40'
 				aria-label='Следующая страница'
 			>
 				<ChevronRight className='h-4 w-4' strokeWidth={1.5} />
