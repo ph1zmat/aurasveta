@@ -403,7 +403,7 @@ export default function CompareContent() {
 													href={`/product/${product.slug}`}
 													className='mb-2'
 												>
-													<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
+													<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors duration-180 hover:text-accent'>
 														{product.name}
 													</h3>
 												</Link>

@@ -19,7 +19,7 @@ const slides = [
 		subtitle: 'Современные люстры и светильники 2026',
 		cta: 'Смотреть',
 		href: '/new',
-		bg: 'from-primary/80 to-primary/60',
+		bg: 'from-foreground/70 to-foreground/50',
 	},
 	{
 		id: 3,
@@ -70,7 +70,7 @@ export default function HeroBanner() {
 							<p className='mb-5 text-sm tracking-wide text-card/80 md:mb-6 md:text-lg'>{slide.subtitle}</p>
 							<a
 								href={slide.href}
-								className='inline-block rounded-md bg-destructive px-8 py-3 font-normal text-destructive-foreground transition-colors hover:bg-destructive/90'
+								className='inline-block rounded-md bg-card px-8 py-3 font-medium text-foreground transition-colors duration-180 hover:bg-card/90'
 							>
 								{slide.cta}
 							</a>

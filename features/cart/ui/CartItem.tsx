@@ -41,7 +41,7 @@ export default function CartItem({
 				<div className='min-w-0 flex-1'>
 					<Link
 						href={item.href}
-						className='text-sm font-medium text-primary transition-colors hover:text-foreground'
+						className='text-sm font-medium text-foreground transition-colors duration-180 hover:text-accent'
 					>
 						{item.name}
 					</Link>

@@ -46,7 +46,7 @@ export default async function SaleProducts() {
 				</h2>
 				<Link
 					href='/clearance'
-					className='text-xs text-muted-foreground underline-offset-4 hover:underline md:text-sm'
+					className='text-xs font-medium text-accent transition-colors duration-180 hover:text-accent/80 md:text-sm'
 				>
 					Все акции
 				</Link>

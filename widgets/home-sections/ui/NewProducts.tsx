@@ -58,7 +58,7 @@ export default async function NewProducts() {
 				</h2>
 				<Link
 					href='/new'
-					className='text-xs text-muted-foreground underline-offset-4 hover:underline md:text-sm'
+					className='text-xs font-medium text-accent transition-colors duration-180 hover:text-accent/80 md:text-sm'
 				>
 					Все новинки
 				</Link>

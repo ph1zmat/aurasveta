@@ -37,7 +37,7 @@ export default function CartSummary({
 				{discount > 0 && (
 					<div className='flex items-center justify-between'>
 						<span className='text-muted-foreground'>Скидка</span>
-						<span className='text-primary'>
+						<span className='text-accent'>
 							- {discount.toLocaleString('ru-RU')} руб.
 						</span>
 					</div>
@@ -54,7 +54,7 @@ export default function CartSummary({
 				<span className='text-base font-semibold uppercase text-foreground'>
 					Итого
 				</span>
-				<span className='text-lg font-semibold text-foreground'>
+				<span className='text-xl font-bold text-foreground'>
 					{total.toLocaleString('ru-RU')} РУБ.
 				</span>
 			</div>

@@ -31,7 +31,7 @@ export default function BrandsCarousel({ brands }: BrandsCarouselProps) {
 					<a
 						key={brand.slug}
 						href={`/brands/${brand.slug}`}
-						className='flex h-16 items-center justify-center rounded-md border border-border bg-card px-6 text-lg font-semibold uppercase tracking-widest text-foreground/70 transition-colors hover:border-primary hover:text-primary'
+						className='flex h-16 items-center justify-center rounded-md border border-border bg-card px-6 text-lg font-semibold uppercase tracking-widest text-foreground/70 transition-colors duration-180 hover:border-accent/60 hover:text-accent'
 					>
 						{brand.name}
 					</a>

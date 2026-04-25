@@ -67,7 +67,7 @@ export default function Footer() {
 								<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
 								<span>г. Москва, Автомобильный проезд 10, строение 4</span>
 							</div>
-							<Link href='/stores' className='text-primary underline text-sm'>
+							<Link href='/stores' className='text-sm text-card/70 underline transition-colors duration-180 hover:text-card'>
 								Наши магазины
 							</Link>
 						</div>
@@ -75,21 +75,21 @@ export default function Footer() {
 						<div className='space-y-2 text-sm'>
 							<a
 								href='tel:+74992292322'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								className='flex items-center gap-2 text-card/80 transition-colors duration-180 hover:text-card'
 							>
 								<Phone className='h-4 w-4' />
 								+7 (499) 229 23 22
 							</a>
 							<a
 								href='tel:+78001003384'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								className='flex items-center gap-2 text-card/80 transition-colors duration-180 hover:text-card'
 							>
 								<Phone className='h-4 w-4' />
 								+7 (800) 100-33-84
 							</a>
 							<a
 								href='mailto:buy@aurasveta.ru'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								className='flex items-center gap-2 text-card/80 transition-colors duration-180 hover:text-card'
 							>
 								<Mail className='h-4 w-4' />
 								buy@aurasveta.ru
@@ -107,7 +107,7 @@ export default function Footer() {
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-card/60 hover:text-card transition-colors'
+										className='text-sm text-card/60 transition-colors duration-180 hover:text-card'
 									>
 										{link.label}
 									</Link>
@@ -126,7 +126,7 @@ export default function Footer() {
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-card/60 hover:text-card transition-colors'
+										className='text-sm text-card/60 transition-colors duration-180 hover:text-card'
 									>
 										{link.label}
 									</Link>
@@ -146,7 +146,7 @@ export default function Footer() {
 									<li key={brand}>
 										<Link
 											href={`/brands/${brand.toLowerCase().replace(/\s/g, '-')}`}
-											className='text-sm text-card/60 hover:text-card transition-colors'
+											className='text-sm text-card/60 transition-colors duration-180 hover:text-card'
 										>
 											{brand}
 										</Link>
@@ -163,7 +163,7 @@ export default function Footer() {
 								href='https://t.me/aurasveta'
 								target='_blank'
 								rel='noopener noreferrer'
-								className='inline-flex items-center gap-2 text-sm text-card/60 hover:text-card transition-colors'
+								className='inline-flex items-center gap-2 text-sm text-card/60 transition-colors duration-180 hover:text-card'
 							>
 								<Send className='h-4 w-4' />
 								Telegram
