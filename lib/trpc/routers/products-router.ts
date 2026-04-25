@@ -43,18 +43,29 @@ const productCardSelect = {
 const productCatalogSelect = {
 	...productCardSelect,
 	sku: true,
-	properties: { include: { property: true } },
+	properties: {
+		include: {
+			property: true,
+			propertyValue: true,
+		},
+	},
 } as const satisfies Prisma.ProductSelect
 
 const productDetailInclude = {
 	category: true,
 	images: orderedProductImages,
-	properties: { include: { property: true } },
+	properties: {
+		include: {
+			property: true,
+			propertyValue: true,
+		},
+	},
 } as const satisfies Prisma.ProductInclude
 
+// Input schema: pass propertyValueId directly
 const propertyValueSchema = z.object({
+	propertyValueId: z.string(),
 	propertyId: z.string(),
-	value: z.string(),
 })
 
 const incomingProductImageSchema = z.union([
@@ -129,8 +140,8 @@ function toIncomingProductImages(
 }
 
 function resolvePropertyValues(input: {
-	properties?: Array<{ propertyId: string; value: string }>
-	propertyValues?: Array<{ propertyId: string; value: string }>
+	properties?: Array<{ propertyValueId: string; propertyId: string }>
+	propertyValues?: Array<{ propertyValueId: string; propertyId: string }>
 }) {
 	return input.properties ?? input.propertyValues ?? []
 }
@@ -260,8 +271,8 @@ export const productsRouter = createTRPCRouter({
 			andConditions.push({
 				properties: {
 					some: {
-						property: { key: 'free_shipping' },
-						OR: TRUE_VALUES.map(value => ({ value })),
+						property: { slug: 'free_shipping' },
+						propertyValue: { value: { in: TRUE_VALUES } },
 					},
 				},
 			})
@@ -269,13 +280,13 @@ export const productsRouter = createTRPCRouter({
 
 		if (properties && Object.keys(properties).length > 0) {
 			const propertyOr = Object.entries(properties).flatMap(
-				([key, rawValue]) => {
-					const values = Array.isArray(rawValue) ? rawValue : [rawValue]
-					return values
-						.filter(value => value && value.trim().length > 0)
-						.map(value => ({
-							property: { key },
-							value,
+				([slug, rawSlugs]) => {
+					const slugs = Array.isArray(rawSlugs) ? rawSlugs : [rawSlugs]
+					return slugs
+						.filter(s => s && s.trim().length > 0)
+						.map(valueSlug => ({
+							property: { slug },
+							propertyValue: { slug: valueSlug },
 						}))
 				},
 			)
@@ -362,7 +373,7 @@ export const productsRouter = createTRPCRouter({
 							key: string
 							label: string
 							type: string
-							options: Array<{ value: string; label: string; count: number }>
+							options: Array<{ value: string; label: string; count: number; photo?: string | null }>
 						}>,
 					}
 				}
@@ -392,8 +403,8 @@ export const productsRouter = createTRPCRouter({
 							...baseWhere,
 							properties: {
 								some: {
-									property: { key: 'free_shipping' },
-									OR: TRUE_VALUES.map(value => ({ value })),
+									property: { slug: 'free_shipping' },
+									propertyValue: { value: { in: TRUE_VALUES } },
 								},
 							},
 						},
@@ -401,14 +412,8 @@ export const productsRouter = createTRPCRouter({
 					ctx.prisma.productPropertyValue.findMany({
 						where: { product: baseWhere },
 						select: {
-							value: true,
-							property: {
-								select: {
-									key: true,
-									name: true,
-									type: true,
-								},
-							},
+							property: { select: { slug: true, name: true } },
+							propertyValue: { select: { value: true, slug: true, photo: true } },
 						},
 					}),
 				])
@@ -433,30 +438,37 @@ export const productsRouter = createTRPCRouter({
 					key: string
 					label: string
 					type: string
-					options: Map<string, number>
+					options: Map<string, { count: number; photo?: string | null }>
 				}
 			>()
 
 			for (const row of values) {
-				const normalizedValue = row.value?.trim()
-				if (!normalizedValue) continue
+				const valueSlug = row.propertyValue.slug?.trim()
+				if (!valueSlug) continue
 
-				const propertyKey = row.property.key
+				const propertyKey = row.property.slug
 				const existing = grouped.get(propertyKey)
 				if (!existing) {
 					grouped.set(propertyKey, {
 						key: propertyKey,
 						label: row.property.name,
-						type: row.property.type,
-						options: new Map([[normalizedValue, 1]]),
+						type: 'SELECT',
+						options: new Map([
+							[valueSlug, { count: 1, photo: row.propertyValue.photo }],
+						]),
 					})
 					continue
 				}
 
-				existing.options.set(
-					normalizedValue,
-					(existing.options.get(normalizedValue) ?? 0) + 1,
-				)
+				const existing2 = existing.options.get(valueSlug)
+				if (existing2) {
+					existing2.count++
+				} else {
+					existing.options.set(valueSlug, {
+						count: 1,
+						photo: row.propertyValue.photo,
+					})
+				}
 			}
 
 			const propertyFilters = [...grouped.values()]
@@ -465,10 +477,11 @@ export const productsRouter = createTRPCRouter({
 					label: group.label,
 					type: group.type,
 					options: [...group.options.entries()]
-						.map(([value, count]) => ({
-							value,
-							label: value,
+						.map(([slug, { count, photo }]) => ({
+							value: slug,
+							label: slug,
 							count,
+							photo,
 						}))
 						.sort(
 							(a, b) => b.count - a.count || a.label.localeCompare(b.label),
@@ -562,9 +575,9 @@ export const productsRouter = createTRPCRouter({
 					properties:
 						resolvedProperties.length > 0
 							? {
-									create: resolvedProperties.map(property => ({
-										propertyId: property.propertyId,
-										value: property.value,
+									create: resolvedProperties.map(pv => ({
+										propertyValueId: pv.propertyValueId,
+										propertyId: pv.propertyId,
 									})),
 								}
 							: undefined,
@@ -629,10 +642,10 @@ export const productsRouter = createTRPCRouter({
 
 						if (resolvedProperties.length > 0) {
 							await tx.productPropertyValue.createMany({
-								data: resolvedProperties.map(property => ({
+								data: resolvedProperties.map(pv => ({
 									productId: id,
-									propertyId: property.propertyId,
-									value: property.value,
+									propertyValueId: pv.propertyValueId,
+									propertyId: pv.propertyId,
 								})),
 							})
 						}
