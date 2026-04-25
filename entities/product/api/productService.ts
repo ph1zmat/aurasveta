@@ -130,13 +130,13 @@ export async function getQuickSpecs(
 ): Promise<SpecItem[]> {
 	const values = await prisma.productPropertyValue.findMany({
 		where: { productId: String(productId) },
-		include: { property: true },
+		include: { property: true, propertyValue: true },
 		orderBy: { property: { name: 'asc' } },
 		take: 4,
 	})
 	return values.map((value: (typeof values)[number]) => ({
 		label: value.property.name,
-		value: value.value,
+		value: value.propertyValue.value,
 		tooltip: true,
 	}))
 }
@@ -149,7 +149,7 @@ export async function getProductSpecGroups(
 ): Promise<SpecGroup[]> {
 	const values = await prisma.productPropertyValue.findMany({
 		where: { productId: String(productId) },
-		include: { property: true },
+		include: { property: true, propertyValue: true },
 		orderBy: { property: { name: 'asc' } },
 	})
 	if (values.length === 0) return []
@@ -158,7 +158,7 @@ export async function getProductSpecGroups(
 			title: 'Характеристики',
 			rows: values.map((value: (typeof values)[number]) => ({
 				label: value.property.name,
-				value: value.value,
+				value: value.propertyValue.value,
 			})),
 		},
 	]
@@ -174,20 +174,20 @@ export async function getCompareSpecs(
 
 	const values = await prisma.productPropertyValue.findMany({
 		where: { productId: { in: productIds } },
-		include: { property: true },
+		include: { property: true, propertyValue: true },
 		orderBy: { property: { name: 'asc' } },
 	})
 
-	// Group by property key
+	// Group by property slug
 	const propMap = new Map<
 		string,
 		{ label: string; values: Map<string, string> }
 	>()
 	for (const v of values) {
-		if (!propMap.has(v.property.key)) {
-			propMap.set(v.property.key, { label: v.property.name, values: new Map() })
+		if (!propMap.has(v.property.slug)) {
+			propMap.set(v.property.slug, { label: v.property.name, values: new Map() })
 		}
-		propMap.get(v.property.key)!.values.set(v.productId, v.value)
+		propMap.get(v.property.slug)!.values.set(v.productId, v.propertyValue.value)
 	}
 
 	const rows = Array.from(propMap.values()).map(prop => ({

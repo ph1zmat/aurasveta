@@ -240,33 +240,79 @@ async function seedCategories() {
 	return categoryIds
 }
 
-async function seedProperties() {
-	const propertyIds = new Map<string, string>()
+async function seedProperties(catalogProducts: ReturnType<typeof createCatalogProducts>) {
+	// propertyKey → { propertyId, valueString → propertyValueId }
+	const propertyValueMap = new Map<string, { propertyId: string; values: Map<string, string> }>()
 
-	for (const property of PROPERTY_DEFINITIONS) {
-		const createdProperty = await prisma.property.create({
-			data: {
-				key: property.key,
-				name: property.name,
-				type: property.type,
-				...(property.options
-					? { options: property.options as Prisma.InputJsonValue }
-					: {}),
-			},
-		})
-
-		propertyIds.set(property.key, createdProperty.id)
+	// Collect all unique values per property key from catalog products
+	const uniqueValuesByKey = new Map<string, Set<string>>()
+	for (const product of catalogProducts) {
+		for (const pv of product.propertyValues) {
+			const serialized = serializePropertyValue(pv.value)
+			if (!uniqueValuesByKey.has(pv.key)) uniqueValuesByKey.set(pv.key, new Set())
+			uniqueValuesByKey.get(pv.key)!.add(serialized)
+		}
 	}
 
-	return propertyIds
+	for (const propertyDef of PROPERTY_DEFINITIONS) {
+		const createdProperty = await prisma.property.create({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			data: {
+				slug: propertyDef.key,
+				name: propertyDef.name,
+			} as any,
+		})
+
+		const valueMap = new Map<string, string>()
+
+		// Build ordered value list: predefined options first, then dynamic values from products
+		const orderedValues: string[] = []
+		if (propertyDef.options) {
+			for (const opt of propertyDef.options) orderedValues.push(opt)
+		}
+		// Add any product values not in predefined options
+		const dynamicValues = uniqueValuesByKey.get(propertyDef.key) ?? new Set()
+		for (const v of dynamicValues) {
+			if (!orderedValues.includes(v)) orderedValues.push(v)
+		}
+
+		if (orderedValues.length > 0) {
+			for (let i = 0; i < orderedValues.length; i++) {
+				const val = orderedValues[i]!
+				const slug = val
+					.toLowerCase()
+					.replace(/[^\w\u0400-\u04FF]+/gi, '_')
+					.replace(/^_+|_+$/g, '')
+					.slice(0, 80) || `value_${i}`
+
+				// Ensure uniqueness within property
+				const uniqueSlug = valueMap.has(slug) ? `${slug}_${i}` : slug
+
+				const createdValue = await prisma.propertyValue.create({
+					data: {
+						propertyId: createdProperty.id,
+						value: val,
+						slug: uniqueSlug,
+						order: i,
+					},
+				})
+				valueMap.set(val, createdValue.id)
+			}
+		}
+
+		propertyValueMap.set(propertyDef.key, { propertyId: createdProperty.id, values: valueMap })
+	}
+
+	return propertyValueMap
 }
 
 async function seedProducts(params: {
 	adminId: string
 	categoryIds: Map<string, string>
-	propertyIds: Map<string, string>
+	propertyValueMap: Map<string, { propertyId: string; values: Map<string, string> }>
+	catalogProducts: ReturnType<typeof createCatalogProducts>
 }) {
-	const catalogProducts = createCatalogProducts()
+	const { catalogProducts } = params
 	const productRows: Prisma.ProductCreateManyInput[] = []
 
 	for (const product of catalogProducts) {
@@ -334,17 +380,25 @@ async function seedProducts(params: {
 		}
 
 		for (const propertyValue of product.propertyValues) {
-			const propertyId = params.propertyIds.get(propertyValue.key)
+			const propEntry = params.propertyValueMap.get(propertyValue.key)
 
-			if (!propertyId) {
+			if (!propEntry) {
 				throw new Error(`Property not found for key: ${propertyValue.key}`)
+			}
+
+			const serialized = serializePropertyValue(propertyValue.value)
+			const propertyValueId = propEntry.values.get(serialized)
+
+			if (!propertyValueId) {
+				throw new Error(`PropertyValue not found for key=${propertyValue.key}, value=${serialized}`)
 			}
 
 			resolvedPropertyRows.push({
 				productId,
-				propertyId,
-				value: serializePropertyValue(propertyValue.value),
-			})
+				propertyId: propEntry.propertyId,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				propertyValueId,
+			} as any)
 		}
 	}
 
@@ -528,13 +582,15 @@ async function main() {
 	const categoryIds = await seedCategories()
 	console.log(`✅ Categories created: ${categoryIds.size}`)
 
-	const propertyIds = await seedProperties()
-	console.log(`✅ Properties created: ${propertyIds.size}`)
+	const catalogProducts = createCatalogProducts()
+	const propertyValueMap = await seedProperties(catalogProducts)
+	console.log(`✅ Properties created: ${propertyValueMap.size}`)
 
 	const products = await seedProducts({
 		adminId: admin.id,
 		categoryIds,
-		propertyIds,
+		propertyValueMap,
+		catalogProducts,
 	})
 	console.log(`✅ Products created: ${products.length}`)
 
