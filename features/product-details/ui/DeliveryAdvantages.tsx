@@ -7,26 +7,26 @@ const advantages = [
 		icon: Truck,
 		title: 'Доставка по Москве от 3 000 руб. - бесплатно',
 		description: 'Доставим товар прямо до двери в удобное для вас время.',
-		titleClass: 'text-primary',
+		titleClass: 'text-accent',
 	},
 	{
 		icon: ShieldCheck,
 		title: 'Расширенная гарантия',
 		description:
 			'18 месяцев гарантия от поставщика + 12 месяцев от магазина DonPlafon',
-		titleClass: 'text-primary',
+		titleClass: 'text-accent',
 	},
 	{
 		icon: RotateCcw,
 		title: 'Увеличенный срок возврата',
 		description: 'Примем товар в течение 35 дней',
-		titleClass: 'text-primary',
+		titleClass: 'text-accent',
 	},
 	{
 		icon: CreditCard,
 		title: 'Оплата с помощью бонусов СберСпасибо',
 		description: 'Оплачивайте до 99% стоимости в обмен на бонусы СберСпасибо',
-		titleClass: 'text-primary',
+		titleClass: 'text-accent',
 	},
 ]
 

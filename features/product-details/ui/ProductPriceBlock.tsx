@@ -29,20 +29,20 @@ export default function ProductPriceBlock({
 	foundCheaper = true,
 	cartAction,
 }: ProductPriceBlockProps) {
-	return (
-		<Card className='bg-muted border-0 rounded-[20px]'>
+		return (
+		<Card className='bg-muted border border-border/40 rounded-[20px]'>
 			{/* Original badge */}
 			{isOriginal && (
 				<span className='mb-4 inline-flex items-center gap-1 rounded-sm border border-border px-3 py-1 text-xs font-medium text-foreground'>
 					Оригинальный товар
-					<Check className='h-3.5 w-3.5 text-primary' strokeWidth={2} />
+					<Check className='h-3.5 w-3.5 text-accent' strokeWidth={2} />
 				</span>
 			)}
 
 			{/* Price row */}
 			<div className='mb-2 flex items-center justify-between'>
 				<div className='flex items-baseline gap-3'>
-					<span className='text-3xl font-semibold text-foreground'>
+					<span className='text-4xl font-bold text-foreground'>
 						{price.toLocaleString('ru-RU')} ₽
 					</span>
 					{oldPrice && (
@@ -52,12 +52,12 @@ export default function ProductPriceBlock({
 					)}
 				</div>
 				{discountPercent && bonusAmount ? (
-					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-foreground'>
+					<span className='inline-flex items-center gap-1 rounded-full bg-accent/12 border border-accent/30 px-2.5 py-1 text-xs font-medium text-accent'>
 						{discountPercent}%
 						<span className='font-semibold'>
 							{bonusAmount.toLocaleString('ru-RU')}
 						</span>
-						<span className='text-primary'>₽</span>
+						<span>₽</span>
 					</span>
 				) : null}
 			</div>
@@ -83,8 +83,8 @@ export default function ProductPriceBlock({
 
 			{/* Availability */}
 			{availability && (
-				<p className='mt-4 flex items-center gap-2 text-sm tracking-wider text-muted-foreground'>
-					<Check className='h-4 w-4 text-muted-foreground' strokeWidth={1.5} />
+				<p className='mt-4 flex items-center gap-2 text-sm tracking-wider text-foreground'>
+					<Check className='h-4 w-4 text-accent' strokeWidth={1.5} />
 					{availability}
 				</p>
 			)}

@@ -98,10 +98,10 @@ export default function ProductTabs({ specGroups }: ProductTabsProps) {
 						key={tab}
 						onClick={() => setActive(tab)}
 						className={cn(
-							'pb-3 text-sm font-medium transition-colors',
-							active === tab
-								? 'border-b-2 border-foreground text-foreground'
-								: 'text-muted-foreground hover:text-foreground',
+						'pb-3 text-sm font-medium transition-colors duration-180',
+						active === tab
+							? 'border-b-2 border-accent text-foreground'
+							: 'text-muted-foreground hover:text-accent',
 						)}
 					>
 						{tab}

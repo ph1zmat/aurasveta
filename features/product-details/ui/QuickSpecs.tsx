@@ -46,11 +46,11 @@ export default function QuickSpecs({
 			</Card>
 			<Link
 				href={allSpecsHref}
-				className='group/link mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground transition-colors hover:text-primary'
+				className='group/link mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground transition-colors duration-180 hover:text-accent'
 			>
 				Все характеристики
 				<ChevronRight
-					className='h-3.5 w-3.5 transition-transform duration-200 group-hover/link:translate-x-0.5'
+					className='h-3.5 w-3.5 transition-transform duration-180 group-hover/link:translate-x-0.5'
 					strokeWidth={1.5}
 				/>
 			</Link>

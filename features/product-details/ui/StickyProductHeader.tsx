@@ -49,7 +49,7 @@ export default function StickyProductHeader({
 	if (!visible) return null
 
 	return (
-		<div className='fixed top-0 left-0 right-0 z-50 hidden border-b border-border bg-muted shadow-sm md:block'>
+		<div className='fixed top-0 left-0 right-0 z-50 hidden border-b border-border bg-background shadow-sm md:block'>
 			<div className='container mx-auto flex max-w-7xl items-center gap-4 py-2'>
 				{/* Product thumbnail */}
 				<div className='relative h-10 w-10 shrink-0'>
@@ -63,16 +63,16 @@ export default function StickyProductHeader({
 
 				{/* Price + bonus */}
 				<div className='flex items-center gap-2'>
-					<span className='text-lg font-semibold text-foreground'>
+					<span className='text-xl font-bold text-foreground'>
 						{price.toLocaleString('ru-RU')} ₽
 					</span>
 					{discountPercent && bonusAmount ? (
-						<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-normal text-foreground'>
+						<span className='inline-flex items-center gap-1 rounded-full bg-accent/12 border border-accent/30 px-2 py-0.5 text-[11px] font-medium text-accent'>
 							{discountPercent}%
 							<span className='font-semibold'>
 								{bonusAmount.toLocaleString('ru-RU')}
 							</span>
-							<span className='text-primary'>₽</span>
+							<span>₽</span>
 						</span>
 					) : null}
 				</div>
