@@ -129,8 +129,8 @@ function toIncomingProductImages(
 }
 
 function resolvePropertyValues(input: {
-	properties?: Array<{ propertyId: string; value: string }>
-	propertyValues?: Array<{ propertyId: string; value: string }>
+	properties?: Array<{ propertyId: string; propertyValueId: string }>
+	propertyValues?: Array<{ propertyId: string; propertyValueId: string }>
 }) {
 	return input.properties ?? input.propertyValues ?? []
 }
@@ -386,8 +386,8 @@ export const productsRouter = createTRPCRouter({
 							...baseWhere,
 							properties: {
 								some: {
-									property: { key: 'free_shipping' },
-									OR: TRUE_VALUES.map(value => ({ value })),
+									property: { slug: 'free_shipping' },
+									propertyValue: { value: { in: TRUE_VALUES } },
 								},
 							},
 						},
@@ -395,12 +395,16 @@ export const productsRouter = createTRPCRouter({
 					ctx.prisma.productPropertyValue.findMany({
 						where: { product: baseWhere },
 						select: {
-							value: true,
 							property: {
 								select: {
-									key: true,
+									slug: true,
 									name: true,
-									type: true,
+								},
+							},
+							propertyValue: {
+								select: {
+									value: true,
+									slug: true,
 								},
 							},
 						},
@@ -457,6 +461,7 @@ export const productsRouter = createTRPCRouter({
 			const propertyFilters = [...grouped.values()]
 				.map(group => ({
 					key: group.key,
+					type: 'string',
 					label: group.label,
 					options: [...group.options.entries()]
 						.map(([slug, { label, count }]) => ({
@@ -739,15 +744,14 @@ export const productsRouter = createTRPCRouter({
 		.query(async ({ ctx, input: productId }) => {
 			const values = await ctx.prisma.productPropertyValue.findMany({
 				where: { productId },
-				include: { property: true },
+				include: { property: true, propertyValue: true },
 				orderBy: { property: { name: 'asc' } },
 			})
 
 			return values.map(value => ({
-				key: value.property.key,
+				key: value.property.slug,
 				label: value.property.name,
-				value: value.value,
-				type: value.property.type,
+				value: value.propertyValue.value,
 			}))
 		}),
 

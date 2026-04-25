@@ -22,7 +22,7 @@ export interface SidebarStaticFilterItem {
 export interface SidebarPropertyFilterItem {
 	key: string
 	label: string
-	type: string
+	type?: string
 	options: Array<{
 		value: string
 		label: string

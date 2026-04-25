@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 
@@ -30,13 +31,16 @@ export const homeSectionRouter = createTRPCRouter({
 			z.object({
 				sectionTypeId: z.string(),
 				title: z.string().optional(),
-				config: z.record(z.unknown()).optional().default({}),
+				config: z.record(z.string(), z.unknown()).optional().default({}),
 				order: z.number().int().default(0),
 				isActive: z.boolean().optional().default(true),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const result = await ctx.prisma.homeSection.create({ data: input })
+			const { config, ...rest } = input
+			const result = await ctx.prisma.homeSection.create({
+				data: { ...rest, config: config as Prisma.InputJsonValue },
+			})
 			revalidatePath('/', 'page')
 			return result
 		}),
@@ -46,16 +50,21 @@ export const homeSectionRouter = createTRPCRouter({
 			z.object({
 				id: z.string(),
 				title: z.string().optional(),
-				config: z.record(z.unknown()).optional(),
+				config: z.record(z.string(), z.unknown()).optional(),
 				order: z.number().int().optional(),
 				isActive: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, ...rest } = input
+			const { id, config, ...rest } = input
 			const result = await ctx.prisma.homeSection.update({
 				where: { id },
-				data: rest,
+				data: {
+					...rest,
+					...(config !== undefined
+						? { config: config as Prisma.InputJsonValue }
+						: {}),
+				},
 			})
 			revalidatePath('/', 'page')
 			return result

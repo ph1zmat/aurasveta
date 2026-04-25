@@ -11,13 +11,15 @@ import BrandsCarouselServer from './BrandsCarouselServer'
 import Advantages from './Advantages'
 import AboutSection from './AboutSection'
 
+import type { Prisma } from '@prisma/client'
+
 interface SectionData {
 	id: string
 	sectionType: {
 		component: string
 	}
 	title?: string | null
-	config: Record<string, unknown>
+	config: Prisma.JsonValue
 	isActive: boolean
 	order: number
 }
