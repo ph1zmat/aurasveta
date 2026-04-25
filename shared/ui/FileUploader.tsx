@@ -115,7 +115,6 @@ export default function FileUploader({
 
 			if (inputRef.current) inputRef.current.value = ''
 		},
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[onUploaded],
 	)
 
