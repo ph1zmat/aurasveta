@@ -69,7 +69,7 @@ export default function CatalogCategoryCarousel({
 									<li>
 										<Link
 											href={cat.href}
-											className='text-sm text-foreground hover:text-primary transition-colors'
+											className='text-sm text-foreground hover:text-accent transition-colors'
 										>
 											Все товары категории
 										</Link>
@@ -78,7 +78,7 @@ export default function CatalogCategoryCarousel({
 										<li key={sub.href}>
 											<Link
 												href={sub.href}
-												className='text-sm text-foreground hover:text-primary transition-colors'
+												className='text-sm text-foreground hover:text-accent transition-colors'
 											>
 												{sub.name}
 											</Link>

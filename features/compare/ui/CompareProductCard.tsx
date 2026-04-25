@@ -63,7 +63,7 @@ export default function CompareProductCard({
 
 			{/* Name */}
 			<Link href={href} className='mb-2'>
-				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
+				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-accent'>
 					{name}
 				</h3>
 			</Link>
@@ -73,7 +73,7 @@ export default function CompareProductCard({
 				<span
 					className={cn(
 						'text-base font-semibold',
-						hasDiscount ? 'text-primary' : 'text-foreground',
+						hasDiscount ? 'text-accent' : 'text-foreground',
 					)}
 				>
 					{price.toLocaleString('ru-RU')} руб.

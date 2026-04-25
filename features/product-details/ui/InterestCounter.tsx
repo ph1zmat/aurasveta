@@ -12,7 +12,7 @@ export default function InterestCounter({ views }: InterestCounterProps) {
 			Этим товаром интересуются!{' '}
 			<Link
 				href='#'
-				className='text-foreground underline underline-offset-2 transition-colors hover:text-primary'
+				className='text-foreground underline underline-offset-2 transition-colors hover:text-accent'
 			>
 				Посмотрели {views} человека
 			</Link>

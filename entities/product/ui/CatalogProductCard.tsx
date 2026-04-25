@@ -113,7 +113,7 @@ export default function CatalogProductCard({
 						<span className='font-semibold'>
 							{bonusAmount.toLocaleString('ru-RU')}
 						</span>
-						<span className='text-primary'>₽</span>
+						<span className='text-accent'>₽</span>
 					</span>
 				) : null}
 			</div>

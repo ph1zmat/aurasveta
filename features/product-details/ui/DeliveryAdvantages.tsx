@@ -39,7 +39,7 @@ export default function DeliveryAdvantages() {
 					className='flex gap-3 rounded-sm px-2 py-3 transition-colors'
 				>
 					<adv.icon
-						className='mt-0.5 h-5 w-5 shrink-0 text-primary'
+					className='mt-0.5 h-5 w-5 shrink-0 text-accent'
 						strokeWidth={1.5}
 					/>
 					<div>

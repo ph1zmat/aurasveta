@@ -328,7 +328,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 										<Link
 											key={sub.id}
 											href={`/catalog/${sub.slug}`}
-											className='rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground'
+											className='rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-card'
 										>
 											{sub.name}
 										</Link>

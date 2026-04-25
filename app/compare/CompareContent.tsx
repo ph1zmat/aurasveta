@@ -413,7 +413,7 @@ export default function CompareContent() {
 													<span
 														className={cn(
 															'text-base font-semibold',
-															hasDiscount ? 'text-primary' : 'text-foreground',
+															hasDiscount ? 'text-accent' : 'text-foreground',
 														)}
 													>
 														{product.price.toLocaleString('ru-RU')} руб.

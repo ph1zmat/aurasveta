@@ -14,7 +14,7 @@ export default function DesignProjectBanner({
 				Есть дизайн проект?{' '}
 				<Link
 					href={href}
-					className='font-normal text-foreground underline underline-offset-2 transition-colors hover:text-primary'
+					className='font-normal text-foreground underline underline-offset-2 transition-colors hover:text-accent'
 				>
 					Пришлите нам
 				</Link>

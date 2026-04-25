@@ -34,7 +34,7 @@ export default function Pagination({
 			<button
 				disabled={currentPage === 1}
 				onClick={() => onPageChange?.(currentPage - 1)}
-				className='p-2 text-foreground transition-colors hover:text-primary disabled:text-muted-foreground'
+			className='p-2 text-foreground transition-colors hover:text-accent disabled:text-muted-foreground'
 				aria-label='Предыдущая страница'
 			>
 				<ChevronLeft className='h-4 w-4' strokeWidth={1.5} />
@@ -67,7 +67,7 @@ export default function Pagination({
 			<button
 				disabled={currentPage === totalPages}
 				onClick={() => onPageChange?.(currentPage + 1)}
-				className='p-2 text-foreground transition-colors hover:text-primary disabled:text-muted-foreground'
+			className='p-2 text-foreground transition-colors hover:text-accent disabled:text-muted-foreground'
 				aria-label='Следующая страница'
 			>
 				<ChevronRight className='h-4 w-4' strokeWidth={1.5} />

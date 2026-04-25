@@ -17,7 +17,7 @@ export default function SectionHeader({
 				{title}
 			</h2>
 			{href && linkText && (
-				<Link href={href} className='text-sm text-primary hover:underline'>
+				<Link href={href} className='text-sm text-accent hover:underline'>
 					{linkText}
 				</Link>
 			)}

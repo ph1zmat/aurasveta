@@ -197,7 +197,7 @@ export default function AdminNotificationsWidget() {
 					type='button'
 					onClick={enable}
 					disabled={busy}
-					className='flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-60'
+					className='flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-card disabled:opacity-60'
 				>
 					Включить
 				</button>

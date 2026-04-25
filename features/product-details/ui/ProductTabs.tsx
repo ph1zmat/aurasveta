@@ -22,7 +22,7 @@ function SpecRowCell({ row }: { row: SpecRow }) {
 				{row.href ? (
 					<Link
 						href={row.href}
-						className='underline underline-offset-2 hover:text-primary transition-colors'
+						className='underline underline-offset-2 hover:text-accent transition-colors'
 					>
 						{row.value}
 					</Link>

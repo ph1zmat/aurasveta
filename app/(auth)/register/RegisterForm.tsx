@@ -187,7 +187,7 @@ export default function RegisterForm() {
 								)}`
 							: '/login'
 					}
-					className='text-primary hover:underline'
+					className='text-accent hover:underline'
 				>
 					Войти
 				</Link>

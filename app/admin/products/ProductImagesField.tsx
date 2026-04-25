@@ -224,7 +224,7 @@ export default function ProductImagesField({
 							key={image.id ?? `${image.key}-${index}`}
 							className={`overflow-hidden rounded-xl border bg-muted/20 ${
 								image.isMain
-									? 'border-primary ring-1 ring-primary/40'
+									? 'border-accent ring-1 ring-accent/40'
 									: 'border-border'
 							}`}
 						>
@@ -239,7 +239,7 @@ export default function ProductImagesField({
 									<span
 										className={`rounded-full px-2 py-1 text-[10px] font-medium ${
 											image.isMain
-												? 'bg-primary text-primary-foreground'
+												? 'bg-accent text-card'
 												: 'bg-black/50 text-white'
 										}`}
 									>

@@ -34,7 +34,7 @@ export default function RecentlyViewedMini({ items }: RecentlyViewedMiniProps) {
 								className='object-contain p-2 transition-transform duration-300 group-hover:scale-105'
 							/>
 						</div>
-						<p className='line-clamp-2 text-xs tracking-wider text-foreground transition-colors group-hover:text-primary'>
+						<p className='line-clamp-2 text-xs tracking-wider text-foreground transition-colors group-hover:text-accent'>
 							{item.name}
 						</p>
 					</Link>

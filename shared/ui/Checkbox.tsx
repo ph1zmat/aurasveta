@@ -17,7 +17,7 @@ const checkboxVariants = cva('rounded-xs border border-border accent-primary', {
 		size: {
 			sm: 'h-3.5 w-3.5',
 			default:
-				'h-4 w-4 bg-card text-primary focus:ring-1 focus:ring-ring',
+				'h-4 w-4 bg-card text-accent focus:ring-1 focus:ring-ring',
 		},
 	},
 	defaultVariants: {

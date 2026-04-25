@@ -69,7 +69,7 @@ export default function WebhooksClient() {
 										key={event}
 										className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors ${
 											events.includes(event)
-												? 'border-primary bg-primary/10 text-primary'
+												? 'border-accent bg-accent/10 text-accent'
 												: 'border-border text-muted-foreground'
 										}`}
 									>

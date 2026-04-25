@@ -20,7 +20,7 @@ export function CompareButton({ productId }: ProductActionsProps) {
 			variant='link'
 			size='inline-xs'
 			onClick={() => toggle(productId)}
-			className={cn(isActive && 'text-primary')}
+			className={cn(isActive && 'text-accent')}
 		>
 			<BarChart3 className='h-3.5 w-3.5' strokeWidth={1.5} />
 			{isActive ? 'В сравнении' : 'В сравнение'}

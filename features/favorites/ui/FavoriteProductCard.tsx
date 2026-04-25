@@ -56,7 +56,7 @@ export default function FavoriteProductCard({
 					<Heart className='h-4 w-4 fill-foreground text-foreground' />
 				</Button>
 				<Button variant='icon' aria-label='Сравнить' onClick={onToggleCompare}>
-					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-primary')} />
+					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-accent')} />
 				</Button>
 				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
@@ -83,7 +83,7 @@ export default function FavoriteProductCard({
 
 			{/* Name */}
 			<Link href={href} className='mb-1'>
-				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
+				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-accent'>
 					{name}
 				</h3>
 			</Link>
@@ -98,11 +98,11 @@ export default function FavoriteProductCard({
 			{/* Rating */}
 			{rating != null && reviewsCount != null && (
 				<div className='mb-2 flex items-center gap-1.5'>
-					<Star className='h-3.5 w-3.5 fill-primary text-primary' />
+					<Star className='h-3.5 w-3.5 fill-accent text-accent' />
 					<span className='text-xs font-medium text-foreground'>{rating}</span>
 					<Link
 						href={`${href}#reviews`}
-						className='text-xs text-foreground underline underline-offset-2 transition-colors hover:text-primary'
+						className='text-xs text-foreground underline underline-offset-2 transition-colors hover:text-accent'
 					>
 						{reviewsCount} оценок
 					</Link>
@@ -120,7 +120,7 @@ export default function FavoriteProductCard({
 						<span className='font-semibold'>
 							{bonusAmount.toLocaleString('ru-RU')}
 						</span>
-						<span className='text-primary'>₽</span>
+						<span className='text-accent'>₽</span>
 					</span>
 				) : null}
 			</div>
@@ -136,7 +136,7 @@ export default function FavoriteProductCard({
 						<Link href={href}>В корзину</Link>
 					</Button>
 				)}
-				{inStock && <span className='text-xs text-primary'>{inStock}</span>}
+				{inStock && <span className='text-xs text-accent'>{inStock}</span>}
 			</div>
 		</div>
 	)

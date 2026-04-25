@@ -68,7 +68,7 @@ export default function CartSummary({
 						</span>
 						<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-foreground'>
 							{bonusAmount.toLocaleString('ru-RU')}
-							<span className='text-primary'>₽</span>
+							<span className='text-accent'>₽</span>
 						</span>
 					</div>
 				)} */}

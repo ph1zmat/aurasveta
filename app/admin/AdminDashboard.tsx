@@ -140,7 +140,7 @@ export default function AdminDashboard() {
 											{order.total.toLocaleString('ru-RU')} ₽
 										</td>
 										<td className='py-2'>
-											<span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
+											<span className='rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent'>
 												{order.status}
 											</span>
 										</td>

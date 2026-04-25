@@ -154,7 +154,7 @@ export default function LoginForm() {
 								)}`
 							: '/register'
 					}
-					className='text-primary hover:underline'
+					className='text-accent hover:underline'
 				>
 					Зарегистрироваться
 				</Link>
