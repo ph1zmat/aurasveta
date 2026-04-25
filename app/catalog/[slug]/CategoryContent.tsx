@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import Link from 'next/link'
 import { keepPreviousData } from '@tanstack/react-query'
+import SubcategoryCarousel from '@/features/catalog-filter/ui/SubcategoryCarousel'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import MobileFilterWrapper from '@/features/catalog-filter/ui/MobileFilterWrapper'
@@ -203,14 +203,14 @@ export default function CategoryContent({ slug }: { slug: string }) {
 				params.delete(key)
 			}
 		}
-		router.push(`${pathname}?${params.toString()}`)
+		router.replace(`${pathname}?${params.toString()}`, { scroll: false })
 	}
 
 	function resetFilters() {
 		const params = new URLSearchParams(searchParams.toString())
 		clearFilterParams(params)
 		params.set('page', '1')
-		router.push(`${pathname}?${params.toString()}`)
+		router.replace(`${pathname}?${params.toString()}`, { scroll: false })
 	}
 
 	function toggleStaticFilter(
@@ -245,7 +245,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 			params.delete(paramKey)
 		}
 		params.set('page', '1')
-		router.push(`${pathname}?${params.toString()}`)
+		router.replace(`${pathname}?${params.toString()}`, { scroll: false })
 	}
 
 	const hasActiveFilters =
@@ -320,21 +320,17 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							<ViewToggle />
 						</div>
 
-						{/* Subcategory chips */}
-						{subcategories.length > 0 && (
-							<div className='mb-4 flex flex-wrap gap-2'>
-								{subcategories.map(
-									(sub: { id: string; name: string; slug: string }) => (
-										<Link
-											key={sub.id}
-											href={`/catalog/${sub.slug}`}
-											className='rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground'
-										>
-											{sub.name}
-										</Link>
-									),
-								)}
-							</div>
+{/* Subcategory carousel */}
+					{subcategories.length > 0 && (
+						<SubcategoryCarousel
+							items={subcategories.map(
+								(sub: { id: string; name: string; slug: string; imageUrl?: string | null }) => ({
+									name: sub.name,
+									href: `/catalog/${sub.slug}`,
+									image: sub.imageUrl ?? undefined,
+								}),
+							)}
+						/>
 						)}
 
 						{/* Search */}
@@ -522,6 +518,15 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							totalPages={totalPages}
 							onPageChange={page => updateParams({ page: String(page) })}
 						/>
+
+						{/* Category description */}
+						{category?.description && (
+							<div className='mt-6 rounded-xl border border-border/60 bg-muted/20 px-5 py-4'>
+								<p className='text-sm leading-relaxed text-muted-foreground whitespace-pre-line'>
+									{category.description}
+								</p>
+							</div>
+						)}
 					</div>
 				</div>
 			</MobileFilterWrapper>
