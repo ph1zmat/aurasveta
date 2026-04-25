@@ -50,6 +50,7 @@ yarn-error.log*
 emulator_*.png
 screenshots/
 design-output.html
+/public/download
 
 # misc IDE / OS
 .idea/
