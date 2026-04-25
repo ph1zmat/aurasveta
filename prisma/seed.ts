@@ -506,6 +506,66 @@ async function seedBehavioralData(params: {
 	}
 }
 
+async function seedSectionTypes() {
+	const SECTION_TYPES = [
+		{ name: 'Баннер', component: 'HeroBanner' },
+		{ name: 'Популярные запросы', component: 'PopularQueries' },
+		{ name: 'Популярные категории', component: 'PopularCategories' },
+		{ name: 'Товары со скидкой', component: 'SaleProducts' },
+		{ name: 'По комнатам', component: 'RoomCategories' },
+		{ name: 'Новинки', component: 'NewProducts' },
+		{ name: 'Популярные товары', component: 'PopularProducts' },
+		{ name: 'Бренды', component: 'BrandsCarousel' },
+		{ name: 'Преимущества', component: 'Advantages' },
+		{ name: 'О компании', component: 'AboutSection' },
+		{ name: 'Недавно просмотренные', component: 'RecentlyViewed' },
+	]
+
+	const typeIds = new Map<string, string>()
+
+	for (const st of SECTION_TYPES) {
+		const created = await prisma.sectionType.upsert({
+			where: { component: st.component },
+			update: { name: st.name },
+			create: { name: st.name, component: st.component },
+		})
+		typeIds.set(st.component, created.id)
+	}
+
+	// Seed default HomeSection order (mirroring static fallback layout)
+	const DEFAULT_ORDER: string[] = [
+		'HeroBanner',
+		'PopularQueries',
+		'PopularCategories',
+		'SaleProducts',
+		'RoomCategories',
+		'NewProducts',
+		'PopularProducts',
+		'BrandsCarousel',
+		'Advantages',
+		'AboutSection',
+	]
+
+	// Clear existing sections to avoid duplicates on re-seed
+	await prisma.homeSection.deleteMany()
+
+	for (let i = 0; i < DEFAULT_ORDER.length; i++) {
+		const component = DEFAULT_ORDER[i]
+		const sectionTypeId = typeIds.get(component)
+		if (!sectionTypeId) continue
+
+		await prisma.homeSection.create({
+			data: {
+				sectionTypeId,
+				order: i + 1,
+				isActive: true,
+			},
+		})
+	}
+
+	return typeIds
+}
+
 async function main() {
 	console.log('🌱 Seeding database...')
 
@@ -584,6 +644,16 @@ async function main() {
 		existingTables,
 	})
 	console.log('✅ Product views and search queries created')
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'section_types',
+		label: 'section types',
+		action: async () => {
+			const typeIds = await seedSectionTypes()
+			console.log(`✅ SectionTypes created: ${typeIds.size}; HomeSections seeded`)
+		},
+	})
 
 	console.log('🎉 Seeding complete!')
 }

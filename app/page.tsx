@@ -2,26 +2,24 @@ import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/Header'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
+import DynamicSection from '@/widgets/home-sections/ui/DynamicSection'
+import RecentlyViewed from '@/widgets/home-sections/ui/RecentlyViewed'
+// Static fallback imports (used when no HomeSections are configured in DB)
 import HeroBanner from '@/widgets/home-sections/ui/HeroBanner'
 import PopularQueries from '@/widgets/home-sections/ui/PopularQueries'
 import PopularCategories from '@/widgets/home-sections/ui/PopularCategories'
 import SaleProducts from '@/widgets/home-sections/ui/SaleProducts'
 import RoomCategories from '@/widgets/home-sections/ui/RoomCategories'
 import NewProducts from '@/widgets/home-sections/ui/NewProducts'
-import BrandsCarousel from '@/widgets/home-sections/ui/BrandsCarousel'
+import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
+import BrandsCarouselServer from '@/widgets/home-sections/ui/BrandsCarouselServer'
 import Advantages from '@/widgets/home-sections/ui/Advantages'
 import AboutSection from '@/widgets/home-sections/ui/AboutSection'
-import RecentlyViewed from '@/widgets/home-sections/ui/RecentlyViewed'
-import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
 import ChatButton from '@/shared/ui/ChatButton'
 import Skeleton from '@/shared/ui/Skeleton'
 import { Suspense } from 'react'
 import { connection } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-type BrandRow = {
-	brand: string | null
-}
 
 function ProductGridSkeleton() {
 	return (
@@ -58,18 +56,13 @@ function CategoriesSkeleton() {
 export default async function Home() {
 	await connection()
 
-	const brandNames = await prisma.product.findMany({
-		where: { isActive: true, brand: { not: null } },
-		select: { brand: true },
-		distinct: ['brand'],
+	const activeSections = await prisma.homeSection.findMany({
+		where: { isActive: true },
+		orderBy: { order: 'asc' },
+		include: { sectionType: true },
 	})
-	const brands = brandNames
-		.map((product: BrandRow) => product.brand)
-		.filter((name: string | null): name is string => Boolean(name))
-		.map((name: string) => ({
-			name,
-			slug: name.toLowerCase().replace(/\s+/g, '-'),
-		}))
+
+	const useDynamic = activeSections.length > 0
 
 	return (
 		<div className='flex flex-col bg-background'>
@@ -77,22 +70,38 @@ export default async function Home() {
 				<TopBar />
 				<Header />
 				<CategoryNav />
-				<HeroBanner />
-				<PopularQueries />
-				<Suspense fallback={<CategoriesSkeleton />}>
-					<PopularCategories />
-				</Suspense>
-				<Suspense fallback={<ProductGridSkeleton />}>
-					<SaleProducts />
-				</Suspense>
-				<RoomCategories />
-				<Suspense fallback={<ProductGridSkeleton />}>
-					<NewProducts />
-				</Suspense>
-				<PopularProducts />
-				<BrandsCarousel brands={brands} />
-				<Advantages />
-				<AboutSection />
+
+				{useDynamic ? (
+					// Dynamic CMS-driven sections
+					<>
+						{activeSections.map(section => (
+							<DynamicSection key={section.id} section={section} />
+						))}
+					</>
+				) : (
+					// Static fallback layout (used when no HomeSections seeded)
+					<>
+						<HeroBanner />
+						<PopularQueries />
+						<Suspense fallback={<CategoriesSkeleton />}>
+							<PopularCategories />
+						</Suspense>
+						<Suspense fallback={<ProductGridSkeleton />}>
+							<SaleProducts />
+						</Suspense>
+						<RoomCategories />
+						<Suspense fallback={<ProductGridSkeleton />}>
+							<NewProducts />
+						</Suspense>
+						<PopularProducts />
+						<Suspense fallback={<Skeleton className='h-24 w-full rounded-xl' />}>
+							<BrandsCarouselServer />
+						</Suspense>
+						<Advantages />
+						<AboutSection />
+					</>
+				)}
+
 				<RecentlyViewed />
 			</main>
 
@@ -101,3 +110,4 @@ export default async function Home() {
 		</div>
 	)
 }
+
