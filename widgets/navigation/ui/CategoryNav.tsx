@@ -39,7 +39,7 @@ export default function CategoryNav() {
 	}, [])
 
 	return (
-		<nav className='hidden md:block relative border-t border-b border-foreground'>
+		<nav className='hidden md:block relative border-t-2 border-b border-foreground border-b-border/50'>
 			<div className='mx-auto max-w-7xl px-4'>
 				<ul className='flex items-stretch overflow-x-auto scrollbar-hide'>
 					{categories.map(cat => (
@@ -49,18 +49,18 @@ export default function CategoryNav() {
 							onMouseEnter={() => openDropdown(cat.id)}
 							onMouseLeave={closeDropdown}
 						>
+							{/* accent variant → copper --nl-line-active underline; destructive variant via lineClassName override */}
 							<UnderlineAnimation
 								className='flex w-full'
-								lineClassName={
-									cat.highlight ? 'bg-destructive' : 'bg-foreground'
-								}
+								variant={cat.highlight ? 'default' : 'accent'}
+								lineClassName={cat.highlight ? '!bg-destructive' : undefined}
 							>
 								<Link
 									href={cat.href}
 									className={cn(
-										'flex w-full items-center justify-center px-3 py-2 text-xs font-normal tracking-wider transition-colors',
+										'flex w-full items-center justify-center px-3 py-2.5 text-xs font-medium tracking-wider transition-colors duration-180',
 										cat.highlight ? 'text-destructive' : 'text-foreground',
-										activeId === cat.id && !cat.highlight && 'text-primary',
+										activeId === cat.id && !cat.highlight && 'text-accent',
 									)}
 								>
 									{cat.name}

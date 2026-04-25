@@ -19,11 +19,11 @@ const rightLinks = [
 
 export default function TopBar() {
 	return (
-		<div className='hidden md:block text-sm'>
-			<div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-2'>
+		<div className='hidden md:block text-sm border-b border-border/50'>
+			<div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5'>
 				<div className='flex items-center gap-6'>
-					<button className='flex items-center gap-1 text-foreground hover:text-primary transition-colors'>
-						<MapPin className='h-4 w-4' />
+					<button className='flex items-center gap-1 text-foreground hover:text-accent transition-colors duration-180'>
+						<MapPin className='h-3.5 w-3.5' />
 						<span>Мозырь</span>
 					</button>
 					<nav className='hidden md:flex items-center gap-4'>
@@ -31,7 +31,7 @@ export default function TopBar() {
 							<Link
 								key={link.href}
 								href={link.href}
-								className='text-muted-foreground hover:text-foreground transition-colors'
+								className='text-muted-foreground hover:text-foreground transition-colors duration-180'
 							>
 								{link.label}
 							</Link>
@@ -42,9 +42,9 @@ export default function TopBar() {
 				<div className='flex items-center gap-6'>
 					<a
 						href='tel:+375292292322'
-						className='flex items-center gap-1 text-foreground hover:text-primary transition-colors'
+						className='flex items-center gap-1 text-foreground hover:text-accent transition-colors duration-180'
 					>
-						<Phone className='h-4 w-4' />
+						<Phone className='h-3.5 w-3.5' />
 						<span className='font-normal'>+375 (29) 229 23 22</span>
 						<span className='text-muted-foreground text-xs ml-1'>
 							(с 9 до 21)
@@ -55,7 +55,7 @@ export default function TopBar() {
 							<Link
 								key={link.href}
 								href={link.href}
-								className='text-muted-foreground hover:text-foreground transition-colors'
+								className='text-muted-foreground hover:text-accent transition-colors duration-180'
 							>
 								{link.label}
 							</Link>

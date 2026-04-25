@@ -339,7 +339,7 @@ export default function SearchBar({ className }: { className?: string }) {
 								</ul>
 								<Link
 									href={`/search?q=${encodeURIComponent(debouncedSearch)}`}
-									className='block border-t border-border px-4 py-2.5 text-center text-sm text-primary hover:bg-muted transition-colors'
+								className='block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-accent hover:bg-accent/5 transition-colors duration-180'
 									id='show-all'
 									onClick={() => {
 										setIsOpen(false)
@@ -378,8 +378,8 @@ export default function SearchBar({ className }: { className?: string }) {
 													href={`/search?q=${encodeURIComponent(q)}`}
 													className={
 														activeIndex === idx
-															? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
-															: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
+															? 'rounded-sm border border-accent/70 bg-accent/8 px-3 py-1 text-xs text-foreground transition-colors duration-180'
+															: 'rounded-sm border border-border px-3 py-1 text-xs text-foreground hover:border-accent/60 hover:text-accent transition-colors duration-180'
 													}
 													onClick={() => {
 														setIsOpen(false)
@@ -409,8 +409,8 @@ export default function SearchBar({ className }: { className?: string }) {
 													href={`/search?q=${encodeURIComponent(q)}`}
 													className={
 														activeIndex === idx
-															? 'rounded-full border border-border px-3 py-1 text-xs text-foreground bg-muted transition-colors'
-															: 'rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors'
+															? 'rounded-sm border border-accent/70 bg-accent/8 px-3 py-1 text-xs text-foreground transition-colors duration-180'
+															: 'rounded-sm border border-border px-3 py-1 text-xs text-foreground hover:border-accent/60 hover:text-accent transition-colors duration-180'
 													}
 													onClick={() => {
 														setIsOpen(false)

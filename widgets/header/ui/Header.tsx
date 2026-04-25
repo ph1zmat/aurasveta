@@ -142,7 +142,7 @@ export default function Header() {
 	}, [])
 
 	return (
-		<header className='hidden md:block mb-2'>
+		<header className='hidden md:block border-b border-border/60'>
 			<div className='mx-auto flex max-w-7xl items-center gap-4 px-4 lg:gap-6'>
 				{/* Logo */}
 				<Link href='/' className='flex items-center gap-2 shrink-0'>
@@ -185,7 +185,7 @@ export default function Header() {
 								<Link
 									key={action.href}
 									href={action.href}
-									className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+								className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-accent transition-colors duration-180'
 								>
 									<div className='relative'>
 										<action.icon className='h-6 w-6' />
@@ -219,7 +219,7 @@ export default function Header() {
 					{clientSession && (
 						<button
 							onClick={handleSignOut}
-							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-accent transition-colors duration-180'
 							aria-label='Выйти'
 						>
 							<LogOut className='h-6 w-6' />
