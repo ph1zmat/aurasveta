@@ -102,7 +102,7 @@ export default function CatalogSidebar({
 							const val = e.target.value ? Number(e.target.value) : undefined
 							onPriceChange?.(val, maxPrice)
 						}}
-						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25'
 					/>
 					<input
 						type='number'
@@ -112,7 +112,7 @@ export default function CatalogSidebar({
 							const val = e.target.value ? Number(e.target.value) : undefined
 							onPriceChange?.(minPrice, val)
 						}}
-						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25'
 					/>
 				</div>
 			</FilterSection>

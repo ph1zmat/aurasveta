@@ -86,7 +86,12 @@ export default function ResultsBar({
 									setSort(opt)
 									setOpen(false)
 								}}
-								className='block w-full px-3 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent'
+								className={cn(
+									'block w-full px-3 py-1.5 text-left text-sm transition-colors duration-180',
+									opt === sort
+										? 'text-accent font-medium'
+										: 'text-foreground hover:bg-muted hover:text-accent',
+								)}
 							>
 								{opt}
 							</button>

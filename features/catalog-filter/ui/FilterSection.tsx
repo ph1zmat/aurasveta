@@ -52,7 +52,7 @@ export default function FilterSection({
 /* Sub-filter item (expandable child like "Высота, мм" under РАЗМЕРЫ) */
 export function FilterSubItem({ label }: { label: string }) {
 	return (
-		<button className='-mx-1 flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground'>
+		<button className='-mx-1 flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-accent'>
 			<Plus className='h-3 w-3' strokeWidth={1.5} />
 			{label}
 		</button>

@@ -50,7 +50,7 @@ export default function CatalogProductCard({
 					<Eye className='h-4 w-4' />
 				</Button>
 				<Button variant='icon' aria-label='Сравнить' onClick={onToggleCompare}>
-					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-primary')} />
+				<BarChart3 className={cn('h-4 w-4', isCompare && 'text-accent')} />
 				</Button>
 				<Button
 					variant='icon'
@@ -84,7 +84,7 @@ export default function CatalogProductCard({
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-contain transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-contain transition-transform duration-340 group-hover:scale-105'
 						fallbackClassName='bg-muted/30'
 					/>
 				</div>
@@ -92,7 +92,7 @@ export default function CatalogProductCard({
 			</Link>
 
 			<Link href={href} className='mb-1'>
-				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
+				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-accent'>
 					{name}
 				</h3>
 			</Link>
@@ -104,7 +104,7 @@ export default function CatalogProductCard({
 			)}
 
 			<div className='mb-3 flex flex-wrap items-center gap-2'>
-				<span className='text-lg font-semibold text-foreground'>
+				<span className='text-xl font-bold text-foreground'>
 					{price.toLocaleString('ru-RU')} ₽
 				</span>
 				{discountPercent && bonusAmount ? (
@@ -136,7 +136,7 @@ export default function CatalogProductCard({
 						<Link href={href}>{buttonLabel}</Link>
 					</Button>
 				)}
-				{inStock && <span className='text-xs text-primary'>{inStock}</span>}
+				{inStock && <span className='text-xs font-medium text-accent'>{inStock}</span>}
 			</div>
 		</div>
 	)
