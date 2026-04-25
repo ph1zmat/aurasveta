@@ -35,7 +35,7 @@ import { cn } from '@/shared/lib/utils'
  */
 
 const buttonVariants = cva(
-	'inline-flex items-center justify-center transition-colors disabled:pointer-events-none',
+	'inline-flex items-center justify-center transition-[color,background-color,border-color,box-shadow] duration-[220ms] [transition-timing-function:cubic-bezier(.22,1,.36,1)] disabled:pointer-events-none focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(198,106,43,0.22)]',
 	{
 		variants: {
 			variant: {
@@ -44,10 +44,10 @@ const buttonVariants = cva(
 				outline:
 					'rounded-md border border-foreground font-medium uppercase tracking-widest text-foreground hover:bg-foreground hover:text-card',
 				ghost: 'text-muted-foreground hover:text-foreground',
-				link: 'font-medium text-foreground hover:text-primary disabled:text-muted-foreground',
+				link: 'font-medium text-foreground hover:text-accent disabled:text-muted-foreground',
 				icon: 'text-muted-foreground hover:text-foreground disabled:opacity-30',
 				subtle:
-					'rounded-md border border-border text-foreground hover:bg-accent',
+					'rounded-md border border-border text-foreground hover:bg-muted',
 				chip: 'rounded-full border border-foreground text-foreground hover:bg-foreground hover:text-card',
 			},
 			size: {
