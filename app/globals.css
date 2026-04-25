@@ -276,6 +276,161 @@
 	}
 }
 
+/* ════════════════════════════════════════════════════════
+   NOIR LIGNE — Design Token Layer (Package A · tokens-foundation)
+   Prefix: --nl-*
+   Source-of-truth: shared/design-tokens/noir-ligne.tokens.json
+   ════════════════════════════════════════════════════════ */
+:root {
+	/* ── Color roles ── */
+	--nl-background:        #F6F3EE;
+	--nl-foreground:        #121418;
+	--nl-card:              #FFFFFF;
+	--nl-card-fg:           #121418;
+	--nl-popover:           #FFFFFF;
+	--nl-popover-fg:        #121418;
+
+	--nl-primary:           #121418;
+	--nl-primary-fg:        #F8F6F2;
+	--nl-primary-hover:     #1C2027;
+
+	--nl-secondary:         #EEE7DE;
+	--nl-secondary-fg:      #121418;
+
+	--nl-muted:             #ECE7E0;
+	--nl-muted-fg:          #6C717D;
+
+	--nl-accent:            #C66A2B;
+	--nl-accent-fg:         #FFF7F2;
+	--nl-accent-hover:      #D47A3F;
+
+	--nl-accent2:           #C7FF45;
+	--nl-accent2-fg:        #121418;
+
+	--nl-destructive:       #CB4F4F;
+	--nl-destructive-fg:    #FFF6F6;
+	--nl-success:           #2E9F64;
+	--nl-warning:           #D6A23D;
+
+	/* ── Surfaces ── */
+	--nl-surface-1:         #FFFFFF;
+	--nl-surface-2:         #FBF8F4;
+	--nl-surface-3:         #F1ECE5;
+	--nl-surface-inv:       #181B21;
+	--nl-surface-inv-2:     #232730;
+
+	/* ── Borders & Lines ── */
+	--nl-border:            rgba(18, 20, 24, 0.14);
+	--nl-border-strong:     rgba(18, 20, 24, 0.28);
+	--nl-input:             rgba(18, 20, 24, 0.16);
+	--nl-ring:              rgba(198, 106, 43, 0.30);
+	--nl-line-default:      rgba(18, 20, 24, 0.72);
+	--nl-line-muted:        rgba(18, 20, 24, 0.18);
+	--nl-line-active:       #C66A2B;
+	--nl-line-signal:       #C7FF45;
+
+	/* ── Gradients ── */
+	--nl-hero-overlay:
+		linear-gradient(135deg, rgba(18,20,24,0.92) 0%, rgba(29,33,41,0.88) 55%, rgba(198,106,43,0.22) 100%);
+	--nl-promo-overlay:
+		linear-gradient(90deg, rgba(18,20,24,0.94) 0%, rgba(18,20,24,0.70) 56%, rgba(198,106,43,0.24) 100%);
+	--nl-underline-gradient:
+		linear-gradient(90deg, #C66A2B 0%, #E8A877 50%, #C66A2B 100%);
+
+	/* ── Shadows ── */
+	--nl-shadow-xs:         0 4px 12px rgba(18, 20, 24, 0.05);
+	--nl-shadow-sm:         0 10px 24px rgba(18, 20, 24, 0.08);
+	--nl-shadow-md:         0 18px 48px rgba(18, 20, 24, 0.10);
+	--nl-shadow-lg:         0 28px 80px rgba(18, 20, 24, 0.16);
+	--nl-shadow-focus:      0 0 0 3px rgba(198, 106, 43, 0.18);
+
+	/* ── Radii ── */
+	--nl-radius-sm:         0.75rem;   /* 12px */
+	--nl-radius-md:         1rem;      /* 16px */
+	--nl-radius-lg:         1.5rem;    /* 24px */
+	--nl-radius-xl:         2rem;      /* 32px */
+	--nl-radius-pill:       999px;
+
+	/* ── Spacing ── */
+	--nl-spacing-section:   clamp(56px, 6vw, 104px);
+	--nl-spacing-card:      24px;
+
+	/* ── Typography ── */
+	--nl-font-sans:         Manrope, Inter, system-ui, sans-serif;
+	--nl-tracking-caps:     0.12em;
+
+	/* ── Motion ── */
+	--nl-motion-underline:  180ms ease-out;
+	--nl-motion-cta:        220ms cubic-bezier(.22, 1, .36, 1);
+	--nl-motion-card:       240ms ease;
+	--nl-motion-image:      340ms ease;
+	--nl-motion-sticky:     220ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.dark {
+	/* ── Color roles — dark ── */
+	--nl-background:        #0F1217;
+	--nl-foreground:        #F5F2EC;
+	--nl-card:              #171B22;
+	--nl-card-fg:           #F5F2EC;
+	--nl-popover:           #171B22;
+	--nl-popover-fg:        #F5F2EC;
+
+	--nl-primary:           #F5F2EC;
+	--nl-primary-fg:        #111318;
+	--nl-primary-hover:     #FFFFFF;
+
+	--nl-secondary:         #1E232C;
+	--nl-secondary-fg:      #F5F2EC;
+
+	--nl-muted:             #171C24;
+	--nl-muted-fg:          #A7AFBC;
+
+	--nl-accent:            #D47A3F;
+	--nl-accent-fg:         #FFF7F2;
+	--nl-accent-hover:      #E58B50;
+
+	--nl-accent2:           #C7FF45;
+	--nl-accent2-fg:        #121418;
+
+	--nl-destructive:       #D66161;
+	--nl-destructive-fg:    #FFF6F6;
+	--nl-success:           #46B978;
+	--nl-warning:           #E0B04B;
+
+	/* ── Surfaces — dark ── */
+	--nl-surface-1:         #171B22;
+	--nl-surface-2:         #1D222B;
+	--nl-surface-3:         #252B35;
+	--nl-surface-inv:       #F5F2EC;
+	--nl-surface-inv-2:     #EAE4DB;
+
+	/* ── Borders & Lines — dark ── */
+	--nl-border:            rgba(245, 242, 236, 0.12);
+	--nl-border-strong:     rgba(245, 242, 236, 0.24);
+	--nl-input:             rgba(245, 242, 236, 0.16);
+	--nl-ring:              rgba(212, 122, 63, 0.32);
+	--nl-line-default:      rgba(245, 242, 236, 0.80);
+	--nl-line-muted:        rgba(245, 242, 236, 0.18);
+	--nl-line-active:       #D47A3F;
+	--nl-line-signal:       #C7FF45;
+
+	/* ── Gradients — dark ── */
+	--nl-hero-overlay:
+		linear-gradient(135deg, rgba(15,18,23,0.96) 0%, rgba(21,24,31,0.92) 56%, rgba(212,122,63,0.24) 100%);
+	--nl-promo-overlay:
+		linear-gradient(90deg, rgba(15,18,23,0.96) 0%, rgba(15,18,23,0.72) 56%, rgba(212,122,63,0.26) 100%);
+	--nl-underline-gradient:
+		linear-gradient(90deg, #D47A3F 0%, #F0B58C 50%, #D47A3F 100%);
+
+	/* ── Shadows — dark ── */
+	--nl-shadow-xs:         0 4px 12px rgba(0, 0, 0, 0.18);
+	--nl-shadow-sm:         0 12px 28px rgba(0, 0, 0, 0.24);
+	--nl-shadow-md:         0 20px 56px rgba(0, 0, 0, 0.32);
+	--nl-shadow-lg:         0 32px 92px rgba(0, 0, 0, 0.42);
+	--nl-shadow-focus:      0 0 0 3px rgba(212, 122, 63, 0.20);
+}
+
 /* Admin form inputs */
 .input-field {
 	@apply flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary;

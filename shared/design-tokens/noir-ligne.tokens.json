@@ -1,0 +1,163 @@
+{
+  "$schema": "https://noir-ligne.design/tokens/v1",
+  "name": "Aura Sveta — Noir Ligne",
+  "version": "1.0.0",
+  "concept": "Noir Ligne",
+  "description": "Source-of-truth design tokens for all platforms. Web/Desktop consume via CSS --nl-* variables; Mobile consumes via mobile/src/theme/colors.ts.",
+  "tokens": {
+    "color": {
+      "background":       { "light": "#F6F3EE",                    "dark": "#0F1217" },
+      "foreground":       { "light": "#121418",                    "dark": "#F5F2EC" },
+      "card":             { "light": "#FFFFFF",                    "dark": "#171B22" },
+      "cardForeground":   { "light": "#121418",                    "dark": "#F5F2EC" },
+      "popover":          { "light": "#FFFFFF",                    "dark": "#171B22" },
+      "popoverForeground":{ "light": "#121418",                    "dark": "#F5F2EC" },
+
+      "primary":          { "light": "#121418",                    "dark": "#F5F2EC" },
+      "primaryForeground":{ "light": "#F8F6F2",                    "dark": "#111318" },
+      "primaryHover":     { "light": "#1C2027",                    "dark": "#FFFFFF" },
+
+      "secondary":        { "light": "#EEE7DE",                    "dark": "#1E232C" },
+      "secondaryForeground":{ "light": "#121418",                  "dark": "#F5F2EC" },
+
+      "muted":            { "light": "#ECE7E0",                    "dark": "#171C24" },
+      "mutedForeground":  { "light": "#6C717D",                    "dark": "#A7AFBC" },
+
+      "accent":           { "light": "#C66A2B",                    "dark": "#D47A3F" },
+      "accentForeground": { "light": "#FFF7F2",                    "dark": "#FFF7F2" },
+      "accentHover":      { "light": "#D47A3F",                    "dark": "#E58B50" },
+
+      "accent2":          { "light": "#C7FF45",                    "dark": "#C7FF45" },
+      "accent2Foreground":{ "light": "#121418",                    "dark": "#121418" },
+
+      "destructive":      { "light": "#CB4F4F",                    "dark": "#D66161" },
+      "destructiveForeground": { "light": "#FFF6F6",              "dark": "#FFF6F6" },
+      "success":          { "light": "#2E9F64",                    "dark": "#46B978" },
+      "warning":          { "light": "#D6A23D",                    "dark": "#E0B04B" },
+
+      "surface1":         { "light": "#FFFFFF",                    "dark": "#171B22" },
+      "surface2":         { "light": "#FBF8F4",                    "dark": "#1D222B" },
+      "surface3":         { "light": "#F1ECE5",                    "dark": "#252B35" },
+      "surfaceInverse":   { "light": "#181B21",                    "dark": "#F5F2EC" },
+      "surfaceInverse2":  { "light": "#232730",                    "dark": "#EAE4DB" },
+
+      "border":           { "light": "rgba(18,20,24,0.14)",        "dark": "rgba(245,242,236,0.12)" },
+      "borderStrong":     { "light": "rgba(18,20,24,0.28)",        "dark": "rgba(245,242,236,0.24)" },
+      "input":            { "light": "rgba(18,20,24,0.16)",        "dark": "rgba(245,242,236,0.16)" },
+      "ring":             { "light": "rgba(198,106,43,0.30)",      "dark": "rgba(212,122,63,0.32)" },
+
+      "lineDefault":      { "light": "rgba(18,20,24,0.72)",        "dark": "rgba(245,242,236,0.80)" },
+      "lineMuted":        { "light": "rgba(18,20,24,0.18)",        "dark": "rgba(245,242,236,0.18)" },
+      "lineActive":       { "light": "#C66A2B",                    "dark": "#D47A3F" },
+      "lineSignal":       { "light": "#C7FF45",                    "dark": "#C7FF45" },
+
+      "status": {
+        "pending":  { "color": "#D4940A", "bg": "#FDF6E3", "label": "Ожидает" },
+        "paid":     { "color": "#2E9E6E", "bg": "#E6F5ED", "label": "Оплачен" },
+        "shipped":  { "color": "#7C5ABF", "bg": "#F0EBF8", "label": "Отправлен" },
+        "delivered":{ "color": "#3A8DB5", "bg": "#E5F2F8", "label": "Доставлен" },
+        "cancelled":{ "color": "#C0392B", "bg": "#FBEAE8", "label": "Отменён" }
+      }
+    },
+
+    "gradient": {
+      "heroOverlay": {
+        "light": "linear-gradient(135deg, rgba(18,20,24,0.92) 0%, rgba(29,33,41,0.88) 55%, rgba(198,106,43,0.22) 100%)",
+        "dark":  "linear-gradient(135deg, rgba(15,18,23,0.96) 0%, rgba(21,24,31,0.92) 56%, rgba(212,122,63,0.24) 100%)"
+      },
+      "promoOverlay": {
+        "light": "linear-gradient(90deg, rgba(18,20,24,0.94) 0%, rgba(18,20,24,0.70) 56%, rgba(198,106,43,0.24) 100%)",
+        "dark":  "linear-gradient(90deg, rgba(15,18,23,0.96) 0%, rgba(15,18,23,0.72) 56%, rgba(212,122,63,0.26) 100%)"
+      },
+      "underline": {
+        "light": "linear-gradient(90deg, #C66A2B 0%, #E8A877 50%, #C66A2B 100%)",
+        "dark":  "linear-gradient(90deg, #D47A3F 0%, #F0B58C 50%, #D47A3F 100%)"
+      }
+    },
+
+    "shadow": {
+      "xs": {
+        "light": "0 4px 12px rgba(18,20,24,0.05)",
+        "dark":  "0 4px 12px rgba(0,0,0,0.18)"
+      },
+      "sm": {
+        "light": "0 10px 24px rgba(18,20,24,0.08)",
+        "dark":  "0 12px 28px rgba(0,0,0,0.24)"
+      },
+      "md": {
+        "light": "0 18px 48px rgba(18,20,24,0.10)",
+        "dark":  "0 20px 56px rgba(0,0,0,0.32)"
+      },
+      "lg": {
+        "light": "0 28px 80px rgba(18,20,24,0.16)",
+        "dark":  "0 32px 92px rgba(0,0,0,0.42)"
+      },
+      "focus": {
+        "light": "0 0 0 3px rgba(198,106,43,0.18)",
+        "dark":  "0 0 0 3px rgba(212,122,63,0.20)"
+      }
+    },
+
+    "radius": {
+      "sm":   "0.75rem",
+      "md":   "1rem",
+      "lg":   "1.5rem",
+      "xl":   "2rem",
+      "pill": "999px"
+    },
+
+    "spacing": {
+      "section": "clamp(56px, 6vw, 104px)",
+      "card":    "24px"
+    },
+
+    "typography": {
+      "fontSans":    "Manrope, Inter, system-ui, sans-serif",
+      "trackingCaps": "0.12em",
+      "weights": {
+        "regular":  400,
+        "medium":   500,
+        "semibold": 600,
+        "bold":     700
+      }
+    },
+
+    "motion": {
+      "underlineReveal": "180ms ease-out",
+      "ctaFill":         "220ms cubic-bezier(.22,1,.36,1)",
+      "cardLift":        "240ms ease",
+      "imageZoom":       "340ms ease",
+      "stickyReveal":    "220ms cubic-bezier(.22,1,.36,1)"
+    },
+
+    "componentRoles": {
+      "headerShell": {
+        "background":  "primary",
+        "foreground":  "primaryForeground",
+        "focusLine":   "accent"
+      },
+      "catalogChip": {
+        "background":       "transparent",
+        "border":           "lineDefault",
+        "hoverBackground":  "primary",
+        "hoverForeground":  "primaryForeground"
+      },
+      "productCard": {
+        "background":  "card",
+        "border":      "border",
+        "hoverBorder": "borderStrong",
+        "hoverShadow": "shadow.md"
+      },
+      "buyRail": {
+        "background":    "surface2",
+        "cta":           "primary",
+        "statusAccent":  "accent2"
+      },
+      "underline": {
+        "default":  "lineDefault",
+        "active":   "lineActive",
+        "gradient": "gradient.underline"
+      }
+    }
+  }
+}
