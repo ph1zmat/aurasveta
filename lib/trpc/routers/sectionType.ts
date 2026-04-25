@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 
@@ -22,7 +23,7 @@ export const sectionTypeRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				component: z.string().min(1),
-				configSchema: z.record(z.unknown()).optional(),
+				configSchema: z.record(z.string(), z.unknown()).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -30,7 +31,7 @@ export const sectionTypeRouter = createTRPCRouter({
 				data: {
 					name: input.name,
 					component: input.component,
-					configSchema: input.configSchema ?? {},
+					configSchema: (input.configSchema ?? {}) as Prisma.InputJsonValue,
 				},
 			})
 			revalidatePath('/', 'layout')
@@ -43,14 +44,19 @@ export const sectionTypeRouter = createTRPCRouter({
 				id: z.string(),
 				name: z.string().min(1).optional(),
 				component: z.string().min(1).optional(),
-				configSchema: z.record(z.unknown()).optional(),
+				configSchema: z.record(z.string(), z.unknown()).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, ...rest } = input
+			const { id, configSchema, ...rest } = input
 			const result = await ctx.prisma.sectionType.update({
 				where: { id },
-				data: rest,
+				data: {
+					...rest,
+					...(configSchema !== undefined
+						? { configSchema: configSchema as Prisma.InputJsonValue }
+						: {}),
+				},
 			})
 			revalidatePath('/', 'layout')
 			return result

@@ -155,15 +155,13 @@ export const anonymousRouter = createTRPCRouter({
 	migrateCompare: protectedProcedure
 		.input(z.array(z.string()))
 		.mutation(async ({ ctx, input: productIds }) => {
-			for (const productId of productIds) {
-				await ctx.prisma.compareItem.upsert({
-					where: {
-						userId_productId: { userId: ctx.userId, productId },
-					},
-					create: { userId: ctx.userId, productId },
-					update: {},
-				})
-			}
+			await ctx.prisma.compareItem.createMany({
+				data: productIds.map(productId => ({
+					userId: ctx.userId,
+					productId,
+				})),
+				skipDuplicates: true,
+			})
 			return { migrated: true }
 		}),
 })
