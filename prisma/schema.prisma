@@ -115,41 +115,101 @@ model Category {
 // ---------- Dynamic Properties ----------
 
 model Property {
-  id        String       @id @default(cuid())
-  key       String       @unique
+  id        String   @id @default(cuid())
+  slug      String   @unique
   name      String
-  type      PropertyType @default(STRING)
-  options   Json?
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  hasPhoto  Boolean  @default(false) @map("has_photo")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  values        PropertyValue[]
   productValues ProductPropertyValue[]
 
   @@map("properties")
 }
 
-enum PropertyType {
-  STRING
-  NUMBER
-  BOOLEAN
-  DATE
-  SELECT
-}
-
-model ProductPropertyValue {
+model PropertyValue {
   id         String   @id @default(cuid())
-  productId  String   @map("product_id")
   propertyId String   @map("property_id")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   value      String
+  slug       String
+  photo      String?
+  order      Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  productValues ProductPropertyValue[]
 
-  @@unique([productId, propertyId])
+  @@unique([propertyId, slug])
+  @@index([propertyId, order])
+  @@map("property_values")
+}
+
+model ProductPropertyValue {
+  id              String        @id @default(cuid())
+  productId       String        @map("product_id")
+  propertyId      String        @map("property_id")
+  propertyValueId String        @map("property_value_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  property      Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyValue PropertyValue @relation(fields: [propertyValueId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, propertyValueId])
+  @@index([propertyId])
+  @@index([propertyValueId])
   @@map("product_property_values")
 }
+
+// ---------- CMS: Section Types & Home Sections ----------
+
+model SectionType {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  component    String
+  configSchema Json     @default("{}") @map("config_schema")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sections HomeSection[]
+
+  @@map("section_types")
+}
+
+model HomeSection {
+  id            String      @id @default(cuid())
+  sectionTypeId String      @map("section_type_id")
+  sectionType   SectionType @relation(fields: [sectionTypeId], references: [id], onDelete: Cascade)
+  title         String?
+  config        Json        @default("{}")
+  order         Int         @default(0)
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([isActive, order])
+  @@map("home_sections")
+}
+
+// ---------- CMS: Settings ----------
+
+model Setting {
+  key         String   @id
+  value       Json
+  type        String   @default("string")
+  isPublic    Boolean  @default(true) @map("is_public")
+  group       String   @default("general")
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([group])
+  @@index([isPublic])
+  @@map("settings")
+}
+
 
 model Product {
   id             String                   @id @default(cuid())
@@ -214,6 +274,12 @@ model Page {
   title             String
   slug              String        @unique
   content           String?
+  contentBlocks     Json?         @map("content_blocks")
+  seo               Json?
+  showAsBanner      Boolean       @default(false) @map("show_as_banner")
+  bannerImage       String?       @map("banner_image")
+  bannerLink        String?       @map("banner_link")
+  isSystem          Boolean       @default(false) @map("is_system")
   image             String?
   imagePath         String?       @map("image_path")
   imageOriginalName String?       @map("image_original_name")

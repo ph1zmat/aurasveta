@@ -58,9 +58,9 @@ interface CompareSourceProduct {
 	stock: number
 	category?: { id: string; name: string } | null
 	properties?: Array<{
-		value: string
+		propertyValue: { slug: string; value: string } | null
 		property: {
-			key: string
+			slug: string
 			name: string
 		}
 	}> | null
@@ -134,8 +134,9 @@ export default function CompareContent() {
 			const props: Record<string, string> = {}
 			const labels: Record<string, string> = {}
 			for (const pv of p.properties ?? []) {
-				props[pv.property.key] = pv.value
-				labels[pv.property.key] = pv.property.name
+				if (!pv.propertyValue) continue
+				props[pv.property.slug] = pv.propertyValue.value
+				labels[pv.property.slug] = pv.property.name
 			}
 			return {
 				id: p.id,
