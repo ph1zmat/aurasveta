@@ -58,6 +58,7 @@ design-output.html
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
