@@ -241,30 +241,44 @@ async function seedCategories() {
 }
 
 async function seedProperties() {
-	const propertyIds = new Map<string, string>()
+	// Returns Map<propertySlug, { propertyId, valueMap: Map<stringifiedValue, propertyValueId> }>
+	const result = new Map<string, { propertyId: string; valueMap: Map<string, string> }>()
 
 	for (const property of PROPERTY_DEFINITIONS) {
-		const createdProperty = await prisma.property.create({
-			data: {
-				key: property.key,
-				name: property.name,
-				type: property.type,
-				...(property.options
-					? { options: property.options as Prisma.InputJsonValue }
-					: {}),
-			},
+		const createdProperty = await prisma.property.upsert({
+			where: { slug: property.slug },
+			update: { name: property.name },
+			create: { slug: property.slug, name: property.name, hasPhoto: false },
 		})
 
-		propertyIds.set(property.key, createdProperty.id)
+		const valueMap = new Map<string, string>()
+
+		if (property.options && property.options.length > 0) {
+			for (let i = 0; i < property.options.length; i++) {
+				const optionValue = property.options[i]
+				const slug = optionValue
+					.toLowerCase()
+					.replace(/[^a-zа-яё0-9]+/gi, '_')
+					.replace(/^_|_$/g, '') || `val_${i}`
+				const created = await prisma.propertyValue.upsert({
+					where: { propertyId_slug: { propertyId: createdProperty.id, slug } },
+					update: { value: optionValue, order: i },
+					create: { propertyId: createdProperty.id, value: optionValue, slug, order: i },
+				})
+				valueMap.set(optionValue, created.id)
+			}
+		}
+
+		result.set(property.slug, { propertyId: createdProperty.id, valueMap })
 	}
 
-	return propertyIds
+	return result
 }
 
 async function seedProducts(params: {
 	adminId: string
 	categoryIds: Map<string, string>
-	propertyIds: Map<string, string>
+	propertyData: Map<string, { propertyId: string; valueMap: Map<string, string> }>
 }) {
 	const catalogProducts = createCatalogProducts()
 	const productRows: Prisma.ProductCreateManyInput[] = []
@@ -333,17 +347,36 @@ async function seedProducts(params: {
 			throw new Error(`Product ID not found after createMany for slug: ${product.slug}`)
 		}
 
-		for (const propertyValue of product.propertyValues) {
-			const propertyId = params.propertyIds.get(propertyValue.key)
+		for (const pv of product.propertyValues) {
+			const propData = params.propertyData.get(pv.key)
 
-			if (!propertyId) {
-				throw new Error(`Property not found for key: ${propertyValue.key}`)
+			if (!propData) {
+				// Property not seeded — skip silently
+				continue
+			}
+
+			const stringValue = serializePropertyValue(pv.value)
+			let propertyValueId = propData.valueMap.get(stringValue)
+
+			// For properties without predefined options, create PropertyValue on the fly
+			if (!propertyValueId) {
+				const slug = stringValue
+					.toLowerCase()
+					.replace(/[^a-zа-яё0-9.]+/gi, '_')
+					.replace(/^_|_$/g, '') || 'val'
+				const created = await prisma.propertyValue.upsert({
+					where: { propertyId_slug: { propertyId: propData.propertyId, slug } },
+					update: { value: stringValue },
+					create: { propertyId: propData.propertyId, value: stringValue, slug, order: propData.valueMap.size },
+				})
+				propertyValueId = created.id
+				propData.valueMap.set(stringValue, created.id)
 			}
 
 			resolvedPropertyRows.push({
 				productId,
-				propertyId,
-				value: serializePropertyValue(propertyValue.value),
+				propertyId: propData.propertyId,
+				propertyValueId,
 			})
 		}
 	}
@@ -355,6 +388,7 @@ async function seedProducts(params: {
 		run: async batch => {
 			await prisma.productPropertyValue.createMany({
 				data: batch,
+				skipDuplicates: true,
 			})
 		},
 	})
@@ -528,13 +562,13 @@ async function main() {
 	const categoryIds = await seedCategories()
 	console.log(`✅ Categories created: ${categoryIds.size}`)
 
-	const propertyIds = await seedProperties()
-	console.log(`✅ Properties created: ${propertyIds.size}`)
+	const propertyData = await seedProperties()
+	console.log(`✅ Properties created: ${propertyData.size}`)
 
 	const products = await seedProducts({
 		adminId: admin.id,
 		categoryIds,
-		propertyIds,
+		propertyData,
 	})
 	console.log(`✅ Products created: ${products.length}`)
 

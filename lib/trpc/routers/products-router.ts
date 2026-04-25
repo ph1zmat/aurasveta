@@ -43,18 +43,18 @@ const productCardSelect = {
 const productCatalogSelect = {
 	...productCardSelect,
 	sku: true,
-	properties: { include: { property: true } },
+	properties: { include: { property: true, propertyValue: true } },
 } as const satisfies Prisma.ProductSelect
 
 const productDetailInclude = {
 	category: true,
 	images: orderedProductImages,
-	properties: { include: { property: true } },
+	properties: { include: { property: true, propertyValue: true } },
 } as const satisfies Prisma.ProductInclude
 
 const propertyValueSchema = z.object({
 	propertyId: z.string(),
-	value: z.string(),
+	propertyValueId: z.string(),
 })
 
 const incomingProductImageSchema = z.union([
@@ -260,34 +260,28 @@ export const productsRouter = createTRPCRouter({
 			andConditions.push({
 				properties: {
 					some: {
-						property: { key: 'free_shipping' },
-						OR: TRUE_VALUES.map(value => ({ value })),
+						property: { slug: 'free_shipping' },
+						propertyValue: { value: { in: TRUE_VALUES } },
 					},
 				},
 			})
 		}
 
 		if (properties && Object.keys(properties).length > 0) {
-			const propertyOr = Object.entries(properties).flatMap(
-				([key, rawValue]) => {
-					const values = Array.isArray(rawValue) ? rawValue : [rawValue]
-					return values
-						.filter(value => value && value.trim().length > 0)
-						.map(value => ({
-							property: { key },
-							value,
-						}))
-				},
-			)
-
-			if (propertyOr.length > 0) {
-				andConditions.push({
-					properties: {
-						some: {
-							OR: propertyOr,
+			for (const [slug, rawValue] of Object.entries(properties)) {
+				const slugValues = (
+					Array.isArray(rawValue) ? rawValue : [rawValue]
+				).filter(v => v?.trim())
+				if (slugValues.length > 0) {
+					andConditions.push({
+						properties: {
+							some: {
+								property: { slug },
+								propertyValue: { slug: { in: slugValues } },
+							},
 						},
-					},
-				})
+					})
+				}
 			}
 		}
 
@@ -432,42 +426,42 @@ export const productsRouter = createTRPCRouter({
 				{
 					key: string
 					label: string
-					type: string
-					options: Map<string, number>
+					options: Map<string, { label: string; count: number }>
 				}
 			>()
 
 			for (const row of values) {
-				const normalizedValue = row.value?.trim()
-				if (!normalizedValue) continue
+				if (!row.propertyValue) continue
+				const valueSlug = row.propertyValue.slug
+				const valueLabel = row.propertyValue.value
 
-				const propertyKey = row.property.key
-				const existing = grouped.get(propertyKey)
+				const propertySlug = row.property.slug
+				const existing = grouped.get(propertySlug)
 				if (!existing) {
-					grouped.set(propertyKey, {
-						key: propertyKey,
+					grouped.set(propertySlug, {
+						key: propertySlug,
 						label: row.property.name,
-						type: row.property.type,
-						options: new Map([[normalizedValue, 1]]),
+						options: new Map([[valueSlug, { label: valueLabel, count: 1 }]]),
 					})
 					continue
 				}
 
-				existing.options.set(
-					normalizedValue,
-					(existing.options.get(normalizedValue) ?? 0) + 1,
-				)
+				const opt = existing.options.get(valueSlug)
+				if (opt) {
+					opt.count++
+				} else {
+					existing.options.set(valueSlug, { label: valueLabel, count: 1 })
+				}
 			}
 
 			const propertyFilters = [...grouped.values()]
 				.map(group => ({
 					key: group.key,
 					label: group.label,
-					type: group.type,
 					options: [...group.options.entries()]
-						.map(([value, count]) => ({
-							value,
-							label: value,
+						.map(([slug, { label, count }]) => ({
+							value: slug,
+							label,
 							count,
 						}))
 						.sort(
@@ -564,7 +558,7 @@ export const productsRouter = createTRPCRouter({
 							? {
 									create: resolvedProperties.map(property => ({
 										propertyId: property.propertyId,
-										value: property.value,
+										propertyValueId: property.propertyValueId,
 									})),
 								}
 							: undefined,
@@ -632,7 +626,7 @@ export const productsRouter = createTRPCRouter({
 								data: resolvedProperties.map(property => ({
 									productId: id,
 									propertyId: property.propertyId,
-									value: property.value,
+								propertyValueId: property.propertyValueId,
 								})),
 							})
 						}
@@ -863,6 +857,70 @@ export const productsRouter = createTRPCRouter({
 		await deleteStorageKeys(keysToDelete)
 		return deletedProduct
 	}),
+
+	getDynamicGrid: baseProcedure
+		.input(
+			z.object({
+				source: z.enum(['promotion', 'novelty', 'popular', 'property']),
+				propertyValueId: z.string().optional(),
+				limit: z.number().int().min(1).max(50).default(8),
+				sortBy: z
+					.enum(['newest', 'price_asc', 'price_desc', 'popular'])
+					.default('newest'),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { source, propertyValueId, limit, sortBy } = input
+
+			const where: Prisma.ProductWhereInput = { isActive: true }
+
+			switch (source) {
+				case 'promotion':
+					where.compareAtPrice = { not: null }
+					break
+				case 'novelty':
+					// newest sorted below
+					break
+				case 'property':
+					if (propertyValueId) {
+						where.properties = { some: { propertyValueId } }
+					}
+					break
+				case 'popular':
+					// sorted by reviewsCount below
+					break
+			}
+
+			let orderBy: Prisma.ProductOrderByWithRelationInput
+			switch (sortBy) {
+				case 'price_asc':
+					orderBy = { price: 'asc' }
+					break
+				case 'price_desc':
+					orderBy = { price: 'desc' }
+					break
+				case 'popular':
+					orderBy = { reviewsCount: 'desc' }
+					break
+				case 'newest':
+				default:
+					orderBy = { createdAt: 'desc' }
+					break
+			}
+
+			if (source === 'popular') {
+				orderBy = { reviewsCount: 'desc' }
+			}
+
+			const products = await ctx.prisma.product.findMany({
+				where,
+				orderBy,
+				take: limit,
+				select: productCardSelect,
+			})
+
+			return enrichProducts(products)
+		}),
 })
 
 async function fireWebhooks(db: PrismaClient, event: string, data: unknown) {

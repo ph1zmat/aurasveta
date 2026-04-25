@@ -1,4 +1,3 @@
-import { PropertyType } from '@prisma/client'
 import { generateSlug } from '../shared/lib/generateSlug'
 
 export type SeedCategoryDefinition = {
@@ -9,9 +8,8 @@ export type SeedCategoryDefinition = {
 }
 
 export type SeedPropertyDefinition = {
-	key: string
+	slug: string
 	name: string
-	type: PropertyType
 	options?: string[]
 }
 
@@ -695,31 +693,31 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 ]
 
 export const PROPERTY_DEFINITIONS: SeedPropertyDefinition[] = [
-	{ key: 'product_type', name: 'Тип товара', type: 'SELECT', options: ['Люстра', 'Светильник', 'Трековая система', 'Бра', 'Спот', 'Настольная лампа', 'Уличный светильник', 'Торшер', 'Электротовар', 'Предмет интерьера', 'Лампочка'] },
-	{ key: 'series', name: 'Серия', type: 'STRING' },
-	{ key: 'style', name: 'Стиль', type: 'SELECT', options: ['Классический', 'Современный', 'Минимализм', 'Лофт', 'Скандинавский', 'Ар-деко', 'Техно', 'Викторианский'] },
-	{ key: 'color', name: 'Цвет', type: 'STRING' },
-	{ key: 'material', name: 'Материал', type: 'STRING' },
-	{ key: 'placement', name: 'Расположение', type: 'SELECT', options: ['Потолок', 'Подвес', 'Стена', 'Стол', 'Пол', 'Улица', 'Трек', 'Встраиваемый', 'Декор'] },
-	{ key: 'purpose', name: 'Назначение', type: 'STRING' },
-	{ key: 'mounting_type', name: 'Тип монтажа', type: 'SELECT', options: ['Накладной', 'Встраиваемый', 'Подвесной', 'На штанге', 'На стол', 'Напольный', 'Скрытый', 'На штыре'] },
-	{ key: 'base_type', name: 'Цоколь', type: 'SELECT', options: ['E14', 'E27', 'GU10', 'GU5.3', 'GX53', 'G9', 'G4', 'LED', '24V'] },
-	{ key: 'lamp_count', name: 'Количество ламп', type: 'NUMBER' },
-	{ key: 'power_watts', name: 'Мощность, Вт', type: 'NUMBER' },
-	{ key: 'total_power_watts', name: 'Общая мощность, Вт', type: 'NUMBER' },
-	{ key: 'luminous_flux_lm', name: 'Световой поток, лм', type: 'NUMBER' },
-	{ key: 'color_temperature', name: 'Цветовая температура', type: 'SELECT', options: ['2700K', '3000K', '3300K', '4000K', '4200K', '5500K'] },
-	{ key: 'room_area_m2', name: 'Площадь освещения, м²', type: 'NUMBER' },
-	{ key: 'ip_rating', name: 'Степень защиты', type: 'SELECT', options: ['IP20', 'IP44', 'IP54', 'IP65'] },
-	{ key: 'dimmable', name: 'Диммирование', type: 'BOOLEAN' },
-	{ key: 'smart_control', name: 'Умное управление', type: 'BOOLEAN' },
-	{ key: 'power_source', name: 'Источник питания', type: 'SELECT', options: ['Сеть 220V', 'Солнечная батарея', 'Аккумулятор', '24V'] },
-	{ key: 'grounding', name: 'Заземление', type: 'BOOLEAN' },
-	{ key: 'usb_ports', name: 'USB-порты', type: 'NUMBER' },
-	{ key: 'control_type', name: 'Тип управления', type: 'STRING' },
-	{ key: 'lamp_type', name: 'Тип лампы', type: 'SELECT', options: ['LED', 'Накаливания', 'Галогенная'] },
-	{ key: 'shape', name: 'Форма', type: 'SELECT', options: ['Груша', 'Шар', 'Свеча', 'Капсула', 'Рефлектор', 'Круг', 'Прямоугольник', 'Цилиндр'] },
-	{ key: 'equivalent_power_watts', name: 'Эквивалент мощности, Вт', type: 'NUMBER' },
+	{ slug: 'product_type', name: 'Тип товара', options: ['Люстра', 'Светильник', 'Трековая система', 'Бра', 'Спот', 'Настольная лампа', 'Уличный светильник', 'Торшер', 'Электротовар', 'Предмет интерьера', 'Лампочка'] },
+	{ slug: 'series', name: 'Серия' },
+	{ slug: 'style', name: 'Стиль', options: ['Классический', 'Современный', 'Минимализм', 'Лофт', 'Скандинавский', 'Ар-деко', 'Техно', 'Викторианский'] },
+	{ slug: 'color', name: 'Цвет' },
+	{ slug: 'material', name: 'Материал' },
+	{ slug: 'placement', name: 'Расположение', options: ['Потолок', 'Подвес', 'Стена', 'Стол', 'Пол', 'Улица', 'Трек', 'Встраиваемый', 'Декор'] },
+	{ slug: 'purpose', name: 'Назначение' },
+	{ slug: 'mounting_type', name: 'Тип монтажа', options: ['Накладной', 'Встраиваемый', 'Подвесной', 'На штанге', 'На стол', 'Напольный', 'Скрытый', 'На штыре'] },
+	{ slug: 'base_type', name: 'Цоколь', options: ['E14', 'E27', 'GU10', 'GU5.3', 'GX53', 'G9', 'G4', 'LED', '24V'] },
+	{ slug: 'lamp_count', name: 'Количество ламп' },
+	{ slug: 'power_watts', name: 'Мощность, Вт' },
+	{ slug: 'total_power_watts', name: 'Общая мощность, Вт' },
+	{ slug: 'luminous_flux_lm', name: 'Световой поток, лм' },
+	{ slug: 'color_temperature', name: 'Цветовая температура', options: ['2700K', '3000K', '3300K', '4000K', '4200K', '5500K'] },
+	{ slug: 'room_area_m2', name: 'Площадь освещения, м²' },
+	{ slug: 'ip_rating', name: 'Степень защиты', options: ['IP20', 'IP44', 'IP54', 'IP65'] },
+	{ slug: 'dimmable', name: 'Диммирование', options: ['Да', 'Нет'] },
+	{ slug: 'smart_control', name: 'Умное управление', options: ['Да', 'Нет'] },
+	{ slug: 'power_source', name: 'Источник питания', options: ['Сеть 220V', 'Солнечная батарея', 'Аккумулятор', '24V'] },
+	{ slug: 'grounding', name: 'Заземление', options: ['Да', 'Нет'] },
+	{ slug: 'usb_ports', name: 'USB-порты' },
+	{ slug: 'control_type', name: 'Тип управления' },
+	{ slug: 'lamp_type', name: 'Тип лампы', options: ['LED', 'Накаливания', 'Галогенная'] },
+	{ slug: 'shape', name: 'Форма', options: ['Груша', 'Шар', 'Свеча', 'Капсула', 'Рефлектор', 'Круг', 'Прямоугольник', 'Цилиндр'] },
+	{ slug: 'equivalent_power_watts', name: 'Эквивалент мощности, Вт' },
 ]
 
 export const CONTENT_PAGES = [

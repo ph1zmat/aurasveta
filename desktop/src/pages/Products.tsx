@@ -371,7 +371,7 @@ function ProductFormModal({
 
 	const [form, setForm] = useState(initialForm)
 	const [propRows, setPropRows] = useState<
-		{ propertyId: string; value: string }[]
+		{ propertyId: string; propertyValueId: string }[]
 	>([])
 	const [uploadError, setUploadError] = useState<string | null>(null)
 
@@ -402,7 +402,7 @@ function ProductFormModal({
 			setPropRows(
 				(editProduct as any).properties?.map((pv: any) => ({
 					propertyId: pv.propertyId ?? pv.property?.id ?? '',
-					value: pv.value ?? '',
+					propertyValueId: pv.propertyValueId ?? '',
 				})) ?? [],
 			)
 		}
@@ -426,8 +426,8 @@ function ProductFormModal({
 			brandCountry: form.brandCountry || undefined,
 			isActive: form.isActive,
 			properties: propRows
-				.filter(r => r.propertyId && r.value)
-				.map(r => ({ propertyId: r.propertyId, value: r.value })),
+				.filter(r => r.propertyId && r.propertyValueId)
+				.map(r => ({ propertyId: r.propertyId, propertyValueId: r.propertyValueId })),
 		}
 
 		if (editId) {
@@ -697,7 +697,7 @@ function ProductFormModal({
 								variant='ghost'
 								size='sm'
 								onClick={() =>
-									setPropRows(r => [...r, { propertyId: '', value: '' }])
+									setPropRows(r => [...r, { propertyId: '', propertyValueId: '' }])
 								}
 								className='gap-1 text-xs'
 							>
@@ -759,56 +759,49 @@ function ProductFormModal({
 
 											{property?.type === 'SELECT' && property.options ? (
 												<select
-													value={row.value}
+													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = {
-															...next[idx],
-															value: e.target.value,
-														}
+														next[idx] = { ...next[idx], propertyValueId: e.target.value }
 														setPropRows(next)
 													}}
 													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 												>
-													<option value=''>Выберите...</option>
-													{(property.options as string[]).map((opt: string) => (
-														<option key={opt} value={opt}>
-															{opt}
-														</option>
+													<option value=''>Выберите значение...</option>
+													{(property.values ?? []).map((v: any) => (
+														<option key={v.id} value={v.id}>{v.value}</option>
 													))}
 												</select>
 											) : property?.type === 'BOOLEAN' ? (
 												<select
-													value={row.value}
+													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = {
-															...next[idx],
-															value: e.target.value,
-														}
+														next[idx] = { ...next[idx], propertyValueId: e.target.value }
 														setPropRows(next)
 													}}
 													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 												>
-													<option value=''>—</option>
-													<option value='true'>Да</option>
-													<option value='false'>Нет</option>
+													<option value=''>Выберите значение...</option>
+													{(property.values ?? []).map((v: any) => (
+														<option key={v.id} value={v.id}>{v.value}</option>
+													))}
 												</select>
 											) : (
-												<input
-													type={property?.type === 'NUMBER' ? 'number' : 'text'}
-													value={row.value}
+												<select
+													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = {
-															...next[idx],
-															value: e.target.value,
-														}
+														next[idx] = { ...next[idx], propertyValueId: e.target.value }
 														setPropRows(next)
 													}}
-													placeholder='Значение'
-													className='h-9 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-												/>
+													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+												>
+													<option value=''>Выберите значение...</option>
+													{(property?.values ?? []).map((v: any) => (
+														<option key={v.id} value={v.id}>{v.value}</option>
+													))}
+												</select>
 											)}
 
 											<button

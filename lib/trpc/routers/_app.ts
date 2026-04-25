@@ -15,6 +15,9 @@ import { searchRouter } from './search'
 import { recommendationsRouter } from './recommendations'
 import { seoRouter } from './seo'
 import { pushRouter } from './push'
+import { sectionTypeRouter } from './sectionType'
+import { homeSectionRouter } from './homeSection'
+import { settingRouter } from './setting'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -33,6 +36,9 @@ export const appRouter = createTRPCRouter({
 	recommendations: recommendationsRouter,
 	seo: seoRouter,
 	push: pushRouter,
+	sectionType: sectionTypeRouter,
+	homeSection: homeSectionRouter,
+	setting: settingRouter,
 })
 
 export type AppRouter = typeof appRouter
