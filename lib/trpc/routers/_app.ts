@@ -18,6 +18,8 @@ import { pushRouter } from './push'
 import { sectionTypeRouter } from './sectionType'
 import { homeSectionRouter } from './homeSection'
 import { settingRouter } from './setting'
+import { cmsRouter } from './cms'
+import { homeRouter } from './home'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -39,6 +41,8 @@ export const appRouter = createTRPCRouter({
 	sectionType: sectionTypeRouter,
 	homeSection: homeSectionRouter,
 	setting: settingRouter,
+	cms: cmsRouter,
+	home: homeRouter,
 })
 
 export type AppRouter = typeof appRouter

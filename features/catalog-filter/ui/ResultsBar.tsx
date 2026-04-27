@@ -57,7 +57,10 @@ export default function ResultsBar({
 					>
 						<span className='relative'>
 							<SlidersHorizontal className='h-3.5 w-3.5' strokeWidth={1.5} />
-							<CountBadge count={filterCount} className='-right-2 -top-2 text-[9px]' />
+							<CountBadge
+								count={filterCount}
+								className='-right-2 -top-2 text-[9px]'
+							/>
 						</span>
 						Фильтры
 					</Button>
@@ -65,7 +68,7 @@ export default function ResultsBar({
 			</div>
 
 			{/* Sort dropdown */}
-			<div className='relative'>
+			{/* <div className='relative'>
 				<button
 					onClick={() => setOpen(!open)}
 					className='flex items-center gap-1 text-sm text-foreground'
@@ -93,7 +96,7 @@ export default function ResultsBar({
 						))}
 					</div>
 				)}
-			</div>
+			</div> */}
 		</div>
 	)
 }

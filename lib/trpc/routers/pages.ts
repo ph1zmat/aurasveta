@@ -52,6 +52,12 @@ export const pagesRouter = createTRPCRouter({
 				title: z.string().min(1),
 				slug: z.string().min(1),
 				content: z.string().optional(),
+				contentBlocks: z.array(z.record(z.string(), z.unknown())).optional(),
+				seo: z.record(z.string(), z.unknown()).optional(),
+				showAsBanner: z.boolean().optional(),
+				bannerImage: z.string().optional(),
+				bannerLink: z.string().optional(),
+				isSystem: z.boolean().optional(),
 				image: z.string().optional(),
 				metaTitle: z.string().optional(),
 				metaDesc: z.string().optional(),
@@ -62,6 +68,8 @@ export const pagesRouter = createTRPCRouter({
 			const page = await ctx.prisma.page.create({
 				data: {
 					...input,
+					contentBlocks: input.contentBlocks as never,
+					seo: input.seo as never,
 					authorId: ctx.userId,
 					publishedAt: input.isPublished ? new Date() : null,
 				},
@@ -91,6 +99,12 @@ export const pagesRouter = createTRPCRouter({
 				title: z.string().min(1).optional(),
 				slug: z.string().min(1).optional(),
 				content: z.string().optional(),
+				contentBlocks: z.array(z.record(z.string(), z.unknown())).optional(),
+				seo: z.record(z.string(), z.unknown()).optional(),
+				showAsBanner: z.boolean().optional(),
+				bannerImage: z.string().optional(),
+				bannerLink: z.string().optional(),
+				isSystem: z.boolean().optional(),
 				image: z.string().optional(),
 				metaTitle: z.string().optional(),
 				metaDesc: z.string().optional(),
@@ -98,7 +112,7 @@ export const pagesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input
+			const { id, contentBlocks, seo, ...data } = input
 
 			if (data.isPublished !== undefined) {
 				;(data as Record<string, unknown>).publishedAt = data.isPublished
@@ -108,7 +122,13 @@ export const pagesRouter = createTRPCRouter({
 
 			const page = await ctx.prisma.page.update({
 				where: { id },
-				data,
+				data: {
+					...data,
+					...(contentBlocks !== undefined
+						? { contentBlocks: contentBlocks as never }
+						: {}),
+					...(seo !== undefined ? { seo: seo as never } : {}),
+				},
 			})
 
 			// Auto-version

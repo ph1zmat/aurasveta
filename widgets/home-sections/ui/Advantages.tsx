@@ -1,12 +1,22 @@
 import Image from 'next/image'
 
-interface Advantage {
+interface AdvantageItem {
 	icon: string
 	title: string
 	subtitle?: string
 }
 
-const advantages: Advantage[] = [
+interface AdvantagesSectionConfig {
+	heading?: string
+	items?: AdvantageItem[]
+}
+
+interface AdvantagesProps {
+	title?: string | null
+	config?: AdvantagesSectionConfig
+}
+
+const DEFAULT_ADVANTAGES: AdvantageItem[] = [
 	{ icon: '/car.svg', title: 'Бесплатная', subtitle: 'доставка' },
 	{
 		icon: '/store.svg',
@@ -16,7 +26,7 @@ const advantages: Advantage[] = [
 	{ icon: '/spanner.svg', title: 'Бесплатный монтаж' },
 	{
 		icon: '/box.svg',
-		title: 'Более 12 000 товаров',
+		title: 'Более 12 000 товаров',
 		subtitle: 'на собственных складах',
 	},
 	{
@@ -27,14 +37,18 @@ const advantages: Advantage[] = [
 	{ icon: '/sale.svg', title: 'Выгодные', subtitle: 'предложения' },
 ]
 
-export default function Advantages() {
+export default function Advantages({ title, config }: AdvantagesProps) {
+	const heading = config?.heading ?? title ?? 'Наши преимущества'
+	const items =
+		config?.items && config.items.length > 0 ? config.items : DEFAULT_ADVANTAGES
+
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-10'>
 			<h2 className='mb-6 text-base font-semibold uppercase tracking-widest text-foreground md:mb-8 md:text-lg'>
-				Наши преимущества
+				{heading}
 			</h2>
 			<div className='grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'>
-				{advantages.map(adv => (
+				{items.map(adv => (
 					<div
 						key={adv.title}
 						className='flex flex-col items-center text-center'

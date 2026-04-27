@@ -51,7 +51,7 @@ export default function Footer() {
 					<div className='space-y-6'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
 							<Image
-								src='/aura-logo-noline-primary.png'
+								src='/aura-logo-noline-white.png'
 								alt='Logo'
 								width={128}
 								height={48}

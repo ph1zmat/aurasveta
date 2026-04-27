@@ -1,12 +1,6 @@
 'use client'
 
-import {
-	useState,
-	useCallback,
-	useRef,
-	useMemo,
-	useSyncExternalStore,
-} from 'react'
+import { useState, useCallback, useRef, useSyncExternalStore } from 'react'
 import {
 	Menu,
 	BarChart3,
@@ -21,15 +15,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/shared/ui/Button'
 import SearchBar from '@/widgets/header/ui/SearchBar'
 import CatalogDropdown from '@/widgets/header/ui/CatalogDropdown'
-import MiniCart from '@/widgets/header/ui/MiniCart'
 import CountBadge from '@/shared/ui/CountBadge'
 import { authClient } from '@/lib/auth/auth-client'
 import { useCart } from '@/features/cart/useCart'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
-import type { CartItemData } from '@/shared/types/cart'
-import { getProductImageUrl } from '@/shared/lib/product-utils'
-import type { ProductImage } from '@/shared/types/product'
 
 export default function Header() {
 	const pathname = usePathname()
@@ -49,34 +39,10 @@ export default function Header() {
 	const toggleCatalog = useCallback(() => setCatalogOpen(prev => !prev), [])
 	const closeCatalog = useCallback(() => setCatalogOpen(false), [])
 
-	const [cartOpen, setCartOpen] = useState(false)
+	const [, setCartOpen] = useState(false)
 	const cartTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-	const { serverCartWithProducts, count: cartCount } = useCart()
-	const cartItems = useMemo<CartItemData[]>(
-		() =>
-			(serverCartWithProducts as Array<Record<string, unknown>>).map(item => {
-				const p = item.product as Record<string, unknown> | null
-				return {
-					id: String(item.productId ?? ''),
-					name: p ? String(p.name ?? '') : '',
-					href: p ? `/product/${p.slug}` : `/product/${item.productId}`,
-					image: p
-						? getProductImageUrl(
-								{
-									images: Array.isArray(p.images)
-										? (p.images as ProductImage[])
-										: [],
-								},
-								'/images/placeholder.jpg',
-							)
-						: '/images/placeholder.jpg',
-					price: p ? Number(p.price ?? 0) : 0,
-					quantity: Number(item.quantity ?? 1),
-				}
-			}),
-		[serverCartWithProducts],
-	)
+	const { count: cartCount } = useCart()
 
 	const { count: favoritesCount } = useFavorites()
 	const { count: compareCount } = useCompare()
@@ -207,11 +173,11 @@ export default function Header() {
 									onMouseLeave={closeCartDelayed}
 								>
 									{linkEl}
-									{cartOpen && (
+									{/* {cartOpen && (
 										<div className='absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border border-border bg-background shadow-xl'>
 											<MiniCart items={cartItems} />
 										</div>
-									)}
+									)} */}
 								</div>
 							)
 						})}

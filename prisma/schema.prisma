@@ -94,21 +94,33 @@ model Verification {
 // ---------- Categories ----------
 
 model Category {
-  id                String     @id @default(cuid())
-  name              String
-  slug              String     @unique
-  description       String?
-  image             String?
-  imagePath         String?    @map("image_path")
-  imageOriginalName String?    @map("image_original_name")
-  parentId          String?    @map("parent_id")
-  parent            Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
-  children          Category[] @relation("CategoryToCategory")
-  products          Product[]
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
+  id                    String              @id @default(cuid())
+  name                  String
+  slug                  String              @unique
+  description           String?
+  image                 String?
+  imagePath             String?             @map("image_path")
+  imageOriginalName     String?             @map("image_original_name")
+  showInHeader          Boolean             @default(true) @map("show_in_header")
+  categoryMode          CategoryMode        @default(MANUAL) @map("category_mode")
+  filterKind            CategoryFilterKind? @map("filter_kind")
+  filterPropertyId      String?             @map("filter_property_id")
+  filterPropertyValueId String?             @map("filter_property_value_id")
+  parentId              String?             @map("parent_id")
+  parent                Category?           @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  children              Category[]          @relation("CategoryToCategory")
+  products              Product[]
+  filterProperty        Property?           @relation("CategoryFilterProperty", fields: [filterPropertyId], references: [id], onDelete: SetNull)
+  filterPropertyValue   PropertyValue?      @relation("CategoryFilterPropertyValue", fields: [filterPropertyValueId], references: [id], onDelete: SetNull)
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
 
   @@index([parentId])
+  @@index([showInHeader])
+  @@index([categoryMode])
+  @@index([filterKind])
+  @@index([filterPropertyId])
+  @@index([filterPropertyValueId])
   @@map("categories")
 }
 
@@ -122,8 +134,9 @@ model Property {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  values        PropertyValue[]
-  productValues ProductPropertyValue[]
+  values           PropertyValue[]
+  productValues    ProductPropertyValue[]
+  filterCategories Category[]             @relation("CategoryFilterProperty")
 
   @@map("properties")
 }
@@ -139,20 +152,31 @@ model PropertyValue {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  productValues ProductPropertyValue[]
+  productValues    ProductPropertyValue[]
+  filterCategories Category[]             @relation("CategoryFilterPropertyValue")
 
   @@unique([propertyId, slug])
   @@index([propertyId, order])
   @@map("property_values")
 }
 
+enum CategoryMode {
+  MANUAL
+  FILTER
+}
+
+enum CategoryFilterKind {
+  PROPERTY_VALUE
+  SALE
+}
+
 model ProductPropertyValue {
-  id              String        @id @default(cuid())
-  productId       String        @map("product_id")
-  propertyId      String        @map("property_id")
-  propertyValueId String        @map("property_value_id")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  productId       String   @map("product_id")
+  propertyId      String   @map("property_id")
+  propertyValueId String   @map("property_value_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   property      Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -209,7 +233,6 @@ model Setting {
   @@index([isPublic])
   @@map("settings")
 }
-
 
 model Product {
   id             String                   @id @default(cuid())

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
-import { Plus, Pencil, Trash2, X, Settings } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Settings, Save } from 'lucide-react'
 
 type SettingItem = RouterOutputs['setting']['getAll'][number]
 
@@ -88,26 +88,39 @@ export default function SettingsClient() {
 	return (
 		<div className='space-y-6'>
 			<div className='flex items-center justify-between'>
-				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-					Настройки
-				</h1>
+				<div className='flex items-center gap-3'>
+					<div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
+						<Settings className='h-5 w-5 text-primary' />
+					</div>
+					<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
+						Настройки
+					</h1>
+				</div>
 				<Button variant='primary' size='sm' onClick={openCreate}>
 					<Plus className='mr-1 h-4 w-4' /> Добавить
 				</Button>
 			</div>
 
-			{/* Form */}
+			{/* Modal */}
 			{showForm && (
-				<div className='rounded-xl border border-border bg-muted/30 p-6'>
-					<div className='mb-4 flex items-center justify-between'>
-						<h2 className='text-sm font-semibold text-foreground'>
-							{editItem ? 'Редактировать настройку' : 'Новая настройка'}
-						</h2>
-						<button onClick={() => setShowForm(false)} className='text-muted-foreground hover:text-foreground'>
-							<X className='h-4 w-4' />
-						</button>
-					</div>
-					<form onSubmit={handleSubmit} className='grid gap-4 sm:grid-cols-2'>
+				<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
+					<div className='flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-card shadow-2xl'>
+						{/* Header */}
+						<div className='flex items-center justify-between border-b border-border px-6 py-4'>
+							<h2 className='text-base font-semibold text-foreground'>
+								{editItem ? 'Редактировать настройку' : 'Новая настройка'}
+							</h2>
+							<button
+								onClick={() => setShowForm(false)}
+								className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+							>
+								<X className='h-4 w-4' />
+							</button>
+						</div>
+
+						{/* Body */}
+						<div className='flex-1 overflow-y-auto px-6 py-5'>
+							<form id='setting-form' onSubmit={handleSubmit} className='grid gap-4 sm:grid-cols-2'>
 						<div>
 							<label className='mb-1 block text-xs font-medium text-muted-foreground'>Ключ</label>
 							<input
@@ -191,15 +204,20 @@ export default function SettingsClient() {
 								Публичная (доступна без авторизации)
 							</label>
 						</div>
-						<div className='flex gap-2 sm:col-span-2'>
-							<Button variant='primary' type='submit' size='sm' disabled={upsertMut.isPending}>
-								{editItem ? 'Сохранить' : 'Создать'}
-							</Button>
+							</form>
+						</div>
+
+						{/* Footer */}
+						<div className='flex justify-end gap-2 border-t border-border px-6 py-4'>
 							<Button variant='ghost' type='button' size='sm' onClick={() => setShowForm(false)}>
 								Отмена
 							</Button>
+							<Button variant='primary' form='setting-form' type='submit' size='sm' disabled={upsertMut.isPending}>
+								<Save className='mr-1.5 h-3.5 w-3.5' />
+								{editItem ? 'Сохранить' : 'Создать'}
+							</Button>
 						</div>
-					</form>
+					</div>
 				</div>
 			)}
 

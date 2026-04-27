@@ -1,202 +1,378 @@
-'use client'
+﻿'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import {
+	Plus,
+	Pencil,
+	Trash2,
+	X,
+	Tag,
+	Package,
+	ChevronDown,
+	ChevronRight,
+	Image as ImageIcon,
+} from 'lucide-react'
 
 type PropertyItem = RouterOutputs['properties']['getAll'][number]
 type PropertyValue = PropertyItem['values'][number]
 
+/* ============ Main ============ */
+
 export default function PropertiesClient() {
 	const { data: properties, refetch } = trpc.properties.getAll.useQuery()
-	const createMut = trpc.properties.create.useMutation({
-		onSuccess: () => { refetch(); setShowForm(false) },
-	})
-	const updateMut = trpc.properties.update.useMutation({
-		onSuccess: () => { refetch(); setShowForm(false) },
-	})
 	const deleteMut = trpc.properties.delete.useMutation({ onSuccess: () => refetch() })
-	const createValueMut = trpc.properties.createValue.useMutation({ onSuccess: () => refetch() })
 	const deleteValueMut = trpc.properties.deleteValue.useMutation({ onSuccess: () => refetch() })
+	const createValueMut = trpc.properties.createValue.useMutation({ onSuccess: () => refetch() })
 
 	const [showForm, setShowForm] = useState(false)
-	const [editProp, setEditProp] = useState<PropertyItem | null>(null)
+	const [editId, setEditId] = useState<string | null>(null)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [form, setForm] = useState({ slug: '', name: '', hasPhoto: false })
-	const [valueForm, setValueForm] = useState<{ propertyId: string; value: string; slug: string } | null>(null)
+	const [search, setSearch] = useState('')
+	const [addValueFor, setAddValueFor] = useState<string | null>(null)
+	const [newValue, setNewValue] = useState({ value: '', slug: '' })
 
-	function openCreate() {
-		setEditProp(null)
-		setForm({ slug: '', name: '', hasPhoto: false })
-		setShowForm(true)
-	}
+	const filtered = useMemo(() => {
+		if (!properties) return []
+		if (!search) return properties
+		const q = search.toLowerCase()
+		return properties.filter(
+			(p: PropertyItem) =>
+				p.name?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q),
+		)
+	}, [properties, search])
 
-	function openEdit(prop: PropertyItem) {
-		setEditProp(prop)
-		setForm({ slug: prop.slug, name: prop.name, hasPhoto: prop.hasPhoto })
-		setShowForm(true)
-	}
-
-	function handleSubmit(e: React.FormEvent) {
+	const handleAddValue = (e: React.FormEvent) => {
 		e.preventDefault()
-		if (editProp) {
-			updateMut.mutate({ id: editProp.id, ...form })
-		} else {
-			createMut.mutate(form)
-		}
-	}
-
-	function handleAddValue(e: React.FormEvent) {
-		e.preventDefault()
-		if (!valueForm) return
+		if (!addValueFor) return
 		createValueMut.mutate({
-			propertyId: valueForm.propertyId,
-			value: valueForm.value,
-			slug: valueForm.slug || undefined,
+			propertyId: addValueFor,
+			value: newValue.value,
+			slug: newValue.slug || undefined,
 		})
-		setValueForm(null)
+		setAddValueFor(null)
+		setNewValue({ value: '', slug: '' })
 	}
 
 	return (
-		<div className='space-y-6'>
+		<div className='space-y-5'>
 			<div className='flex items-center justify-between'>
 				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
 					Свойства
 				</h1>
-				<Button variant='primary' size='sm' onClick={openCreate}>
-					<Plus className='mr-1 h-4 w-4' /> Добавить
-				</Button>
+				<button
+					onClick={() => {
+						setEditId(null)
+						setShowForm(true)
+					}}
+					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
+				>
+					<Plus className='h-4 w-4' /> Добавить
+				</button>
 			</div>
 
-			{showForm && (
-				<div className='rounded-xl border border-border bg-muted/30 p-6'>
-					<form onSubmit={handleSubmit} className='grid gap-4 sm:grid-cols-3'>
-						<input
-							placeholder='Slug (латиница)'
-							required
-							value={form.slug}
-							onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
-							className='input-field'
-						/>
-						<input
-							placeholder='Название'
-							required
-							value={form.name}
-							onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-							className='input-field'
-						/>
-						<label className='flex items-center gap-2 text-sm'>
-							<input
-								type='checkbox'
-								checked={form.hasPhoto}
-								onChange={e => setForm(f => ({ ...f, hasPhoto: e.target.checked }))}
-							/>
-							Со фото
-						</label>
-						<div className='flex gap-2 sm:col-span-3'>
-							<Button variant='primary' type='submit' size='sm'>Сохранить</Button>
-							<Button variant='ghost' type='button' size='sm' onClick={() => setShowForm(false)}>Отмена</Button>
-						</div>
-					</form>
-				</div>
+			{properties && properties.length > 4 && (
+				<input
+					type='search'
+					placeholder='Поиск свойств...'
+					value={search}
+					onChange={e => setSearch(e.target.value)}
+					className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+				/>
 			)}
 
-			<div className='overflow-x-auto rounded-xl border border-border'>
-				<table className='w-full text-sm'>
-					<thead>
-						<tr className='border-b border-border bg-muted/30 text-left text-muted-foreground'>
-							<th className='px-4 py-3 font-medium'>Slug</th>
-							<th className='px-4 py-3 font-medium'>Название</th>
-							<th className='px-4 py-3 font-medium'>Значений</th>
-							<th className='px-4 py-3 font-medium'>Действия</th>
-						</tr>
-					</thead>
-					<tbody>
-						{properties?.map((prop: PropertyItem) => (
-							<>
-								<tr key={prop.id} className='border-b border-border/50'>
-									<td className='px-4 py-3 font-mono text-xs'>{prop.slug}</td>
-									<td className='px-4 py-3'>{prop.name}</td>
-									<td className='px-4 py-3 text-muted-foreground'>
+			{showForm && (
+				<PropertyFormModal
+					editId={editId}
+					onClose={() => setShowForm(false)}
+					onSuccess={() => {
+						setShowForm(false)
+						refetch()
+					}}
+				/>
+			)}
+
+			{filtered.length > 0 ? (
+				<div className='flex flex-col gap-3'>
+					{filtered.map((prop: PropertyItem) => {
+						const productCount = prop._count?.productValues ?? 0
+						const isExpanded = expandedId === prop.id
+
+						return (
+							<div
+								key={prop.id}
+								className='rounded-2xl border border-border bg-muted/10'
+							>
+								<div className='flex items-center justify-between p-4'>
+									<div className='flex items-center gap-3'>
 										<button
-											onClick={() => setExpandedId(expandedId === prop.id ? null : prop.id)}
-											className='flex items-center gap-1 hover:text-foreground'
+											onClick={() =>
+												setExpandedId(isExpanded ? null : prop.id)
+											}
+											className='flex items-center gap-2 text-left'
 										>
-											{expandedId === prop.id ? <ChevronDown className='h-3 w-3' /> : <ChevronRight className='h-3 w-3' />}
-											{prop.values.length}
-										</button>
-									</td>
-									<td className='px-4 py-3'>
-										<div className='flex gap-2'>
-											<button onClick={() => openEdit(prop)} className='text-muted-foreground hover:text-foreground' aria-label='Редактировать'>
-												<Pencil className='h-4 w-4' />
-											</button>
-											<button
-												onClick={() => { if (confirm('Удалить свойство и все его значения?')) deleteMut.mutate(prop.id) }}
-												className='text-muted-foreground hover:text-destructive'
-												aria-label='Удалить'
-											>
-												<Trash2 className='h-4 w-4' />
-											</button>
-										</div>
-									</td>
-								</tr>
-								{expandedId === prop.id && (
-									<tr key={`${prop.id}-values`} className='bg-muted/10'>
-										<td colSpan={4} className='px-6 py-3'>
-											<div className='space-y-2'>
-												<p className='text-xs font-medium text-muted-foreground uppercase tracking-wider'>Значения</p>
-												<div className='flex flex-wrap gap-2'>
-													{prop.values.map((v: PropertyValue) => (
-														<span key={v.id} className='flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs'>
-															{v.value}
-															<button
-																onClick={() => { if (confirm(`Удалить значение "${v.value}"?`)) deleteValueMut.mutate(v.id) }}
-																className='ml-1 text-muted-foreground hover:text-destructive'
-															>
-																<Trash2 className='h-3 w-3' />
-															</button>
-														</span>
-													))}
+											{isExpanded ? (
+												<ChevronDown className='h-4 w-4 text-muted-foreground' />
+											) : (
+												<ChevronRight className='h-4 w-4 text-muted-foreground' />
+											)}
+											<div>
+												<div className='text-sm font-semibold text-foreground'>
+													{prop.name}
 												</div>
-												{valueForm?.propertyId === prop.id ? (
-													<form onSubmit={handleAddValue} className='flex gap-2 mt-2'>
-														<input
-															placeholder='Значение'
-															required
-															value={valueForm.value}
-															onChange={e => setValueForm(f => f ? ({ ...f, value: e.target.value }) : f)}
-															className='input-field text-xs'
-														/>
-														<input
-															placeholder='Slug (авто если пусто)'
-															value={valueForm.slug}
-															onChange={e => setValueForm(f => f ? ({ ...f, slug: e.target.value }) : f)}
-															className='input-field text-xs'
-														/>
-														<Button variant='primary' type='submit' size='sm'>Добавить</Button>
-														<Button variant='ghost' type='button' size='sm' onClick={() => setValueForm(null)}>✕</Button>
-													</form>
-												) : (
-													<button
-														onClick={() => setValueForm({ propertyId: prop.id, value: '', slug: '' })}
-														className='mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground'
-													>
-														<Plus className='h-3 w-3' /> Добавить значение
-													</button>
-												)}
+												<div className='mt-0.5 font-mono text-xs text-muted-foreground'>
+													{prop.slug}
+												</div>
 											</div>
-										</td>
-									</tr>
+										</button>
+										{prop.hasPhoto && (
+											<span className='inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-500'>
+												<ImageIcon className='h-2.5 w-2.5' /> Фото
+											</span>
+										)}
+										<span className='rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground'>
+											{prop.values?.length ?? 0} значений
+										</span>
+										{productCount > 0 && (
+											<span className='flex items-center gap-1 text-xs text-muted-foreground'>
+												<Package className='h-3 w-3' />
+												{productCount}
+											</span>
+										)}
+									</div>
+									<div className='flex gap-1'>
+										<button
+											onClick={() => {
+												setEditId(prop.id)
+												setShowForm(true)
+											}}
+											className='rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+										>
+											<Pencil className='h-3.5 w-3.5' />
+										</button>
+										<button
+											onClick={() => {
+												if (confirm('Удалить свойство и все его значения?'))
+													deleteMut.mutate(prop.id)
+											}}
+											className='rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive'
+										>
+											<Trash2 className='h-3.5 w-3.5' />
+										</button>
+									</div>
+								</div>
+
+								{isExpanded && (
+									<div className='border-t border-border px-4 pb-4 pt-3'>
+										<div className='flex flex-wrap gap-2'>
+											{(prop.values ?? []).map((v: PropertyValue) => (
+												<span
+													key={v.id}
+													className='group flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-foreground'
+												>
+													{v.value}
+													{v.slug && (
+														<span className='font-mono text-muted-foreground'>
+															({v.slug})
+														</span>
+													)}
+													<button
+														onClick={() => {
+															if (confirm(`Удалить "${v.value}"?`))
+																deleteValueMut.mutate(v.id)
+														}}
+														className='ml-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive'
+													>
+														<X className='h-3 w-3' />
+													</button>
+												</span>
+											))}
+										</div>
+
+										{addValueFor === prop.id ? (
+											<form
+												onSubmit={handleAddValue}
+												className='mt-3 flex gap-2'
+											>
+												<input
+													placeholder='Значение'
+													required
+													value={newValue.value}
+													onChange={e =>
+														setNewValue(v => ({
+															...v,
+															value: e.target.value,
+														}))
+													}
+													className='h-8 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+												/>
+												<input
+													placeholder='Slug (авто)'
+													value={newValue.slug}
+													onChange={e =>
+														setNewValue(v => ({
+															...v,
+															slug: e.target.value,
+														}))
+													}
+													className='h-8 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-primary'
+												/>
+												<Button size='sm' type='submit'>
+													Добавить
+												</Button>
+												<Button
+													size='sm'
+													variant='ghost'
+													type='button'
+													onClick={() => setAddValueFor(null)}
+												>
+													<X className='h-4 w-4' />
+												</Button>
+											</form>
+										) : (
+											<button
+												onClick={() => {
+													setAddValueFor(prop.id)
+													setNewValue({ value: '', slug: '' })
+												}}
+												className='mt-3 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground'
+											>
+												<Plus className='h-3 w-3' /> Добавить значение
+											</button>
+										)}
+									</div>
 								)}
-							</>
-						))}
-					</tbody>
-				</table>
+							</div>
+						)
+					})}
+				</div>
+			) : (
+				<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
+					<Tag className='mb-3 h-10 w-10 text-muted-foreground/30' />
+					<p className='text-sm text-muted-foreground'>
+						{search ? 'Свойства не найдены' : 'Нет свойств'}
+					</p>
+				</div>
+			)}
+		</div>
+	)
+}
+
+/* ============ Form Modal ============ */
+
+function PropertyFormModal({
+	editId,
+	onClose,
+	onSuccess,
+}: {
+	editId: string | null
+	onClose: () => void
+	onSuccess: () => void
+}) {
+	const createMut = trpc.properties.create.useMutation({ onSuccess })
+	const updateMut = trpc.properties.update.useMutation({ onSuccess })
+	const { data: editProp } = trpc.properties.getById.useQuery(editId!, {
+		enabled: !!editId,
+	})
+
+	const emptyForm = useMemo(() => ({ name: '', slug: '', hasPhoto: false }), [])
+	const [form, setForm] = useState(emptyForm)
+
+	useEffect(() => {
+		if (!editId) {
+			setForm(emptyForm)
+			return
+		}
+		if (editProp) {
+			setForm({
+				name: editProp.name ?? '',
+				slug: editProp.slug ?? '',
+				hasPhoto: editProp.hasPhoto ?? false,
+			})
+		}
+	}, [editId, editProp, emptyForm])
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault()
+		if (editId) {
+			updateMut.mutate({ id: editId, name: form.name, slug: form.slug, hasPhoto: form.hasPhoto })
+		} else {
+			createMut.mutate({ name: form.name, slug: form.slug, hasPhoto: form.hasPhoto })
+		}
+	}
+
+	const inputCls =
+		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+
+	return (
+		<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
+			<div className='flex w-full max-w-md flex-col rounded-2xl border border-border bg-card shadow-2xl'>
+				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
+					<h2 className='text-lg font-semibold text-foreground'>
+						{editId ? 'Редактировать свойство' : 'Новое свойство'}
+					</h2>
+					<button
+						onClick={onClose}
+						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+					>
+						<X className='h-5 w-5' />
+					</button>
+				</div>
+
+				<form onSubmit={handleSubmit} className='space-y-4 px-6 py-5'>
+					<div className='grid grid-cols-2 gap-3'>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Название
+							</label>
+							<input
+								required
+								value={form.name}
+								onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+								placeholder='Цвет'
+								className={inputCls}
+							/>
+						</div>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Slug
+							</label>
+							<input
+								required
+								value={form.slug}
+								onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
+								placeholder='color'
+								className={`${inputCls} font-mono`}
+							/>
+						</div>
+					</div>
+					<label className='flex items-center gap-2 text-sm text-foreground'>
+						<input
+							type='checkbox'
+							checked={form.hasPhoto}
+							onChange={e => setForm(f => ({ ...f, hasPhoto: e.target.checked }))}
+							className='h-4 w-4 rounded border-border'
+						/>
+						Значения со фото
+					</label>
+				</form>
+
+				<div className='flex justify-end gap-2 border-t border-border px-6 py-4'>
+					<Button variant='ghost' type='button' onClick={onClose}>
+						Отмена
+					</Button>
+					<Button
+						disabled={createMut.isPending || updateMut.isPending}
+						onClick={handleSubmit}
+					>
+						{editId ? 'Сохранить' : 'Создать'}
+					</Button>
+				</div>
 			</div>
 		</div>
 	)
 }
+
 

@@ -7,7 +7,6 @@ import SubcategoryCarousel from '@/features/catalog-filter/ui/SubcategoryCarouse
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import CatalogSidebar from '@/features/catalog-filter/ui/CatalogSidebar'
 import MobileFilterWrapper from '@/features/catalog-filter/ui/MobileFilterWrapper'
-import ViewToggle from '@/features/catalog-filter/ui/ViewToggle'
 import ResultsBar from '@/features/catalog-filter/ui/ResultsBar'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
 import Pagination from '@/features/catalog-filter/ui/Pagination'
@@ -99,7 +98,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 
 	const { data: category, isLoading: isCategoryLoading } =
 		trpc.categories.getBySlug.useQuery(slug, {
-		staleTime: 5 * 60 * 1000,
+			staleTime: 5 * 60 * 1000,
 		})
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
@@ -117,41 +116,48 @@ export default function CategoryContent({ slug }: { slug: string }) {
 
 	const { data: productsData, isLoading: isProductsLoading } =
 		trpc.products.getMany.useQuery(
-		{
-			categorySlug: slug,
-			includeChildren: true,
-			page: currentPage,
-			limit: 12,
-			search: search || undefined,
-			sortBy,
-			minPrice,
-			maxPrice,
-			isNew: isNew || undefined,
-			onSale: onSale || undefined,
-			freeShipping: freeShipping || undefined,
-			properties:
-				Object.keys(selectedPropertyFilters).length > 0
-					? selectedPropertyFilters
-					: undefined,
-		},
-		{
-			placeholderData: keepPreviousData,
-		},
-	)
+			{
+				categorySlug: slug,
+				includeChildren: true,
+				page: currentPage,
+				limit: 12,
+				search: search || undefined,
+				sortBy,
+				minPrice,
+				maxPrice,
+				isNew: isNew || undefined,
+				onSale: onSale || undefined,
+				freeShipping: freeShipping || undefined,
+				properties:
+					Object.keys(selectedPropertyFilters).length > 0
+						? selectedPropertyFilters
+						: undefined,
+			},
+			{
+				placeholderData: keepPreviousData,
+			},
+		)
 
 	const isInitialLoading =
-		!productsData && (isProductsLoading || isCategoryLoading || isFiltersLoading)
+		!productsData &&
+		(isProductsLoading || isCategoryLoading || isFiltersLoading)
 
 	const categoryName = category?.name ?? slug
 	const parentCategory = category?.parent
 	const subcategories = category?.children ?? []
+	const typedSubcategories = subcategories as Array<{
+		id: string
+		name?: string
+		slug?: string
+		imageUrl?: string | null
+	}>
 
 	// Build breadcrumbs
 	const breadcrumbItems: { label: string; href?: string }[] = [
 		{ label: 'Главная', href: '/' },
 		{ label: 'Каталог', href: '/catalog' },
 	]
-	if (parentCategory) {
+	if (parentCategory?.name && parentCategory?.slug) {
 		breadcrumbItems.push({
 			label: parentCategory.name,
 			href: `/catalog/${parentCategory.slug}`,
@@ -159,14 +165,20 @@ export default function CategoryContent({ slug }: { slug: string }) {
 	}
 	breadcrumbItems.push({ label: categoryName })
 
-	const categoryTree = (categoriesTree ?? []).map((cat: CategoryTreeNode) => ({
-		name: cat.name,
-		href: `/catalog/${cat.slug}`,
-		children: cat.children?.map((child: { name: string; slug: string }) => ({
-			name: child.name,
-			href: `/catalog/${child.slug}`,
-		})),
-	}))
+	const categoryTree = (categoriesTree ?? [])
+		.filter((cat: CategoryTreeNode) => Boolean(cat.name && cat.slug))
+		.map((cat: CategoryTreeNode) => ({
+			name: cat.name as string,
+			href: `/catalog/${cat.slug as string}`,
+			children: (
+				(cat.children ?? []) as Array<{ name?: string; slug?: string }>
+			)
+				.filter(child => Boolean(child.name && child.slug))
+				.map(child => ({
+					name: child.name as string,
+					href: `/catalog/${child.slug as string}`,
+				})),
+		}))
 
 	const products = (productsData?.items ?? []).map(p =>
 		toCatalogCardProps(toFrontendProduct(p as unknown as DbProduct)),
@@ -317,20 +329,19 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
 								{categoryName}
 							</h1>
-							<ViewToggle />
 						</div>
 
-{/* Subcategory carousel */}
-					{subcategories.length > 0 && (
-						<SubcategoryCarousel
-							items={subcategories.map(
-								(sub: { id: string; name: string; slug: string; imageUrl?: string | null }) => ({
-									name: sub.name,
-									href: `/catalog/${sub.slug}`,
-									image: sub.imageUrl ?? undefined,
-								}),
-							)}
-						/>
+						{/* Subcategory carousel */}
+						{subcategories.length > 0 && (
+							<SubcategoryCarousel
+								items={typedSubcategories
+									.filter(sub => Boolean(sub.name && sub.slug))
+									.map(sub => ({
+										name: sub.name as string,
+										href: `/catalog/${sub.slug as string}`,
+										image: sub.imageUrl ?? undefined,
+									}))}
+							/>
 						)}
 
 						{/* Search */}

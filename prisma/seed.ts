@@ -507,18 +507,63 @@ async function seedBehavioralData(params: {
 }
 
 async function seedSectionTypes() {
-	const SECTION_TYPES = [
-		{ name: 'Баннер', component: 'HeroBanner' },
-		{ name: 'Популярные запросы', component: 'PopularQueries' },
-		{ name: 'Популярные категории', component: 'PopularCategories' },
-		{ name: 'Товары со скидкой', component: 'SaleProducts' },
-		{ name: 'По комнатам', component: 'RoomCategories' },
-		{ name: 'Новинки', component: 'NewProducts' },
-		{ name: 'Популярные товары', component: 'PopularProducts' },
-		{ name: 'Бренды', component: 'BrandsCarousel' },
-		{ name: 'Преимущества', component: 'Advantages' },
-		{ name: 'О компании', component: 'AboutSection' },
-		{ name: 'Недавно просмотренные', component: 'RecentlyViewed' },
+	const SECTION_TYPES: Array<{
+		name: string
+		component: string
+		configSchema: Prisma.InputJsonValue
+	}> = [
+		{
+			name: 'Баннер',
+			component: 'Banner',
+			configSchema: {
+				type: 'object',
+				properties: {
+					pageSlug: { type: 'string' },
+					overrideImage: { type: 'string' },
+					overrideLink: { type: 'string' },
+				},
+			},
+		},
+		{
+			name: 'Сетка товаров',
+			component: 'ProductGrid',
+			configSchema: {
+				type: 'object',
+				properties: {
+					source: {
+						type: 'string',
+						enum: ['promotion', 'novelty', 'popular', 'property'],
+					},
+					propertyValueId: { type: 'string' },
+					limit: { type: 'number', default: 8 },
+					sortBy: {
+						type: 'string',
+						enum: ['newest', 'price_asc', 'price_desc', 'popular'],
+					},
+					viewAllHref: { type: 'string' },
+					viewAllLabel: { type: 'string' },
+				},
+			},
+		},
+		{
+			name: 'Карусель брендов',
+			component: 'BrandCarousel',
+			configSchema: {
+				type: 'object',
+				properties: { propertySlug: { type: 'string', default: 'brand' } },
+			},
+		},
+		{
+			name: 'Карусель категорий',
+			component: 'CategoryCarousel',
+			configSchema: {
+				type: 'object',
+				properties: { parentId: { type: 'string' } },
+			},
+		},
+		{ name: 'Наши преимущества', component: 'Advantages', configSchema: {} },
+		{ name: 'О нас', component: 'AboutText', configSchema: {} },
+		{ name: 'Вы смотрели', component: 'SeenProducts', configSchema: {} },
 	]
 
 	const typeIds = new Map<string, string>()
@@ -526,44 +571,203 @@ async function seedSectionTypes() {
 	for (const st of SECTION_TYPES) {
 		const created = await prisma.sectionType.upsert({
 			where: { component: st.component },
-			update: { name: st.name },
-			create: { name: st.name, component: st.component },
+			update: { name: st.name, configSchema: st.configSchema },
+			create: {
+				name: st.name,
+				component: st.component,
+				configSchema: st.configSchema,
+			},
 		})
 		typeIds.set(st.component, created.id)
 	}
 
-	// Seed default HomeSection order (mirroring static fallback layout)
-	const DEFAULT_ORDER: string[] = [
-		'HeroBanner',
-		'PopularQueries',
-		'PopularCategories',
-		'SaleProducts',
-		'RoomCategories',
-		'NewProducts',
-		'PopularProducts',
-		'BrandsCarousel',
-		'Advantages',
-		'AboutSection',
+	const defaultSections: Array<{
+		order: number
+		component: string
+		title?: string
+		config?: Prisma.InputJsonValue
+	}> = [
+		{ order: 1, component: 'Banner', title: 'Добро пожаловать', config: { pageSlug: 'welcome' } },
+		{ order: 2, component: 'ProductGrid', title: 'Акции и скидки', config: { source: 'promotion', limit: 8 } },
+		{ order: 3, component: 'BrandCarousel', title: 'Бренды', config: { propertySlug: 'brand' } },
+		{ order: 4, component: 'Advantages', title: 'Наши преимущества', config: {} },
 	]
 
-	// Clear existing sections to avoid duplicates on re-seed
-	await prisma.homeSection.deleteMany()
-
-	for (let i = 0; i < DEFAULT_ORDER.length; i++) {
-		const component = DEFAULT_ORDER[i]
-		const sectionTypeId = typeIds.get(component)
+	for (const section of defaultSections) {
+		const sectionTypeId = typeIds.get(section.component)
 		if (!sectionTypeId) continue
 
-		await prisma.homeSection.create({
-			data: {
-				sectionTypeId,
-				order: i + 1,
-				isActive: true,
-			},
-		})
+		const existing = await prisma.homeSection.findFirst({ where: { order: section.order } })
+		if (existing) {
+			await prisma.homeSection.update({
+				where: { id: existing.id },
+				data: {
+					sectionTypeId,
+					title: section.title,
+					config: (section.config ?? {}) as Prisma.InputJsonValue,
+					isActive: true,
+				},
+			})
+		} else {
+			await prisma.homeSection.create({
+				data: {
+					sectionTypeId,
+					order: section.order,
+					title: section.title,
+					config: (section.config ?? {}) as Prisma.InputJsonValue,
+					isActive: true,
+				},
+			})
+		}
 	}
 
 	return typeIds
+}
+
+async function seedCmsSettings() {
+	const rows: Array<{
+		key: string
+		value: Prisma.InputJsonValue
+		type: string
+		group: string
+		description?: string
+		isPublic?: boolean
+	}> = [
+		{
+			key: 'site_name',
+			value: 'Aurasveta',
+			type: 'string',
+			group: 'general',
+			description: 'Название сайта',
+			isPublic: true,
+		},
+		{
+			key: 'home_popular_queries',
+			value: ['стул', 'лампа', 'диван', 'шкаф'],
+			type: 'array',
+			group: 'home',
+			description: 'Популярные поисковые запросы на главной',
+			isPublic: true,
+		},
+		{
+			key: 'footer_links',
+			value: [
+				{ text: 'Контакты', url: '/contacts' },
+				{ text: 'Доставка', url: '/delivery' },
+			],
+			type: 'json',
+			group: 'footer',
+			description: 'Ссылки в футере',
+			isPublic: true,
+		},
+	]
+
+	for (const row of rows) {
+		await prisma.setting.upsert({
+			where: { key: row.key },
+			update: {
+				value: row.value,
+				type: row.type,
+				group: row.group,
+				description: row.description,
+				isPublic: row.isPublic ?? true,
+			},
+			create: {
+				key: row.key,
+				value: row.value,
+				type: row.type,
+				group: row.group,
+				description: row.description,
+				isPublic: row.isPublic ?? true,
+			},
+		})
+	}
+}
+
+async function seedCmsProperties() {
+	const defaults = [
+		{
+			name: 'Бренд',
+			slug: 'brand',
+			hasPhoto: true,
+			values: ['IKEA', 'H&M Home', 'Zara Home'],
+		},
+		{
+			name: 'Расположение',
+			slug: 'location',
+			hasPhoto: true,
+			values: ['Для спальни', 'Для гостиной', 'Для кухни'],
+		},
+		{
+			name: 'Цвет',
+			slug: 'color',
+			hasPhoto: true,
+			values: ['Белый', 'Черный', 'Бежевый'],
+		},
+	]
+
+	for (const prop of defaults) {
+		const created = await prisma.property.upsert({
+			where: { slug: prop.slug },
+			update: { name: prop.name, hasPhoto: prop.hasPhoto },
+			create: { slug: prop.slug, name: prop.name, hasPhoto: prop.hasPhoto },
+		})
+
+		for (let i = 0; i < prop.values.length; i++) {
+			const value = prop.values[i]
+			const slug = value
+				.toLowerCase()
+				.replace(/[^a-zа-яё0-9]+/gi, '-')
+				.replace(/^-+|-+$/g, '')
+
+			await prisma.propertyValue.upsert({
+				where: { propertyId_slug: { propertyId: created.id, slug } },
+				update: { value, order: i, photo: '/placeholder.svg' },
+				create: {
+					propertyId: created.id,
+					value,
+					slug,
+					order: i,
+					photo: '/placeholder.svg',
+				},
+			})
+		}
+	}
+}
+
+async function seedWelcomePage(adminId: string) {
+	await prisma.page.upsert({
+		where: { slug: 'welcome' },
+		update: {
+			title: 'Добро пожаловать',
+			isPublished: true,
+			publishedAt: new Date(),
+			authorId: adminId,
+			content: '<h2>Добро пожаловать в Aurasveta</h2><p>Управляйте контентом через CMS.</p>',
+			contentBlocks: [
+				{ type: 'heading', data: { text: 'Добро пожаловать в Aurasveta', level: 2 } },
+				{ type: 'paragraph', data: { text: 'Управляйте контентом через CMS.' } },
+			],
+			showAsBanner: true,
+			bannerLink: '/pages/welcome',
+			isSystem: false,
+		},
+		create: {
+			title: 'Добро пожаловать',
+			slug: 'welcome',
+			isPublished: true,
+			publishedAt: new Date(),
+			authorId: adminId,
+			content: '<h2>Добро пожаловать в Aurasveta</h2><p>Управляйте контентом через CMS.</p>',
+			contentBlocks: [
+				{ type: 'heading', data: { text: 'Добро пожаловать в Aurasveta', level: 2 } },
+				{ type: 'paragraph', data: { text: 'Управляйте контентом через CMS.' } },
+			],
+			showAsBanner: true,
+			bannerLink: '/pages/welcome',
+			isSystem: false,
+		},
+	})
 }
 
 async function main() {
@@ -651,9 +855,25 @@ async function main() {
 		label: 'section types',
 		action: async () => {
 			const typeIds = await seedSectionTypes()
-			console.log(`✅ SectionTypes created: ${typeIds.size}; HomeSections seeded`)
+			console.log(`✅ SectionTypes upserted: ${typeIds.size}; HomeSections seeded`)
 		},
 	})
+
+	await runIfTableExists({
+		existingTables,
+		tableName: 'settings',
+		label: 'cms settings',
+		action: async () => {
+			await seedCmsSettings()
+			console.log('✅ CMS settings upserted')
+		},
+	})
+
+	await seedCmsProperties()
+	console.log('✅ CMS properties upserted')
+
+	await seedWelcomePage(admin.id)
+	console.log('✅ Welcome page upserted')
 
 	console.log('🎉 Seeding complete!')
 }

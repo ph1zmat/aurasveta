@@ -3,66 +3,11 @@ import Header from '@/widgets/header/ui/Header'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
 import DynamicSection from '@/widgets/home-sections/ui/DynamicSection'
-import RecentlyViewed from '@/widgets/home-sections/ui/RecentlyViewed'
-// Static fallback imports (used when no HomeSections are configured in DB)
-import HeroBanner from '@/widgets/home-sections/ui/HeroBanner'
-import PopularQueries from '@/widgets/home-sections/ui/PopularQueries'
-import PopularCategories from '@/widgets/home-sections/ui/PopularCategories'
-import SaleProducts from '@/widgets/home-sections/ui/SaleProducts'
-import RoomCategories from '@/widgets/home-sections/ui/RoomCategories'
-import NewProducts from '@/widgets/home-sections/ui/NewProducts'
-import PopularProducts from '@/widgets/home-sections/ui/PopularProducts'
-import BrandsCarouselServer from '@/widgets/home-sections/ui/BrandsCarouselServer'
-import Advantages from '@/widgets/home-sections/ui/Advantages'
-import AboutSection from '@/widgets/home-sections/ui/AboutSection'
 import ChatButton from '@/shared/ui/ChatButton'
-import Skeleton from '@/shared/ui/Skeleton'
-import { Suspense } from 'react'
-import { connection } from 'next/server'
-import { prisma } from '@/lib/prisma'
-
-function ProductGridSkeleton() {
-	return (
-		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
-			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
-				{Array.from({ length: 8 }).map((_, i) => (
-					<div key={i} className='space-y-3'>
-						<Skeleton className='h-36 w-full rounded-xl' />
-						<Skeleton className='h-4 w-3/4' />
-						<Skeleton className='h-3 w-1/2' />
-					</div>
-				))}
-			</div>
-		</section>
-	)
-}
-
-function CategoriesSkeleton() {
-	return (
-		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
-			<Skeleton className='mb-6 h-5 w-56' />
-			<div className='grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-7'>
-				{Array.from({ length: 7 }).map((_, i) => (
-					<div key={i} className='flex flex-col items-center gap-3 p-4'>
-						<Skeleton className='h-24 w-24 rounded-full' />
-						<Skeleton className='h-3 w-16' />
-					</div>
-				))}
-			</div>
-		</section>
-	)
-}
+import { trpc } from '@/lib/trpc/server'
 
 export default async function Home() {
-	await connection()
-
-	const activeSections = await prisma.homeSection.findMany({
-		where: { isActive: true },
-		orderBy: { order: 'asc' },
-		include: { sectionType: true },
-	})
-
-	const useDynamic = activeSections.length > 0
+	const activeSections = await trpc.home.getSections()
 
 	return (
 		<div className='flex flex-col bg-background'>
@@ -71,38 +16,15 @@ export default async function Home() {
 				<Header />
 				<CategoryNav />
 
-				{useDynamic ? (
-					// Dynamic CMS-driven sections
-					<>
-						{activeSections.map(section => (
-							<DynamicSection key={section.id} section={section} />
-						))}
-					</>
+				{activeSections.length > 0 ? (
+					activeSections.map(section => (
+						<DynamicSection key={section.id} section={section} />
+					))
 				) : (
-					// Static fallback layout (used when no HomeSections seeded)
-					<>
-						<HeroBanner />
-						<PopularQueries />
-						<Suspense fallback={<CategoriesSkeleton />}>
-							<PopularCategories />
-						</Suspense>
-						<Suspense fallback={<ProductGridSkeleton />}>
-							<SaleProducts />
-						</Suspense>
-						<RoomCategories />
-						<Suspense fallback={<ProductGridSkeleton />}>
-							<NewProducts />
-						</Suspense>
-						<PopularProducts />
-						<Suspense fallback={<Skeleton className='h-24 w-full rounded-xl' />}>
-							<BrandsCarouselServer />
-						</Suspense>
-						<Advantages />
-						<AboutSection />
-					</>
+					<div className='mx-auto max-w-7xl px-4 py-12 text-center text-sm text-muted-foreground'>
+						Секции главной страницы не настроены в CMS.
+					</div>
 				)}
-
-				<RecentlyViewed />
 			</main>
 
 			<Footer />

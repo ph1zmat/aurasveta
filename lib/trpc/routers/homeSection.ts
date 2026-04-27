@@ -49,6 +49,7 @@ export const homeSectionRouter = createTRPCRouter({
 		.input(
 			z.object({
 				id: z.string(),
+				sectionTypeId: z.string().optional(),
 				title: z.string().optional(),
 				config: z.record(z.string(), z.unknown()).optional(),
 				order: z.number().int().optional(),
