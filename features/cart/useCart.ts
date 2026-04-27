@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { useAtom } from 'jotai'
 import { trpc } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
@@ -8,6 +8,7 @@ import {
 	anonymousCartAtom,
 	type AnonymousCartItem,
 } from '@/lib/store/anonymous'
+import { useAnonymousDataSync } from '@/features/shared/useAnonymousDataSync'
 
 export function useCart() {
 	const { data: session } = authClient.useSession()
@@ -34,20 +35,12 @@ export function useCart() {
 	// Anon cart (localStorage via Jotai)
 	const [anonCart, setAnonCart] = useAtom(anonymousCartAtom)
 
-	// Sync anon → server on login
-	const syncedRef = useRef(false)
-	useEffect(() => {
-		if (isAuth && anonCart.length > 0 && !syncedRef.current) {
-			syncedRef.current = true
-			const items = [...anonCart]
-			// Add each anon cart item to server cart
-			Promise.all(items.map(item => addItemMut.mutateAsync(item)))
-				.then(() => setAnonCart([]))
-				.catch(() => {
-					syncedRef.current = false
-				})
-		}
-	}, [isAuth]) // eslint-disable-line react-hooks/exhaustive-deps
+	useAnonymousDataSync({
+		isAuth,
+		items: anonCart,
+		clearLocal: () => setAnonCart([]),
+		migrateItem: addItemMut.mutateAsync,
+	})
 
 	const rawItems: AnonymousCartItem[] = isAuth
 		? (serverItems ?? []).map(item => ({

@@ -1,6 +1,5 @@
 import { requireCmsAccess } from '@/lib/auth/auth-utils'
 import AdminNotificationsClient from './AdminNotificationsClient'
-import AdminNotificationsWidget from './AdminNotificationsWidget'
 import AdminSidebar from './components/AdminSidebar'
 
 export default async function AdminLayout({

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
 import { AsyncImage } from '../components/ui/AsyncImage'
+import { generateSlug } from '../../../shared/lib/generateSlug'
 import {
 	Pencil,
 	Trash2,
@@ -10,36 +11,36 @@ import {
 	ImagePlus,
 	Trash,
 	GripVertical,
-	SlidersHorizontal,
-	ChevronDown,
-	ArrowUpDown,
 } from 'lucide-react'
-import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
+import { useApiBaseUrl, resolveImgUrl } from '../lib/store'
+import { uploadImageAsset } from '../lib/uploadImageAsset'
+import ProductFilters, {
+	type ProductFiltersState,
+} from '../../../shared/admin/products/ProductFilters'
 
 export function ProductsPage() {
 	const apiBaseUrl = useApiBaseUrl()
 	const [page, setPage] = useState(1)
-	const [search, setSearch] = useState('')
 	const [showForm, setShowForm] = useState(false)
 	const [editId, setEditId] = useState<string | null>(null)
-	const [showFilters, setShowFilters] = useState(false)
-
-	// Filter state
-	const [categorySlug, setCategorySlug] = useState('')
-	const [brand, setBrand] = useState('')
-	const [sortBy, setSortBy] = useState<string>('')
-	const [inStock, setInStock] = useState<boolean | undefined>(undefined)
+	const [filters, setFilters] = useState<ProductFiltersState>({
+		search: '',
+		categorySlug: '',
+		brand: '',
+		sortBy: '',
+		inStock: undefined,
+	})
 
 	const { data: categories } = trpc.categories.getAll.useQuery()
 
 	const { data, refetch } = trpc.products.getMany.useQuery({
 		page,
 		limit: 20,
-		search: search || undefined,
-		categorySlug: categorySlug || undefined,
-		brand: brand || undefined,
-		sortBy: (sortBy as any) || undefined,
-		inStock,
+		search: filters.search || undefined,
+		categorySlug: filters.categorySlug || undefined,
+		brand: filters.brand || undefined,
+		sortBy: (filters.sortBy as any) || undefined,
+		inStock: filters.inStock,
 	})
 	const deleteMut = trpc.products.delete.useMutation({
 		onSuccess: () => refetch(),
@@ -53,21 +54,6 @@ export function ProductsPage() {
 		})
 		return Array.from(set).sort()
 	}, [data])
-
-	const activeFilterCount = [
-		categorySlug,
-		brand,
-		sortBy,
-		inStock !== undefined ? 'x' : '',
-	].filter(Boolean).length
-
-	const clearFilters = () => {
-		setCategorySlug('')
-		setBrand('')
-		setSortBy('')
-		setInStock(undefined)
-		setPage(1)
-	}
 
 	return (
 		<div className='space-y-5'>
@@ -86,118 +72,20 @@ export function ProductsPage() {
 				</Button>
 			</div>
 
-			{/* Search + Filter toggle */}
-			<div className='flex items-center gap-2'>
-				<input
-					type='search'
-					placeholder='Поиск по названию...'
-					value={search}
-					onChange={e => {
-						setSearch(e.target.value)
-						setPage(1)
-					}}
-					className='flex h-9 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-				/>
-				<button
-					onClick={() => setShowFilters(f => !f)}
-					className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors ${
-						showFilters || activeFilterCount > 0
-							? 'border-primary/50 bg-primary/10 text-primary'
-							: 'border-border bg-background text-muted-foreground hover:text-foreground'
-					}`}
-				>
-					<SlidersHorizontal className='h-3.5 w-3.5' />
-					Фильтры
-					{activeFilterCount > 0 && (
-						<span className='ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground'>
-							{activeFilterCount}
-						</span>
-					)}
-				</button>
-			</div>
-
-			{/* Filter panel */}
-			{showFilters && (
-				<div className='rounded-xl border border-border bg-muted/30 p-4'>
-					<div className='flex flex-wrap items-end gap-3'>
-						<FilterSelect
-							label='Категория'
-							value={categorySlug}
-							onChange={v => {
-								setCategorySlug(v)
-								setPage(1)
-							}}
-							options={
-								categories?.map((c: any) => ({
-									value: c.slug,
-									label: c.name,
-								})) ?? []
-							}
-							placeholder='Все категории'
-						/>
-						<FilterSelect
-							label='Бренд'
-							value={brand}
-							onChange={v => {
-								setBrand(v)
-								setPage(1)
-							}}
-							options={brands.map(b => ({ value: b, label: b }))}
-							placeholder='Все бренды'
-						/>
-						<FilterSelect
-							label='Сортировка'
-							value={sortBy}
-							onChange={setSortBy}
-							options={[
-								{ value: 'newest', label: 'Сначала новые' },
-								{ value: 'price-asc', label: 'Цена ↑' },
-								{ value: 'price-desc', label: 'Цена ↓' },
-								{ value: 'name', label: 'По названию' },
-							]}
-							placeholder='По умолчанию'
-							icon={<ArrowUpDown className='h-3.5 w-3.5' />}
-						/>
-						<div className='flex flex-col gap-1'>
-							<span className='text-xs font-medium text-muted-foreground'>
-								Наличие
-							</span>
-							<div className='flex h-9 items-center gap-3 rounded-lg border border-border bg-background px-3'>
-								{[
-									{ label: 'Все', val: undefined },
-									{ label: 'В наличии', val: true },
-									{ label: 'Нет', val: false },
-								].map(opt => (
-									<button
-										key={String(opt.val)}
-										type='button'
-										onClick={() => {
-											setInStock(opt.val)
-											setPage(1)
-										}}
-										className={`text-xs transition-colors ${
-											inStock === opt.val
-												? 'font-semibold text-foreground'
-												: 'text-muted-foreground hover:text-foreground'
-										}`}
-									>
-										{opt.label}
-									</button>
-								))}
-							</div>
-						</div>
-						{activeFilterCount > 0 && (
-							<button
-								onClick={clearFilters}
-								className='flex h-9 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:text-foreground'
-							>
-								<X className='h-3.5 w-3.5' />
-								Сбросить
-							</button>
-						)}
-					</div>
-				</div>
-			)}
+			<ProductFilters
+				initialFilters={filters}
+				categories={
+					categories?.map((category: any) => ({
+						value: category.slug,
+						label: category.name,
+					})) ?? []
+				}
+				brands={brands.map(brand => ({ value: brand, label: brand }))}
+				onFilterChange={nextFilters => {
+					setFilters(nextFilters)
+					setPage(1)
+				}}
+			/>
 
 			{showForm && (
 				<ProductFormModal
@@ -412,8 +300,7 @@ function ProductFormModal({
 		e.preventDefault()
 		const data = {
 			name: form.name,
-			slug:
-				form.slug || form.name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-'),
+			slug: form.slug || generateSlug(form.name),
 			description: form.description || undefined,
 			price: form.price ? parseFloat(form.price) : undefined,
 			compareAtPrice: form.compareAtPrice
@@ -440,36 +327,16 @@ function ProductFormModal({
 	const handleUploadImage = async (file: File) => {
 		if (!editId) return
 		setUploadError(null)
-		const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
-		const token = await getToken()
-		if (!token) throw new Error('Нет токена сессии')
-
-		const fd = new FormData()
-		fd.append('file', file)
-
-		const res = await fetch(`${apiUrl}/api/upload`, {
-			method: 'POST',
-			headers: { Authorization: `Bearer ${token}` },
-			body: fd,
+		const { key, originalName } = await uploadImageAsset(file).catch(error => {
+			const message = error instanceof Error ? error.message : 'Upload failed'
+			setUploadError(message)
+			throw error
 		})
-
-		if (!res.ok) {
-			const body = await res.json().catch(() => null)
-			const msg = body?.error ?? `Upload failed: ${res.status}`
-			setUploadError(msg)
-			throw new Error(msg)
-		}
-
-		const out = await res.json()
-		const imagePath =
-			(out.key as string | undefined) ?? (out.path as string | undefined)
-		const originalName = out.originalName as string | undefined
-		if (!imagePath) throw new Error('Upload: не вернулся путь')
 
 		await updateImageMut.mutateAsync({
 			productId: editId,
-			imagePath,
-			imageOriginalName: originalName ?? null,
+			imagePath: key,
+			imageOriginalName: originalName,
 		})
 	}
 
@@ -944,48 +811,3 @@ function Field({
 	)
 }
 
-/* ─────────────── Filter Select ─────────────── */
-
-function FilterSelect({
-	label,
-	value,
-	onChange,
-	options,
-	placeholder,
-	icon,
-}: {
-	label: string
-	value: string
-	onChange: (v: string) => void
-	options: { value: string; label: string }[]
-	placeholder: string
-	icon?: React.ReactNode
-}) {
-	return (
-		<div className='flex flex-col gap-1'>
-			<span className='text-xs font-medium text-muted-foreground'>{label}</span>
-			<div className='relative'>
-				{icon && (
-					<span className='pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground'>
-						{icon}
-					</span>
-				)}
-				<select
-					value={value}
-					onChange={e => onChange(e.target.value)}
-					className={`h-9 appearance-none rounded-lg border border-border bg-background pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-						icon ? 'pl-8' : 'pl-3'
-					} ${value ? 'text-foreground' : 'text-muted-foreground'}`}
-				>
-					<option value=''>{placeholder}</option>
-					{options.map(o => (
-						<option key={o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
-				<ChevronDown className='pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
-			</div>
-		</div>
-	)
-}

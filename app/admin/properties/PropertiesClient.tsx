@@ -1,9 +1,10 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
+import AdminModal from '@/shared/ui/AdminModal'
 import {
 	Plus,
 	Pencil,
@@ -18,6 +19,21 @@ import {
 
 type PropertyItem = RouterOutputs['properties']['getAll'][number]
 type PropertyValue = PropertyItem['values'][number]
+type PropertyFormState = {
+	name: string
+	slug: string
+	hasPhoto: boolean
+}
+
+function getPropertyFormState(
+	editProp?: RouterOutputs['properties']['getById'] | null,
+): PropertyFormState {
+	return {
+		name: editProp?.name ?? '',
+		slug: editProp?.slug ?? '',
+		hasPhoto: editProp?.hasPhoto ?? false,
+	}
+}
 
 /* ============ Main ============ */
 
@@ -277,22 +293,32 @@ function PropertyFormModal({
 		enabled: !!editId,
 	})
 
-	const emptyForm = useMemo(() => ({ name: '', slug: '', hasPhoto: false }), [])
-	const [form, setForm] = useState(emptyForm)
+	return (
+		<PropertyFormModalContent
+			key={`${editId ?? 'new'}:${editProp?.id ?? 'blank'}`}
+			editId={editId}
+			onClose={onClose}
+			createMut={createMut}
+			updateMut={updateMut}
+			initialForm={getPropertyFormState(editProp)}
+		/>
+	)
+}
 
-	useEffect(() => {
-		if (!editId) {
-			setForm(emptyForm)
-			return
-		}
-		if (editProp) {
-			setForm({
-				name: editProp.name ?? '',
-				slug: editProp.slug ?? '',
-				hasPhoto: editProp.hasPhoto ?? false,
-			})
-		}
-	}, [editId, editProp, emptyForm])
+function PropertyFormModalContent({
+	editId,
+	onClose,
+	createMut,
+	updateMut,
+	initialForm,
+}: {
+	editId: string | null
+	onClose: () => void
+	createMut: ReturnType<typeof trpc.properties.create.useMutation>
+	updateMut: ReturnType<typeof trpc.properties.update.useMutation>
+	initialForm: PropertyFormState
+}) {
+	const [form, setForm] = useState<PropertyFormState>(initialForm)
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -305,23 +331,29 @@ function PropertyFormModal({
 
 	const inputCls =
 		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+	const formId = 'property-form-modal'
 
 	return (
-		<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
-			<div className='flex w-full max-w-md flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
-					<h2 className='text-lg font-semibold text-foreground'>
-						{editId ? 'Редактировать свойство' : 'Новое свойство'}
-					</h2>
-					<button
-						onClick={onClose}
-						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-					>
-						<X className='h-5 w-5' />
-					</button>
-				</div>
-
-				<form onSubmit={handleSubmit} className='space-y-4 px-6 py-5'>
+		<AdminModal
+			isOpen
+			onClose={onClose}
+			title={editId ? 'Редактировать свойство' : 'Новое свойство'}
+			size='sm'
+			footer={[
+				<Button key='cancel' variant='ghost' type='button' onClick={onClose}>
+					Отмена
+				</Button>,
+				<Button
+					key='submit'
+					type='submit'
+					form={formId}
+					disabled={createMut.isPending || updateMut.isPending}
+				>
+					{editId ? 'Сохранить' : 'Создать'}
+				</Button>,
+			]}
+		>
+			<form id={formId} onSubmit={handleSubmit} className='space-y-4 px-6 py-5'>
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
@@ -357,21 +389,8 @@ function PropertyFormModal({
 						/>
 						Значения со фото
 					</label>
-				</form>
-
-				<div className='flex justify-end gap-2 border-t border-border px-6 py-4'>
-					<Button variant='ghost' type='button' onClick={onClose}>
-						Отмена
-					</Button>
-					<Button
-						disabled={createMut.isPending || updateMut.isPending}
-						onClick={handleSubmit}
-					>
-						{editId ? 'Сохранить' : 'Создать'}
-					</Button>
-				</div>
-			</div>
-		</div>
+			</form>
+		</AdminModal>
 	)
 }
 

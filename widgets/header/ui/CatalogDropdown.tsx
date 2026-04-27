@@ -80,8 +80,11 @@ export default function CatalogDropdown({
 	if (!open) return null
 
 	return (
-		<div className='fixed inset-0 z-50 bg-foreground/20'>
-			<div ref={panelRef} className='mx-auto mt-0 max-w-7xl bg-card shadow-lg'>
+		<div className='fixed inset-0 z-50 bg-foreground/20 overflow-y-hidden'>
+			<div
+				ref={panelRef}
+				className='mx-auto mt-23 max-w-7xl bg-card shadow-lg е'
+			>
 				<div className='relative flex'>
 					{/* ─── Левая колонка: категории ─── */}
 					<nav className='w-52 shrink-0 border-r border-border py-4'>
@@ -124,18 +127,13 @@ export default function CatalogDropdown({
 										<p className='text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground'>
 											Категория
 										</p>
-										<h2 className='mt-2 text-xl font-semibold text-foreground'>
-											{activeItem.name}
-										</h2>
-									</div>
-									<Button asChild variant='outline' size='sm'>
 										<Link
 											href={`/catalog/${activeItem.slug}`}
-											onClick={onClose}
+											className='mt-2 text-xl font-semibold text-foreground'
 										>
-											Смотреть категорию
+											{activeItem.name}
 										</Link>
-									</Button>
+									</div>
 								</div>
 
 								{(activeItem.children?.length ?? 0) > 0 ? (
@@ -192,7 +190,7 @@ export default function CatalogDropdown({
 						variant='icon'
 						size='icon'
 						onClick={onClose}
-						className='absolute right-4 top-4'
+						className='absolute right-4 top-4 cursor-pointer'
 						aria-label='Закрыть каталог'
 					>
 						<X className='h-5 w-5' strokeWidth={1.5} />

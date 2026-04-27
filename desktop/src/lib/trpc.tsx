@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCReact } from '@trpc/react-query'
-import { httpBatchLink } from '@trpc/client'
-import superjson from 'superjson'
 import { getApiUrl, getToken } from './store'
+import { createTrpcLinks } from '../../../lib/trpc/sharedClient'
 
 import type { AppRouter } from '../../../lib/trpc/routers/_app'
 
@@ -30,17 +29,14 @@ export function setApiUrlCache(url: string) {
 
 function buildTrpcClient(apiUrl: string) {
   return trpc.createClient({
-    links: [
-      httpBatchLink({
-        // In dev, Vite proxies /api/* to the Next.js backend.
-        url: import.meta.env.DEV ? '/api/trpc' : `${apiUrl}/api/trpc`,
-        transformer: superjson,
-        async headers() {
-          const token = await getToken()
-          return token ? { Authorization: `Bearer ${token}` } : {}
-        },
-      }),
-    ],
+    links: createTrpcLinks({
+      url: import.meta.env.DEV ? '/api/trpc' : `${apiUrl}/api/trpc`,
+      mode: 'batch',
+      getHeaders: async () => {
+        const token = await getToken()
+        return token ? { Authorization: `Bearer ${token}` } : {}
+      },
+    }),
   })
 }
 

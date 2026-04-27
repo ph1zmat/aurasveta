@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
+import AdminModal from '@/shared/ui/AdminModal'
 import {
 	Plus,
 	Trash2,
 	Send,
-	X,
 	Webhook,
 	Link2,
 	Zap,
@@ -41,7 +41,7 @@ export default function WebhooksClient() {
 	const [showForm, setShowForm] = useState(false)
 	const [testResult, setTestResult] = useState<{
 		id: string
-		data: any
+		data: unknown
 	} | null>(null)
 
 	return (
@@ -174,25 +174,29 @@ function WebhookFormModal({
 		e.preventDefault()
 		createMut.mutate({ url, events })
 	}
+	const formId = 'webhook-form-modal'
 
 	return (
-		<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
-			<div className='flex w-full max-w-md flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-				{/* Header */}
-				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
-					<h2 className='text-lg font-semibold text-foreground'>
-						Новый вебхук
-					</h2>
-					<button
-						onClick={onClose}
-						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-					>
-						<X className='h-5 w-5' />
-					</button>
-				</div>
-
-				{/* Body */}
-				<form onSubmit={handleSubmit} className='space-y-5 px-6 py-5'>
+		<AdminModal
+			isOpen
+			onClose={onClose}
+			title='Новый вебхук'
+			size='sm'
+			footer={[
+				<Button key='cancel' variant='ghost' type='button' onClick={onClose}>
+					Отмена
+				</Button>,
+				<Button
+					key='submit'
+					type='submit'
+					form={formId}
+					disabled={events.length === 0 || createMut.isPending}
+				>
+					Создать
+				</Button>,
+			]}
+		>
+			<form id={formId} onSubmit={handleSubmit} className='space-y-5 px-6 py-5'>
 					<div>
 						<label className='mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground'>
 							<Link2 className='h-3 w-3' /> URL
@@ -261,22 +265,7 @@ function WebhookFormModal({
 							})}
 						</div>
 					</div>
-				</form>
-
-				{/* Footer */}
-				<div className='flex justify-end gap-2 border-t border-border px-6 py-4'>
-					<Button variant='ghost' type='button' onClick={onClose}>
-						Отмена
-					</Button>
-					<Button
-						type='submit'
-						disabled={events.length === 0 || createMut.isPending}
-						onClick={handleSubmit}
-					>
-						Создать
-					</Button>
-				</div>
-			</div>
-		</div>
+			</form>
+		</AdminModal>
 	)
 }

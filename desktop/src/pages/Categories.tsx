@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { trpc } from '../lib/trpc'
 import { Button } from '../components/ui/Button'
 import { AsyncImage } from '../components/ui/AsyncImage'
+import { generateSlug } from '../../../shared/lib/generateSlug'
+import { findNodeInTree } from '../../../lib/utils/tree'
 import {
 Plus,
 Pencil,
@@ -14,7 +16,8 @@ Package,
 ChevronLeft,
 ArrowRight,
 } from 'lucide-react'
-import { getApiUrl, getToken, useApiBaseUrl, resolveImgUrl } from '../lib/store'
+import { useApiBaseUrl, resolveImgUrl } from '../lib/store'
+import { uploadImageAsset } from '../lib/uploadImageAsset'
 
 export function CategoriesPage() {
 const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -193,18 +196,7 @@ const [showEditModal, setShowEditModal] = useState(false)
 const [showAddChild, setShowAddChild] = useState(false)
 const [editChildId, setEditChildId] = useState<string | null>(null)
 
-const findInTree = (nodes: any[], id: string): any | null => {
-for (const n of nodes) {
-if (n.id === id) return n
-if (n.children) {
-const found = findInTree(n.children, id)
-if (found) return found
-}
-}
-return null
-}
-
-const category = tree ? findInTree(tree, categoryId) : null
+const category = tree ? findNodeInTree(tree, categoryId) : null
 const flatCat = allCategories?.find((c: any) => c.id === categoryId)
 const children = category?.children ?? []
 
@@ -223,34 +215,12 @@ refetchTree()
 const apiBaseUrl = useApiBaseUrl()
 
 const handleUploadImage = async (file: File) => {
-const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
-const token = await getToken()
-if (!token) throw new Error('No token')
-
-const fd = new FormData()
-fd.append('file', file)
-
-const res = await fetch(`${apiUrl}/api/upload`, {
-method: 'POST',
-headers: { Authorization: `Bearer ${token}` },
-body: fd,
-})
-
-if (!res.ok) {
-const body = await res.json().catch(() => null)
-throw new Error(body?.error ?? `Upload failed: ${res.status}`)
-}
-
-const out = await res.json()
-const imagePath =
-	(out.key as string | undefined) ?? (out.path as string | undefined)
-const originalName = out.originalName as string | undefined
-if (!imagePath) throw new Error('Upload: path missing')
+const { key, originalName } = await uploadImageAsset(file)
 
 await updateImageMut.mutateAsync({
 categoryId,
-imagePath,
-imageOriginalName: originalName ?? null,
+imagePath: key,
+imageOriginalName: originalName,
 })
 }
 
@@ -532,36 +502,16 @@ setDescription(editCat.description ?? '')
 const handleUploadImage = async (file: File) => {
 if (!editId) return
 setUploadError(null)
-const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
-const token = await getToken()
-if (!token) throw new Error('No token')
-
-const fd = new FormData()
-fd.append('file', file)
-
-const res = await fetch(`${apiUrl}/api/upload`, {
-method: 'POST',
-headers: { Authorization: `Bearer ${token}` },
-body: fd,
+const { key, originalName } = await uploadImageAsset(file).catch(error => {
+	const message = error instanceof Error ? error.message : 'Upload failed'
+	setUploadError(message)
+	throw error
 })
-
-if (!res.ok) {
-const body = await res.json().catch(() => null)
-const msg = body?.error ?? `Upload failed: ${res.status}`
-setUploadError(msg)
-throw new Error(msg)
-}
-
-		const out = await res.json()
-		const imagePath =
-			(out.key as string | undefined) ?? (out.path as string | undefined)
-const originalName = out.originalName as string | undefined
-if (!imagePath) throw new Error('Upload: path missing')
 
 await updateImageMut.mutateAsync({
 categoryId: editId,
-imagePath,
-imageOriginalName: originalName ?? null,
+imagePath: key,
+imageOriginalName: originalName,
 })
 }
 
@@ -569,7 +519,7 @@ const handleSubmit = (e: React.FormEvent) => {
 e.preventDefault()
 const data = {
 name,
-slug: slug || name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-'),
+slug: slug || generateSlug(name),
 description: description || undefined,
 parentId: parentId || undefined,
 }
