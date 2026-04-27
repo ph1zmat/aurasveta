@@ -18,6 +18,7 @@ export default async function RootLayout({
 }>) {
 	// Prefetch categories for navigation components (CategoryNav, MobileCatalogMenu)
 	void trpc.categories.getNav.prefetch()
+	void trpc.categories.getHeaderTree.prefetch()
 
 	return (
 		<html lang='ru'>

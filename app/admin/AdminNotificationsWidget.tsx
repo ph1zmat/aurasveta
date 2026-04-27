@@ -166,7 +166,7 @@ export default function AdminNotificationsWidget() {
 
 	// Мини-виджет снизу справа (только в CMS)
 	return (
-		<div className='fixed bottom-4 right-4 z-[60] w-[320px] rounded-2xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur'>
+		<div className='fixed bottom-4 right-4 z-60 w-xs rounded-2xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur'>
 			<div className='mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground'>
 				Уведомления CMS
 			</div>

@@ -4,27 +4,39 @@ import { prisma } from '@/lib/prisma'
 import { withResolvedImageAsset } from '@/lib/storage-image-assets'
 import DeferredImage from '@/shared/ui/DeferredImage'
 
-export default async function PopularCategories() {
+export default async function PopularCategories({
+	title,
+	config,
+}: {
+	title?: string | null
+	config?: Record<string, unknown> | null
+}) {
+	const heading =
+		(config?.heading as string | undefined) ?? title ?? 'Популярные категории'
+	const limit = (config?.limit as number | undefined) ?? 7
+
 	const dbCategories = await prisma.category.findMany({
 		where: { parentId: null },
 		select: { name: true, slug: true, image: true, imagePath: true },
 		orderBy: { name: 'asc' },
-		take: 7,
+		take: limit,
 	})
 
 	const cache = new Map()
-	const categories = await Promise.all(dbCategories.map(async c => ({
-		label: c.name.toUpperCase(),
-		href: `/catalog/${c.slug}`,
-		image:
-			(await withResolvedImageAsset(c, { cache })).imageUrl ??
-			'/images/placeholder.jpg',
-	})))
+	const categories = await Promise.all(
+		dbCategories.map(async c => ({
+			label: c.name.toUpperCase(),
+			href: `/catalog/${c.slug}`,
+			image:
+				(await withResolvedImageAsset(c, { cache })).imageUrl ??
+				'/images/placeholder.jpg',
+		})),
+	)
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<h2 className='mb-4 text-base font-semibold uppercase tracking-widest text-foreground md:mb-6 md:text-lg'>
-				Популярные категории
+				{heading}
 			</h2>
 			<div className='grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4 md:grid-cols-7'>
 				{categories.map(cat => (

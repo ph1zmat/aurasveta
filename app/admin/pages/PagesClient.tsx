@@ -1,11 +1,20 @@
-'use client'
+﻿'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
-import { Button } from '@/shared/ui/Button'
 import FileUploader from '@/shared/ui/FileUploader'
-import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
+import {
+	Plus,
+	Pencil,
+	Trash2,
+	X,
+	FileText,
+	Calendar,
+	Code2,
+	ChevronDown,
+	ChevronUp,
+} from 'lucide-react'
 import { generateSlug } from '@/shared/lib/generateSlug'
 
 type PageItem = RouterOutputs['pages']['getAll'][number]
@@ -15,113 +24,284 @@ export default function PagesClient() {
 	const deleteMut = trpc.pages.delete.useMutation({
 		onSuccess: () => refetch(),
 	})
-	const updateMut = trpc.pages.update.useMutation({
-		onSuccess: () => {
-			refetch()
-			setShowForm(false)
-		},
-	})
-	const updateImageMut = trpc.pages.updateImagePath.useMutation({
-		onSuccess: () => refetch(),
-	})
-	const removeImageMut = trpc.pages.removeImage.useMutation({
-		onSuccess: () => refetch(),
-	})
 
 	const [showForm, setShowForm] = useState(false)
-	const [editPage, setEditPage] = useState<PageItem | null>(null)
-	const [form, setForm] = useState({
-		title: '',
-		slug: '',
-		content: '',
-		metaTitle: '',
-		metaDesc: '',
-		isPublished: false,
+	const [editId, setEditId] = useState<string | null>(null)
+	const [search, setSearch] = useState('')
+
+	const filtered = useMemo(() => {
+		if (!pages) return []
+		if (!search) return pages
+		const q = search.toLowerCase()
+		return pages.filter(
+			(p: PageItem) =>
+				p.title?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q),
+		)
+	}, [pages, search])
+
+	return (
+		<div className='space-y-5'>
+			<div className='flex items-center justify-between'>
+				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
+					Страницы
+				</h1>
+				<button
+					onClick={() => {
+						setEditId(null)
+						setShowForm(true)
+					}}
+					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
+				>
+					<Plus className='h-4 w-4' /> Добавить
+				</button>
+			</div>
+
+			{pages && pages.length > 4 && (
+				<input
+					type='search'
+					placeholder='Поиск страниц...'
+					value={search}
+					onChange={e => setSearch(e.target.value)}
+					className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+				/>
+			)}
+
+			{showForm && (
+				<PageFormModal
+					editId={editId}
+					onClose={() => setShowForm(false)}
+					onSuccess={() => {
+						setShowForm(false)
+						refetch()
+					}}
+				/>
+			)}
+
+			{filtered.length > 0 ? (
+				<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+					{filtered.map((page: PageItem) => {
+						const contentPreview = page.content
+							? page.content.slice(0, 120) +
+								(page.content.length > 120 ? '...' : '')
+							: null
+
+						return (
+							<div
+								key={page.id}
+								className='group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-muted/10 transition-colors hover:bg-muted/30'
+							>
+								{/* Cover or placeholder */}
+								{page.imagePath ? (
+									<div className='relative h-32 w-full'>
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={`/api/storage/file?key=${page.imagePath}`}
+											alt={page.title ?? 'Обложка'}
+											className='h-full w-full object-cover'
+										/>
+										<div className='absolute inset-0 bg-linear-to-t from-black/40 to-transparent' />
+										<div
+											className={`absolute left-3 top-3 h-2.5 w-2.5 rounded-full ring-2 ring-white/30 ${
+												page.isPublished ? 'bg-emerald-400' : 'bg-amber-400'
+											}`}
+											title={page.isPublished ? 'Опубликовано' : 'Черновик'}
+										/>
+									</div>
+								) : (
+									<div className='relative flex h-20 w-full items-center justify-center bg-linear-to-br from-muted/50 to-muted/20'>
+										<FileText className='h-8 w-8 text-muted-foreground/20' />
+										<div
+											className={`absolute left-3 top-3 h-2.5 w-2.5 rounded-full ring-2 ring-card ${
+												page.isPublished ? 'bg-emerald-400' : 'bg-amber-400'
+											}`}
+											title={page.isPublished ? 'Опубликовано' : 'Черновик'}
+										/>
+									</div>
+								)}
+
+								{/* Hover actions */}
+								<div className='absolute right-2 top-2 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100'>
+									<button
+										onClick={() => {
+											setEditId(page.id)
+											setShowForm(true)
+										}}
+										className='rounded-lg bg-black/40 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/60'
+									>
+										<Pencil className='h-3.5 w-3.5' />
+									</button>
+									<button
+										onClick={() => {
+											if (confirm('Удалить страницу?'))
+												deleteMut.mutate(page.id)
+										}}
+										className='rounded-lg bg-black/40 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-red-500/70'
+									>
+										<Trash2 className='h-3.5 w-3.5' />
+									</button>
+								</div>
+
+								{/* Info */}
+								<div className='flex flex-1 flex-col gap-2 p-4'>
+									<div className='line-clamp-2 text-sm font-semibold leading-tight text-foreground'>
+										{page.title}
+									</div>
+									<div className='font-mono text-[11px] text-muted-foreground'>
+										/{page.slug}
+									</div>
+									{contentPreview && (
+										<p className='mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground'>
+											{contentPreview}
+										</p>
+									)}
+									<div className='mt-auto flex items-center gap-1.5 pt-2 text-[11px] text-muted-foreground'>
+										<Calendar className='h-3 w-3' />
+										{new Date(page.createdAt).toLocaleDateString('ru-RU', {
+											day: 'numeric',
+											month: 'short',
+											year: 'numeric',
+										})}
+									</div>
+								</div>
+							</div>
+						)
+					})}
+				</div>
+			) : (
+				<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
+					<FileText className='mb-3 h-10 w-10 text-muted-foreground/30' />
+					<p className='text-sm text-muted-foreground'>
+						{search ? 'Страницы не найдены' : 'Нет страниц'}
+					</p>
+				</div>
+			)}
+		</div>
+	)
+}
+
+/* ============ Page Form Modal ============ */
+
+function PageFormModal({
+	editId,
+	onClose,
+	onSuccess,
+}: {
+	editId: string | null
+	onClose: () => void
+	onSuccess: () => void
+}) {
+	const { data: pages, refetch: refetchPages } = trpc.pages.getAll.useQuery()
+
+	const editPage = useMemo(
+		() =>
+			editId && pages
+				? (pages.find((p: PageItem) => p.id === editId) ?? null)
+				: null,
+		[editId, pages],
+	)
+
+	const createMut = trpc.pages.create.useMutation({ onSuccess })
+	const updateMut = trpc.pages.update.useMutation({ onSuccess })
+	const updateImageMut = trpc.pages.updateImagePath.useMutation({
+		onSuccess: () => refetchPages(),
 	})
-	const [slugTouched, setSlugTouched] = useState(false)
+	const removeImageMut = trpc.pages.removeImage.useMutation({
+		onSuccess: () => refetchPages(),
+	})
+
+	const [form, setForm] = useState({
+		title: editPage?.title ?? '',
+		slug: editPage?.slug ?? '',
+		content: editPage?.content ?? '',
+		contentBlocks: JSON.stringify(editPage?.contentBlocks ?? [], null, 2),
+		seo: JSON.stringify(editPage?.seo ?? {}, null, 2),
+		metaTitle: editPage?.metaTitle ?? '',
+		metaDesc: editPage?.metaDesc ?? '',
+		isPublished: editPage?.isPublished ?? false,
+		showAsBanner: editPage?.showAsBanner ?? false,
+		bannerLink: editPage?.bannerLink ?? '',
+		isSystem: editPage?.isSystem ?? false,
+	})
+	const [slugTouched, setSlugTouched] = useState(!!editId)
+	const [jsonError, setJsonError] = useState<string | null>(null)
+	const [showAdvancedBlocks, setShowAdvancedBlocks] = useState(false)
 	const [pendingImage, setPendingImage] = useState<{
 		key: string
 		originalName: string
 	} | null>(null)
 
-	const createMut = trpc.pages.create.useMutation({
-		onSuccess: (created) => {
-			if (pendingImage?.key) {
-				updateImageMut.mutate({
-					pageId: created.id,
-					imagePath: pendingImage.key,
-					imageOriginalName: pendingImage.originalName,
-				})
-			}
-			refetch()
-			setShowForm(false)
-		},
-	})
+	const inputCls =
+		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 
-	function openCreate() {
-		setEditPage(null)
-		setForm({
-			title: '',
-			slug: '',
-			content: '',
-			metaTitle: '',
-			metaDesc: '',
-			isPublished: false,
-		})
-		setSlugTouched(false)
-		setPendingImage(null)
-		setShowForm(true)
-	}
-
-	function openEdit(page: PageItem) {
-		setEditPage(page)
-		setForm({
-			title: page.title,
-			slug: page.slug,
-			content: page.content ?? '',
-			metaTitle: page.metaTitle ?? '',
-			metaDesc: page.metaDesc ?? '',
-			isPublished: page.isPublished,
-		})
-		setSlugTouched(true)
-		setPendingImage(null)
-		setShowForm(true)
-	}
-
-	function handleSubmit(e: React.FormEvent) {
+	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
+
+		let parsedBlocks: Array<Record<string, unknown>>
+		let parsedSeo: Record<string, unknown>
+		try {
+			parsedBlocks = JSON.parse(form.contentBlocks || '[]')
+			parsedSeo = JSON.parse(form.seo || '{}')
+			setJsonError(null)
+		} catch {
+			setJsonError('Некорректный JSON в Content blocks или SEO')
+			return
+		}
+
 		const data = {
 			title: form.title,
-			slug: form.slug,
+			slug: form.slug || generateSlug(form.title),
 			content: form.content || undefined,
+			contentBlocks: parsedBlocks,
+			seo: parsedSeo,
 			metaTitle: form.metaTitle || undefined,
 			metaDesc: form.metaDesc || undefined,
 			isPublished: form.isPublished,
+			showAsBanner: form.showAsBanner,
+			bannerLink: form.bannerLink || undefined,
+			isSystem: form.isSystem,
 		}
-		if (editPage) {
-			updateMut.mutate({ id: editPage.id, ...data })
+		if (editId) {
+			updateMut.mutate({ id: editId, ...data })
 		} else {
-			createMut.mutate(data)
+			createMut.mutate(data, {
+				onSuccess: (created: any) => {
+					if (pendingImage?.key) {
+						updateImageMut.mutate({
+							pageId: created.id,
+							imagePath: pendingImage.key,
+							imageOriginalName: pendingImage.originalName,
+						})
+					}
+					onSuccess()
+				},
+			})
 		}
 	}
 
 	return (
-		<div className='space-y-6'>
-			<div className='flex items-center justify-between'>
-				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-					Страницы
-				</h1>
-				<Button variant='primary' size='sm' onClick={openCreate}>
-					<Plus className='mr-1 h-4 w-4' /> Создать
-				</Button>
-			</div>
+		<div className='fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm'>
+			<div className='my-8 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
+				{/* Header */}
+				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
+					<h2 className='text-lg font-semibold text-foreground'>
+						{editId ? 'Редактировать страницу' : 'Новая страница'}
+					</h2>
+					<button
+						onClick={onClose}
+						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+					>
+						<X className='h-5 w-5' />
+					</button>
+				</div>
 
-			{showForm && (
-				<div className='rounded-xl border border-border bg-muted/30 p-6'>
-					<form onSubmit={handleSubmit} className='space-y-4'>
-						<div className='grid gap-4 sm:grid-cols-2'>
+				{/* Body */}
+				<form onSubmit={handleSubmit} className='space-y-4 p-6'>
+					<div className='grid gap-4 sm:grid-cols-2'>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Заголовок <span className='text-destructive'>*</span>
+							</label>
 							<input
-								placeholder='Заголовок'
 								required
 								value={form.title}
 								onChange={e => {
@@ -132,10 +312,15 @@ export default function PagesClient() {
 										slug: slugTouched ? f.slug : generateSlug(title),
 									}))
 								}}
-								className='input-field'
+								className={inputCls}
+								placeholder='Заголовок страницы'
 							/>
+						</div>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Slug <span className='text-destructive'>*</span>
+							</label>
 							<input
-								placeholder='Slug'
 								required
 								value={form.slug}
 								onChange={e => {
@@ -143,38 +328,117 @@ export default function PagesClient() {
 									setForm(f => ({ ...f, slug: e.target.value }))
 								}}
 								onBlur={() => {
-									if (!form.slug) return
-									setSlugTouched(true)
-									setForm(f => ({ ...f, slug: generateSlug(f.slug) }))
+									if (form.slug)
+										setForm(f => ({ ...f, slug: generateSlug(f.slug) }))
 								}}
-								className='input-field'
+								className={inputCls}
+								placeholder='page-slug'
 							/>
 						</div>
+					</div>
+
+					<div>
+						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+							Содержимое (HTML/Markdown)
+						</label>
 						<textarea
-							placeholder='Содержимое (Markdown)'
 							value={form.content}
 							onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-							rows={10}
-							className='input-field w-full resize-none font-mono text-xs'
+							rows={8}
+							className='flex w-full resize-none rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+							placeholder='<h2>Заголовок</h2>'
 						/>
-						<div className='grid gap-4 sm:grid-cols-2'>
+					</div>
+
+					{/* Content blocks — скрыт за расширенным режимом */}
+					<div>
+						<button
+							type='button'
+							onClick={() => setShowAdvancedBlocks(v => !v)}
+							className='flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+						>
+							<Code2 className='h-3.5 w-3.5' />
+							Блоки контента (расширенный режим)
+							{showAdvancedBlocks ? (
+								<ChevronUp className='h-3 w-3' />
+							) : (
+								<ChevronDown className='h-3 w-3' />
+							)}
+						</button>
+						{showAdvancedBlocks && (
+							<div className='mt-2 rounded-xl border border-amber-300/40 bg-amber-500/5 p-3'>
+								<p className='mb-2 text-[10px] font-medium text-amber-700 dark:text-amber-400'>
+									⚠ Content blocks — техническое поле для разработчиков.
+									Редактирование в JSON формате.
+								</p>
+								<textarea
+									value={form.contentBlocks}
+									onChange={e => {
+										setForm(f => ({ ...f, contentBlocks: e.target.value }))
+										if (jsonError) setJsonError(null)
+									}}
+									rows={8}
+									className='flex w-full resize-none rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+									placeholder='[{"type":"heading","data":{"text":"Заголовок","level":2}}]'
+								/>
+								{jsonError && (
+									<p className='mt-1 text-xs text-destructive'>{jsonError}</p>
+								)}
+							</div>
+						)}
+					</div>
+
+					<div className='grid gap-4 sm:grid-cols-2'>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Meta Title
+							</label>
 							<input
-								placeholder='Meta Title'
 								value={form.metaTitle}
 								onChange={e =>
 									setForm(f => ({ ...f, metaTitle: e.target.value }))
 								}
-								className='input-field'
+								className={inputCls}
+								placeholder='SEO заголовок'
 							/>
+						</div>
+						<div>
+							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+								Meta Description
+							</label>
 							<input
-								placeholder='Meta Description'
 								value={form.metaDesc}
 								onChange={e =>
 									setForm(f => ({ ...f, metaDesc: e.target.value }))
 								}
-								className='input-field'
+								className={inputCls}
+								placeholder='SEO описание'
 							/>
 						</div>
+					</div>
+
+					<FileUploader
+						currentImage={editPage?.imagePath ?? pendingImage?.key ?? null}
+						onUploaded={(key, originalName) => {
+							if (editId) {
+								updateImageMut.mutate({
+									pageId: editId,
+									imagePath: key,
+									imageOriginalName: originalName,
+								})
+							} else {
+								setPendingImage({ key, originalName })
+							}
+						}}
+						onRemove={() => {
+							if (editId) removeImageMut.mutate(editId)
+							else setPendingImage(null)
+						}}
+						isLoading={updateImageMut.isPending || removeImageMut.isPending}
+						label='Обложка страницы'
+					/>
+
+					<div className='grid gap-4 sm:grid-cols-2'>
 						<div className='flex items-center gap-2'>
 							<input
 								type='checkbox'
@@ -183,96 +447,76 @@ export default function PagesClient() {
 								onChange={e =>
 									setForm(f => ({ ...f, isPublished: e.target.checked }))
 								}
+								className='h-4 w-4 rounded border-border'
 							/>
-							<label htmlFor='isPublished' className='text-sm'>
+							<label htmlFor='isPublished' className='text-sm text-foreground'>
 								Опубликовать
 							</label>
 						</div>
-						{editPage && (
-							<FileUploader
-								currentImage={editPage.imagePath}
-								onUploaded={(key, originalName) =>
-									updateImageMut.mutate({
-										pageId: editPage.id,
-										imagePath: key,
-										imageOriginalName: originalName,
-									})
+						<div className='flex items-center gap-2'>
+							<input
+								type='checkbox'
+								id='showAsBanner'
+								checked={form.showAsBanner}
+								onChange={e =>
+									setForm(f => ({ ...f, showAsBanner: e.target.checked }))
 								}
-								onRemove={() => removeImageMut.mutate(editPage.id)}
-								isLoading={updateImageMut.isPending || removeImageMut.isPending}
+								className='h-4 w-4 rounded border-border'
 							/>
-						)}
-						{!editPage && (
-							<FileUploader
-								currentImage={pendingImage?.key ?? null}
-								onUploaded={(key, originalName) =>
-									setPendingImage({ key, originalName })
-								}
-								onRemove={() => setPendingImage(null)}
-								isLoading={createMut.isPending || updateImageMut.isPending}
-								label='Изображение (необязательно)'
-							/>
-						)}
-						<div className='flex gap-2'>
-							<Button variant='primary' type='submit' size='sm'>
-								Сохранить
-							</Button>
-							<Button
-								variant='outline'
-								type='button'
-								size='sm'
-								onClick={() => setShowForm(false)}
-							>
-								Отмена
-							</Button>
+							<label htmlFor='showAsBanner' className='text-sm text-foreground'>
+								Показывать как баннер
+							</label>
 						</div>
-					</form>
-				</div>
-			)}
+						<div className='flex items-center gap-2 sm:col-span-2'>
+							<input
+								type='checkbox'
+								id='isSystem'
+								checked={form.isSystem}
+								onChange={e =>
+									setForm(f => ({ ...f, isSystem: e.target.checked }))
+								}
+								className='h-4 w-4 rounded border-border'
+							/>
+							<label htmlFor='isSystem' className='text-sm text-foreground'>
+								Системная страница
+							</label>
+						</div>
+					</div>
 
-			<div className='space-y-2'>
-				{pages?.map((page: PageItem) => (
-					<div
-						key={page.id}
-						className='flex items-center gap-4 rounded-xl border border-border/50 bg-muted/20 px-4 py-3'
-					>
-						<div className='flex-1'>
-							<div className='flex items-center gap-2'>
-								<span className='font-medium text-foreground'>
-									{page.title}
-								</span>
-								{page.isPublished ? (
-									<Eye className='h-3.5 w-3.5 text-green-500' />
-								) : (
-									<EyeOff className='h-3.5 w-3.5 text-muted-foreground' />
-								)}
-							</div>
-							<div className='text-xs text-muted-foreground'>
-								/{page.slug} · {page._count?.versions ?? 0} версий ·{' '}
-								{page.author?.name ?? page.author?.email ?? '—'}
-							</div>
-						</div>
+					<div>
+						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+							Banner link
+						</label>
+						<input
+							value={form.bannerLink}
+							onChange={e =>
+								setForm(f => ({ ...f, bannerLink: e.target.value }))
+							}
+							className={inputCls}
+							placeholder='/pages/welcome'
+						/>
+					</div>
+
+					<div className='flex justify-end gap-2 pt-2'>
 						<button
-							onClick={() => openEdit(page)}
-							className='text-muted-foreground hover:text-foreground'
+							type='button'
+							onClick={onClose}
+							className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 						>
-							<Pencil className='h-4 w-4' />
+							Отмена
 						</button>
 						<button
-							onClick={() => {
-								if (confirm('Удалить страницу?')) deleteMut.mutate(page.id)
-							}}
-							className='text-muted-foreground hover:text-destructive'
+							type='submit'
+							disabled={createMut.isPending || updateMut.isPending}
+							className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
 						>
-							<Trash2 className='h-4 w-4' />
+							{createMut.isPending || updateMut.isPending
+								? 'Сохранение...'
+								: 'Сохранить'}
 						</button>
 					</div>
-				))}
-				{!pages?.length && (
-					<p className='text-sm text-muted-foreground'>Страниц пока нет</p>
-				)}
+				</form>
 			</div>
 		</div>
 	)
 }
-

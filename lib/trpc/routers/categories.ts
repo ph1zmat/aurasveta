@@ -1,13 +1,172 @@
 import type { PrismaClient } from '@prisma/client'
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { deleteFile } from '@/lib/storage'
+import {
+	buildCategoryProductWhere,
+	getCategoryFilterSummary,
+	isFilteringCategory,
+	type CategoryFilterAware,
+} from '@/lib/categories/category-filters'
 import { productImageSelect } from '@/lib/products/product-images'
 import {
 	withResolvedImageAsset,
 	withResolvedProductImages,
 } from '@/lib/storage-image-assets'
+
+const categoryFilterInputSchema = z.object({
+	categoryMode: z.enum(['MANUAL', 'FILTER']).default('MANUAL'),
+	filterKind: z.enum(['PROPERTY_VALUE', 'SALE']).nullable().optional(),
+	filterPropertyId: z.string().nullable().optional(),
+	filterPropertyValueId: z.string().nullable().optional(),
+})
+
+const categoryHeaderVisibilityInputSchema = z.object({
+	showInHeader: z.boolean().default(true),
+})
+
+const categoryRelationSelect = {
+	id: true,
+	name: true,
+	slug: true,
+} as const
+
+const categoryFilterRelationInclude = {
+	filterProperty: { select: categoryRelationSelect },
+	filterPropertyValue: {
+		select: { id: true, value: true, slug: true, propertyId: true },
+	},
+} as const
+
+type CategoryWithFilterMeta = CategoryFilterAware & {
+	name: string
+	slug: string
+	showInHeader?: boolean
+	image?: string | null
+	imagePath?: string | null
+	imageUrl?: string | null
+	description?: string | null
+	parentId?: string | null
+	imageOriginalName?: string | null
+	createdAt?: Date
+	updatedAt?: Date
+	_count?: { products: number }
+	filterProperty?: { id: string; name: string; slug: string } | null
+	filterPropertyValue?: {
+		id: string
+		value: string
+		slug: string
+		propertyId: string
+	} | null
+	children?: CategoryWithFilterMeta[]
+	parent?: CategoryWithFilterMeta | null
+	filterSummary?: string | null
+}
+
+async function resolveCategoryFilterData(
+	ctx: { prisma: PrismaClient },
+	input: z.infer<typeof categoryFilterInputSchema>,
+) {
+	if (input.categoryMode !== 'FILTER') {
+		return {
+			categoryMode: 'MANUAL' as const,
+			filterKind: null,
+			filterPropertyId: null,
+			filterPropertyValueId: null,
+		}
+	}
+
+	if (!input.filterKind) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: 'Выберите тип фильтра для фильтрующей категории.',
+		})
+	}
+
+	if (input.filterKind === 'SALE') {
+		return {
+			categoryMode: 'FILTER' as const,
+			filterKind: 'SALE' as const,
+			filterPropertyId: null,
+			filterPropertyValueId: null,
+		}
+	}
+
+	if (!input.filterPropertyId || !input.filterPropertyValueId) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: 'Для фильтра по свойству нужно выбрать свойство и значение.',
+		})
+	}
+
+	const propertyValue = await ctx.prisma.propertyValue.findUnique({
+		where: { id: input.filterPropertyValueId },
+		select: { id: true, propertyId: true },
+	})
+
+	if (!propertyValue || propertyValue.propertyId !== input.filterPropertyId) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: 'Выбранное значение не принадлежит выбранному свойству.',
+		})
+	}
+
+	return {
+		categoryMode: 'FILTER' as const,
+		filterKind: 'PROPERTY_VALUE' as const,
+		filterPropertyId: input.filterPropertyId,
+		filterPropertyValueId: input.filterPropertyValueId,
+	}
+}
+
+async function resolveCategoryProductCount(
+	ctx: { prisma: PrismaClient },
+	category: CategoryWithFilterMeta,
+) {
+	if (!isFilteringCategory(category)) {
+		return category._count?.products ?? 0
+	}
+
+	return ctx.prisma.product.count({
+		where: {
+			isActive: true,
+			...buildCategoryProductWhere(category, { includeChildren: true }),
+		},
+	})
+}
+
+async function enrichCategoryNode(
+	ctx: { prisma: PrismaClient },
+	category: CategoryWithFilterMeta,
+	cache: Map<
+		string,
+		Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']
+	>,
+): Promise<CategoryWithFilterMeta> {
+	const resolvedCategory = await withResolvedCategoryImage(ctx, category, {
+		cache,
+	})
+	const children = category.children
+		? await Promise.all(
+				category.children.map(child => enrichCategoryNode(ctx, child, cache)),
+			)
+		: undefined
+	const parent = category.parent
+		? await withResolvedCategoryImage(ctx, category.parent, { cache })
+		: undefined
+
+	return {
+		...resolvedCategory,
+		...(parent !== undefined ? { parent } : {}),
+		...(children ? { children } : {}),
+		_count: {
+			products: await resolveCategoryProductCount(ctx, category),
+		},
+		filterSummary: getCategoryFilterSummary(category),
+	}
+}
 
 async function withResolvedCategoryImage<
 	T extends {
@@ -19,7 +178,10 @@ async function withResolvedCategoryImage<
 	ctx: { prisma: PrismaClient },
 	category: T,
 	options?: {
-		cache?: Map<string, Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']>
+		cache?: Map<
+			string,
+			Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']
+		>
 		preferProxy?: boolean
 	},
 ) {
@@ -32,7 +194,10 @@ async function withResolvedCategoryImage<
 		where: {
 			isActive: true,
 			images: { some: {} },
-			OR: [{ categoryId: category.id }, { category: { parentId: category.id } }],
+			OR: [
+				{ categoryId: category.id },
+				{ category: { parentId: category.id } },
+			],
 		},
 		orderBy: { createdAt: 'desc' },
 		select: {
@@ -47,7 +212,10 @@ async function withResolvedCategoryImage<
 		return resolvedCategory
 	}
 
-	const resolvedProduct = await withResolvedProductImages(fallbackProduct, options)
+	const resolvedProduct = await withResolvedProductImages(
+		fallbackProduct,
+		options,
+	)
 	if (!resolvedProduct.imageUrl) {
 		return resolvedCategory
 	}
@@ -62,20 +230,22 @@ async function withResolvedCategoryImage<
 export const categoriesRouter = createTRPCRouter({
 	getAll: baseProcedure.query(async ({ ctx }) => {
 		const categories = await ctx.prisma.category.findMany({
-			include: { children: true, _count: { select: { products: true } } },
+			include: {
+				children: {
+					include: {
+						_count: { select: { products: true } },
+						...categoryFilterRelationInclude,
+					},
+				},
+				_count: { select: { products: true } },
+				...categoryFilterRelationInclude,
+			},
 			orderBy: { name: 'asc' },
 		})
 
 		const cache = new Map()
 		return Promise.all(
-			categories.map(async category => ({
-				...(await withResolvedCategoryImage(ctx, category, { cache })),
-				children: await Promise.all(
-					category.children.map(child =>
-						withResolvedCategoryImage(ctx, child, { cache }),
-					),
-				),
-			})),
+			categories.map(category => enrichCategoryNode(ctx, category, cache)),
 		)
 	}),
 
@@ -85,30 +255,25 @@ export const categoriesRouter = createTRPCRouter({
 			include: {
 				children: {
 					include: {
-						children: true,
+						children: {
+							include: {
+								_count: { select: { products: true } },
+								...categoryFilterRelationInclude,
+							},
+						},
 						_count: { select: { products: true } },
+						...categoryFilterRelationInclude,
 					},
 				},
 				_count: { select: { products: true } },
+				...categoryFilterRelationInclude,
 			},
 			orderBy: { name: 'asc' },
 		})
 
 		const cache = new Map()
 		return Promise.all(
-			categories.map(async category => ({
-				...(await withResolvedCategoryImage(ctx, category, { cache })),
-				children: await Promise.all(
-					category.children.map(async child => ({
-						...(await withResolvedCategoryImage(ctx, child, { cache })),
-						children: await Promise.all(
-							child.children.map(grandChild =>
-								withResolvedCategoryImage(ctx, grandChild, { cache }),
-							),
-						),
-					})),
-				),
-			})),
+			categories.map(category => enrichCategoryNode(ctx, category, cache)),
 		)
 	}),
 
@@ -116,32 +281,65 @@ export const categoriesRouter = createTRPCRouter({
 		const category = await ctx.prisma.category.findUnique({
 			where: { slug: input },
 			include: {
-				children: true,
-				parent: true,
+				children: {
+					include: {
+						_count: { select: { products: true } },
+						...categoryFilterRelationInclude,
+					},
+				},
+				parent: {
+					include: {
+						_count: { select: { products: true } },
+						...categoryFilterRelationInclude,
+					},
+				},
 				_count: { select: { products: true } },
+				...categoryFilterRelationInclude,
 			},
 		})
 
 		if (!category) return null
 
 		const cache = new Map()
-		return {
-			...(await withResolvedCategoryImage(ctx, category, { cache })),
-			children: await Promise.all(
-				category.children.map(child => withResolvedCategoryImage(ctx, child, { cache })),
-			),
-			parent: category.parent
-				? await withResolvedCategoryImage(ctx, category.parent, { cache })
-				: null,
-		}
+		return enrichCategoryNode(ctx, category, cache)
 	}),
 
 	getNav: baseProcedure.query(async ({ ctx }) => {
 		return ctx.prisma.category.findMany({
-			where: { parentId: null },
-			select: { id: true, name: true, slug: true },
+			where: { parentId: null, showInHeader: true },
+			select: { id: true, name: true, slug: true, showInHeader: true },
 			orderBy: { name: 'asc' },
 		})
+	}),
+
+	getHeaderTree: baseProcedure.query(async ({ ctx }) => {
+		const categories = await ctx.prisma.category.findMany({
+			where: { parentId: null, showInHeader: true },
+			include: {
+				children: {
+					where: { showInHeader: true },
+					include: {
+						children: {
+							where: { showInHeader: true },
+							include: {
+								_count: { select: { products: true } },
+								...categoryFilterRelationInclude,
+							},
+						},
+						_count: { select: { products: true } },
+						...categoryFilterRelationInclude,
+					},
+				},
+				_count: { select: { products: true } },
+				...categoryFilterRelationInclude,
+			},
+			orderBy: { name: 'asc' },
+		})
+
+		const cache = new Map()
+		return Promise.all(
+			categories.map(category => enrichCategoryNode(ctx, category, cache)),
+		)
 	}),
 
 	getProductsByCategorySlug: baseProcedure
@@ -161,17 +359,23 @@ export const categoriesRouter = createTRPCRouter({
 
 			const category = await ctx.prisma.category.findUnique({
 				where: { slug },
-				select: { id: true, name: true, children: { select: { id: true } } },
+				select: {
+					id: true,
+					name: true,
+					categoryMode: true,
+					filterKind: true,
+					filterPropertyId: true,
+					filterPropertyValueId: true,
+					children: { select: { id: true } },
+				},
 			})
 
 			if (!category) return { items: [], total: 0, page, limit, totalPages: 0 }
 
-			const categoryIds = [category.id]
-			if (includeChildren) {
-				categoryIds.push(...category.children.map(c => c.id))
+			const where = {
+				isActive: true,
+				...buildCategoryProductWhere(category, { includeChildren }),
 			}
-
-			const where = { isActive: true, categoryId: { in: categoryIds } }
 
 			let orderBy: Record<string, string> = { createdAt: 'desc' }
 			switch (sortBy) {
@@ -240,37 +444,71 @@ export const categoriesRouter = createTRPCRouter({
 
 	create: adminProcedure
 		.input(
-			z.object({
-				name: z.string().min(1),
-				slug: z.string().optional(),
-				description: z.string().optional(),
-				image: z.string().optional(),
-				parentId: z.string().optional(),
-			}),
+			z
+				.object({
+					name: z.string().min(1),
+					slug: z.string().optional(),
+					description: z.string().optional(),
+					image: z.string().optional(),
+					parentId: z.string().optional(),
+				})
+				.merge(categoryHeaderVisibilityInputSchema)
+				.merge(categoryFilterInputSchema),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const {
+				categoryMode,
+				filterKind,
+				filterPropertyId,
+				filterPropertyValueId,
+				showInHeader,
+				...rest
+			} = input
 			let slug = input.slug?.trim() || generateSlug(input.name)
 			let suffix = 0
 			while (await ctx.prisma.category.findUnique({ where: { slug } })) {
 				suffix++
 				slug = `${generateSlug(input.name)}-${suffix}`
 			}
-			return ctx.prisma.category.create({ data: { ...input, slug } })
+			const filterData = await resolveCategoryFilterData(ctx, {
+				categoryMode,
+				filterKind,
+				filterPropertyId,
+				filterPropertyValueId,
+			})
+			return ctx.prisma.category.create({
+				data: {
+					...rest,
+					slug,
+					showInHeader,
+					...filterData,
+				},
+			})
 		}),
 
 	update: adminProcedure
 		.input(
-			z.object({
-				id: z.string(),
-				name: z.string().min(1).optional(),
-				slug: z.string().optional(),
-				description: z.string().optional(),
-				image: z.string().optional(),
-				parentId: z.string().nullable().optional(),
-			}),
+			z
+				.object({
+					id: z.string(),
+					name: z.string().min(1).optional(),
+					slug: z.string().optional(),
+					description: z.string().optional(),
+					image: z.string().optional(),
+					parentId: z.string().nullable().optional(),
+				})
+				.merge(categoryHeaderVisibilityInputSchema.partial())
+				.merge(categoryFilterInputSchema.partial()),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input
+			const {
+				id,
+				categoryMode,
+				filterKind,
+				filterPropertyId,
+				filterPropertyValueId,
+				...data
+			} = input
 			if (data.name && !data.slug) {
 				let slug = generateSlug(data.name)
 				let suffix = 0
@@ -284,7 +522,50 @@ export const categoriesRouter = createTRPCRouter({
 				}
 				data.slug = slug
 			}
-			return ctx.prisma.category.update({ where: { id }, data })
+
+			const currentCategory = (await ctx.prisma.category.findUnique({
+				where: { id },
+				select: {
+					categoryMode: true,
+					filterKind: true,
+					filterPropertyId: true,
+					filterPropertyValueId: true,
+				} as unknown as never,
+			})) as {
+				categoryMode: 'MANUAL' | 'FILTER'
+				filterKind: 'PROPERTY_VALUE' | 'SALE' | null
+				filterPropertyId: string | null
+				filterPropertyValueId: string | null
+			} | null
+
+			if (!currentCategory) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Категория не найдена.',
+				})
+			}
+
+			const filterData = await resolveCategoryFilterData(ctx, {
+				categoryMode: categoryMode ?? currentCategory.categoryMode,
+				filterKind:
+					filterKind === undefined ? currentCategory.filterKind : filterKind,
+				filterPropertyId:
+					filterPropertyId === undefined
+						? currentCategory.filterPropertyId
+						: filterPropertyId,
+				filterPropertyValueId:
+					filterPropertyValueId === undefined
+						? currentCategory.filterPropertyValueId
+						: filterPropertyValueId,
+			})
+
+			return ctx.prisma.category.update({
+				where: { id },
+				data: {
+					...data,
+					...filterData,
+				},
+			})
 		}),
 
 	updateImagePath: adminProcedure

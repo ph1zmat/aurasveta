@@ -14,6 +14,8 @@ import { WebhooksPage } from './pages/Webhooks'
 import { ImportExportPage } from './pages/ImportExport'
 import { SettingsPage } from './pages/Settings'
 import { SeoPage } from './pages/Seo'
+import { SectionTypesPage } from './pages/SectionTypes'
+import { HomeSectionsPage } from './pages/HomeSections'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -57,6 +59,8 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="section-types" element={<SectionTypesPage />} />
+        <Route path="home-sections" element={<HomeSectionsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="pages" element={<PagesPage />} />

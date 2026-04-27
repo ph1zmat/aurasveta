@@ -7,6 +7,8 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint",
+		"prisma:generate": "prisma generate",
+		"postinstall": "prisma generate",
 		"convert:svg-to-webp": "tsx scripts/convert-svg-to-webp.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"

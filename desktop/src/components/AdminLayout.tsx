@@ -15,11 +15,15 @@ import {
 	LogOut,
 	Menu,
 	X,
+	Shapes,
+	LayoutGrid,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 const navItems = [
 	{ href: '/', label: 'Главная', icon: LayoutDashboard },
+	{ href: '/section-types', label: 'Типы секций', icon: Shapes },
+	{ href: '/home-sections', label: 'Секции главной', icon: LayoutGrid },
 	{ href: '/products', label: 'Товары', icon: Package },
 	{ href: '/categories', label: 'Категории', icon: FolderTree },
 	{ href: '/properties', label: 'Свойства', icon: SlidersHorizontal },

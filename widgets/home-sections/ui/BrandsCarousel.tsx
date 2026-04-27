@@ -9,15 +9,19 @@ interface BrandItem {
 
 interface BrandsCarouselProps {
 	brands?: BrandItem[]
+	heading?: string
 }
 
-export default function BrandsCarousel({ brands = [] }: BrandsCarouselProps) {
+export default function BrandsCarousel({
+	brands = [],
+	heading = 'Бренды',
+}: BrandsCarouselProps) {
 	if (brands.length === 0) return null
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<h2 className='mb-4 text-base font-semibold uppercase tracking-widest text-foreground md:mb-6 md:text-lg'>
-				Бренды
+				{heading}
 			</h2>
 			<Slider
 				visibleItems={6}

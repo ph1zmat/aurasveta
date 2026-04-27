@@ -24,13 +24,14 @@ interface CatalogDropdownProps {
 
 type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
 
-export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps) {
-	const { data: categoriesTree, isLoading } = trpc.categories.getTree.useQuery(
-		undefined,
-		{
+export default function CatalogDropdown({
+	open,
+	onClose,
+}: CatalogDropdownProps) {
+	const { data: categoriesTree, isLoading } =
+		trpc.categories.getHeaderTree.useQuery(undefined, {
 			staleTime: 5 * 60 * 1000,
-		},
-	)
+		})
 	const defaultActiveId = useMemo(
 		() => categoriesTree?.[0]?.slug ?? '',
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,10 +81,7 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 
 	return (
 		<div className='fixed inset-0 z-50 bg-foreground/20'>
-			<div
-				ref={panelRef}
-				className='mx-auto mt-0 max-w-7xl bg-card shadow-lg'
-			>
+			<div ref={panelRef} className='mx-auto mt-0 max-w-7xl bg-card shadow-lg'>
 				<div className='relative flex'>
 					{/* ─── Левая колонка: категории ─── */}
 					<nav className='w-52 shrink-0 border-r border-border py-4'>
@@ -131,15 +129,18 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 										</h2>
 									</div>
 									<Button asChild variant='outline' size='sm'>
-										<Link href={`/catalog/${activeItem.slug}`} onClick={onClose}>
+										<Link
+											href={`/catalog/${activeItem.slug}`}
+											onClick={onClose}
+										>
 											Смотреть категорию
 										</Link>
 									</Button>
 								</div>
 
-								{activeItem.children.length > 0 ? (
+								{(activeItem.children?.length ?? 0) > 0 ? (
 									<div className='grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2 xl:grid-cols-3'>
-										{activeItem.children.map(child => (
+										{(activeItem.children ?? []).map(child => (
 											<div key={child.id}>
 												<Link
 													href={`/catalog/${child.slug}`}
@@ -158,7 +159,7 @@ export default function CatalogDropdown({ open, onClose }: CatalogDropdownProps)
 															Все товары
 														</Link>
 													</li>
-													{child.children.map(grandChild => (
+													{(child.children ?? []).map(grandChild => (
 														<li key={grandChild.id}>
 															<Link
 																href={`/catalog/${grandChild.slug}`}

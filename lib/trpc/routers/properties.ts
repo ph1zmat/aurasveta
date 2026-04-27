@@ -3,6 +3,36 @@ import { revalidatePath } from 'next/cache'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 
 export const propertiesRouter = createTRPCRouter({
+	getForCarousel: baseProcedure
+		.input(z.object({ slug: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const property = await ctx.prisma.property.findUnique({
+				where: { slug: input.slug },
+				include: {
+					values: {
+						orderBy: [{ order: 'asc' }, { value: 'asc' }],
+						select: {
+							id: true,
+							value: true,
+							slug: true,
+							photo: true,
+							order: true,
+						},
+					},
+				},
+			})
+
+			if (!property) return null
+
+			return {
+				id: property.id,
+				slug: property.slug,
+				name: property.name,
+				hasPhoto: property.hasPhoto,
+				values: property.values,
+			}
+		}),
+
 	getAll: baseProcedure.query(async ({ ctx }) => {
 		return ctx.prisma.property.findMany({
 			orderBy: { name: 'asc' },
@@ -80,7 +110,7 @@ export const propertiesRouter = createTRPCRouter({
 				propertyId: z.string(),
 				value: z.string().min(1),
 				slug: z.string().min(1).optional(),
-				photo: z.string().optional(),
+				photo: z.string().nullable().optional(),
 				order: z.number().int().optional().default(0),
 			}),
 		)
@@ -111,7 +141,7 @@ export const propertiesRouter = createTRPCRouter({
 				id: z.string(),
 				value: z.string().min(1).optional(),
 				slug: z.string().min(1).optional(),
-				photo: z.string().optional(),
+				photo: z.string().nullable().optional(),
 				order: z.number().int().optional(),
 			}),
 		)

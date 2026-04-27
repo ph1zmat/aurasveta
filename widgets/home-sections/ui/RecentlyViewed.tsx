@@ -36,7 +36,17 @@ function getServerSnapshot() {
 	return emptyIds
 }
 
-export default function RecentlyViewed() {
+export default function RecentlyViewed({
+	title,
+	config,
+}: {
+	title?: string | null
+	config?: Record<string, unknown> | null
+}) {
+	const heading =
+		(config?.heading as string | undefined) ?? title ?? 'Вы смотрели'
+	const limit = (config?.limit as number | undefined) ?? 4
+
 	const ids = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
 	const { data: products } = trpc.products.getByIds.useQuery(ids, {
@@ -47,13 +57,13 @@ export default function RecentlyViewed() {
 	const recentProducts = (products ?? []) as unknown as DbProduct[]
 
 	const cards = recentProducts
-		.slice(0, 4)
+		.slice(0, limit)
 		.map(product => toProductCardProps(toFrontendProduct(product as DbProduct)))
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<h2 className='mb-4 text-base font-semibold uppercase tracking-widest text-foreground md:mb-6 md:text-lg'>
-				Вы смотрели
+				{heading}
 			</h2>
 			<div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
 				{cards.map(product => (

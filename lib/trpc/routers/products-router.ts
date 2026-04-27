@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from '@prisma/client'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { validateWebhookUrl } from '@/shared/lib/validateUrl'
+import { buildCategoryProductWhere } from '@/lib/categories/category-filters'
 import { deleteFile } from '@/lib/storage'
 import type { StorageImageAsset } from '@/shared/types/storage'
 import { withResolvedProductImages } from '@/lib/storage-image-assets'
@@ -85,22 +86,6 @@ const productFilters = z.object({
 })
 
 const TRUE_VALUES = ['true', '1', 'yes', 'да']
-
-function buildCategoryWhere(
-	categoryId: string,
-	includeChildren: boolean,
-	children: Array<{ id: string }>,
-): Prisma.ProductWhereInput {
-	if (includeChildren && children.length > 0) {
-		return {
-			categoryId: {
-				in: [categoryId, ...children.map(child => child.id)],
-			},
-		}
-	}
-
-	return { categoryId }
-}
 
 function toIncomingProductImages(
 	images: readonly IncomingProductImage[] | undefined,
@@ -223,13 +208,20 @@ export const productsRouter = createTRPCRouter({
 		if (categorySlug) {
 			const category = await ctx.prisma.category.findUnique({
 				where: { slug: categorySlug },
-				select: { id: true, children: { select: { id: true } } },
+				select: {
+					id: true,
+					categoryMode: true,
+					filterKind: true,
+					filterPropertyId: true,
+					filterPropertyValueId: true,
+					children: { select: { id: true } },
+				},
 			})
 
 			if (category) {
 				Object.assign(
 					where,
-					buildCategoryWhere(category.id, includeChildren, category.children),
+					buildCategoryProductWhere(category, { includeChildren }),
 				)
 			}
 		}
@@ -342,7 +334,14 @@ export const productsRouter = createTRPCRouter({
 			if (categorySlug) {
 				const category = await ctx.prisma.category.findUnique({
 					where: { slug: categorySlug },
-					select: { id: true, children: { select: { id: true } } },
+					select: {
+						id: true,
+						categoryMode: true,
+						filterKind: true,
+						filterPropertyId: true,
+						filterPropertyValueId: true,
+						children: { select: { id: true } },
+					},
 				})
 
 				if (!category) {
@@ -363,7 +362,7 @@ export const productsRouter = createTRPCRouter({
 
 				Object.assign(
 					baseWhere,
-					buildCategoryWhere(category.id, includeChildren, category.children),
+					buildCategoryProductWhere(category, { includeChildren }),
 				)
 			}
 
@@ -631,7 +630,7 @@ export const productsRouter = createTRPCRouter({
 								data: resolvedProperties.map(property => ({
 									productId: id,
 									propertyId: property.propertyId,
-								propertyValueId: property.propertyValueId,
+									propertyValueId: property.propertyValueId,
 								})),
 							})
 						}
@@ -737,6 +736,70 @@ export const productsRouter = createTRPCRouter({
 			})
 
 			return enrichProducts(products)
+		}),
+
+	getByProperty: baseProcedure
+		.input(
+			z.object({
+				propertyId: z.string().optional(),
+				propertyValueId: z.string(),
+				page: z.number().int().min(1).default(1),
+				limit: z.number().int().min(1).max(100).default(24),
+				sortBy: z
+					.enum(['newest', 'price_asc', 'price_desc', 'popular'])
+					.default('newest'),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { propertyId, propertyValueId, page, limit, sortBy } = input
+
+			const where: Prisma.ProductWhereInput = {
+				isActive: true,
+				properties: {
+					some: {
+						propertyValueId,
+						...(propertyId ? { propertyId } : {}),
+					},
+				},
+			}
+
+			let orderBy: Prisma.ProductOrderByWithRelationInput = {
+				createdAt: 'desc',
+			}
+			switch (sortBy) {
+				case 'price_asc':
+					orderBy = { price: 'asc' }
+					break
+				case 'price_desc':
+					orderBy = { price: 'desc' }
+					break
+				case 'popular':
+					orderBy = { reviewsCount: 'desc' }
+					break
+				case 'newest':
+				default:
+					orderBy = { createdAt: 'desc' }
+					break
+			}
+
+			const [items, total] = await Promise.all([
+				ctx.prisma.product.findMany({
+					where,
+					orderBy,
+					skip: (page - 1) * limit,
+					take: limit,
+					select: productCatalogSelect,
+				}),
+				ctx.prisma.product.count({ where }),
+			])
+
+			return {
+				items: await enrichProducts(items),
+				total,
+				page,
+				limit,
+				totalPages: Math.ceil(total / limit),
+			}
 		}),
 
 	getSpecs: baseProcedure
