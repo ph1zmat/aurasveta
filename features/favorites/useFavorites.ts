@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useAtom } from 'jotai'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
 import { anonymousFavoritesAtom } from '@/lib/store/anonymous'
+import { useAnonymousDataSync } from '@/features/shared/useAnonymousDataSync'
 
 type ServerFavoriteItem = RouterOutputs['favorites']['getAll'][number]
 
@@ -27,19 +28,12 @@ export function useFavorites() {
 	// Anon favorites (localStorage via Jotai)
 	const [anonFavorites, setAnonFavorites] = useAtom(anonymousFavoritesAtom)
 
-	// Sync anon → server on login
-	const syncedRef = useRef(false)
-	useEffect(() => {
-		if (isAuth && anonFavorites.length > 0 && !syncedRef.current) {
-			syncedRef.current = true
-			const items = [...anonFavorites]
-			Promise.all(items.map(id => toggleMut.mutateAsync(id)))
-				.then(() => setAnonFavorites([]))
-				.catch(() => {
-					syncedRef.current = false
-				})
-		}
-	}, [isAuth]) // eslint-disable-line react-hooks/exhaustive-deps
+	useAnonymousDataSync({
+		isAuth,
+		items: anonFavorites,
+		clearLocal: () => setAnonFavorites([]),
+		migrateItem: toggleMut.mutateAsync,
+	})
 
 	// Unified product IDs list
 	const productIds = useMemo<string[]>(

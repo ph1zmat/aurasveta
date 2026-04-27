@@ -160,15 +160,38 @@ export const ordersRouter = createTRPCRouter({
 				status: z
 					.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
 					.optional(),
+				search: z.string().trim().min(1).optional(),
 				page: z.number().min(1).default(1),
 				limit: z.number().min(1).max(100).default(20),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const where: Prisma.OrderWhereInput = {}
-			if (input.status) where.status = input.status
+			const baseWhere: Prisma.OrderWhereInput = {}
 
-			const [items, total] = await Promise.all([
+			if (input.search) {
+				baseWhere.OR = [
+					{ id: { contains: input.search, mode: 'insensitive' } },
+					{ phone: { contains: input.search, mode: 'insensitive' } },
+					{
+						user: {
+							name: { contains: input.search, mode: 'insensitive' },
+						},
+					},
+					{
+						user: {
+							email: { contains: input.search, mode: 'insensitive' },
+						},
+					},
+				]
+			}
+
+			const where: Prisma.OrderWhereInput = input.status
+				? {
+					AND: [baseWhere, { status: input.status }],
+				}
+				: baseWhere
+
+			const [items, total, groupedCounts] = await Promise.all([
 				ctx.prisma.order.findMany({
 					where,
 					include: {
@@ -182,9 +205,36 @@ export const ordersRouter = createTRPCRouter({
 					take: input.limit,
 				}),
 				ctx.prisma.order.count({ where }),
+					ctx.prisma.order.groupBy({
+						by: ['status'],
+						where: baseWhere,
+						_count: { _all: true },
+					}),
 			])
 
-			return { items, total, totalPages: Math.ceil(total / input.limit) }
+			const countsByStatus = groupedCounts.reduce(
+				(acc, item) => {
+					acc[item.status] = item._count._all
+					return acc
+				},
+				{
+					PENDING: 0,
+					PAID: 0,
+					SHIPPED: 0,
+					DELIVERED: 0,
+					CANCELLED: 0,
+				} as Record<
+					'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+					number
+				>,
+			)
+
+			return {
+				items,
+				total,
+				totalPages: Math.ceil(total / input.limit),
+				countsByStatus,
+			}
 		}),
 
 	updateStatus: adminProcedure

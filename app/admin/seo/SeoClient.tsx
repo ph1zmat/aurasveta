@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { trpc } from '@/lib/trpc/client'
+import { useMemo, useState } from 'react'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import {
 	Globe,
 	Save,
@@ -26,6 +26,33 @@ import {
 import { Button } from '@/shared/ui/Button'
 
 type TargetType = 'product' | 'category' | 'page'
+type SeoPageItem = RouterOutputs['pages']['getAll'][number]
+type SeoCategoryItem = RouterOutputs['categories']['getAll'][number]
+type SeoProductItem = RouterOutputs['products']['getMany']['items'][number]
+type SeoTargetRecord = RouterOutputs['seo']['getByTarget']
+type SeoFormState = {
+	title: string
+	description: string
+	keywords: string
+	ogTitle: string
+	ogDescription: string
+	ogImage: string
+	canonicalUrl: string
+	noIndex: boolean
+}
+
+function getSeoFormState(data: SeoTargetRecord): SeoFormState {
+	return {
+		title: data?.title ?? '',
+		description: data?.description ?? '',
+		keywords: data?.keywords ?? '',
+		ogTitle: data?.ogTitle ?? '',
+		ogDescription: data?.ogDescription ?? '',
+		ogImage: data?.ogImage ?? '',
+		canonicalUrl: data?.canonicalUrl ?? '',
+		noIndex: !!data?.noIndex,
+	}
+}
 
 /* ============ Main ============ */
 
@@ -121,7 +148,9 @@ function PagesTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
 	const cmsPages = useMemo(() => {
 		if (!pages) return []
 		const q = search.toLowerCase()
-		return pages.filter((p: any) => !q || p.title?.toLowerCase().includes(q))
+		return pages.filter(
+			(page: SeoPageItem) => !q || page.title?.toLowerCase().includes(q),
+		)
 	}, [pages, search])
 
 	return (
@@ -154,14 +183,16 @@ function PagesTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
 						CMS страницы
 					</div>
 					<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-						{cmsPages.map((p: any) => (
+						{cmsPages.map(page => (
 							<SeoCard
-								key={p.id}
+								key={page.id}
 								targetType='page'
-								targetId={p.id}
-								name={p.title}
-								subtitle={`/${p.slug}`}
-								onEdit={() => onEdit({ type: 'page', id: p.id, name: p.title })}
+								targetId={page.id}
+								name={page.title}
+								subtitle={`/${page.slug}`}
+								onEdit={() =>
+									onEdit({ type: 'page', id: page.id, name: page.title })
+								}
 							/>
 						))}
 					</div>
@@ -181,7 +212,10 @@ function CategoriesTab({ search, onEdit }: { search: string; onEdit: EditHandler
 	const filtered = useMemo(() => {
 		if (!categories) return []
 		const q = search.toLowerCase()
-		return categories.filter((c: any) => !q || c.name?.toLowerCase().includes(q))
+		return categories.filter(
+			(category: SeoCategoryItem) =>
+				!q || category.name?.toLowerCase().includes(q),
+		)
 	}, [categories, search])
 
 	if (!filtered.length && search) return <EmptySearch />
@@ -196,15 +230,25 @@ function CategoriesTab({ search, onEdit }: { search: string; onEdit: EditHandler
 
 	return (
 		<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-			{filtered.map((c: any) => (
+			{filtered.map(category => (
 				<SeoCard
-					key={c.id}
+					key={category.id}
 					targetType='category'
-					targetId={c.id}
-					name={c.name}
-					subtitle={`/${c.slug}`}
-					image={c.imagePath ? `/api/storage/file?key=${c.imagePath}` : undefined}
-					onEdit={() => onEdit({ type: 'category', id: c.id, name: c.name })}
+					targetId={category.id}
+					name={category.name}
+					subtitle={`/${category.slug}`}
+					image={
+						category.imagePath
+							? `/api/storage/file?key=${category.imagePath}`
+							: undefined
+					}
+					onEdit={() =>
+						onEdit({
+							type: 'category',
+							id: category.id,
+							name: category.name,
+						})
+					}
 				/>
 			))}
 		</div>
@@ -222,7 +266,7 @@ function ProductsTab({ search, onEdit }: { search: string; onEdit: EditHandler }
 		search: search || undefined,
 	})
 
-	const items = data?.items ?? []
+	const items = (data?.items ?? []) as SeoProductItem[]
 	const total = data?.total ?? 0
 	const totalPages = Math.ceil(total / 24)
 
@@ -239,21 +283,23 @@ function ProductsTab({ search, onEdit }: { search: string; onEdit: EditHandler }
 	return (
 		<div className='space-y-4'>
 			<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-				{items.map((p: any) => (
+				{items.map(product => (
 					<SeoCard
-						key={p.id}
+						key={product.id}
 						targetType='product'
-						targetId={p.id}
-						name={p.name}
-						subtitle={`/${p.slug}`}
+						targetId={product.id}
+						name={product.name}
+						subtitle={`/${product.slug}`}
 						image={
-							p.images?.[0]?.imageAsset?.url ??
-							p.images?.[0]?.url ??
-							(p.images?.[0]?.key
-								? `/api/storage/file?key=${p.images[0].key}`
+							product.images?.[0]?.imageAsset?.url ??
+							product.images?.[0]?.url ??
+							(product.images?.[0]?.key
+								? `/api/storage/file?key=${product.images[0].key}`
 								: undefined)
 						}
-						onEdit={() => onEdit({ type: 'product', id: p.id, name: p.name })}
+						onEdit={() =>
+							onEdit({ type: 'product', id: product.id, name: product.name })
+						}
 					/>
 				))}
 			</div>
@@ -443,46 +489,45 @@ function SeoModal({
 	onClose: () => void
 }) {
 	const { data, isLoading } = trpc.seo.getByTarget.useQuery({ targetType, targetId })
+
+	return (
+		<SeoModalContent
+			key={`${targetType}:${targetId}:${isLoading ? 'loading' : data ? 'filled' : 'empty'}`}
+			targetType={targetType}
+			targetId={targetId}
+			name={name}
+			onClose={onClose}
+			initialData={data ?? null}
+			isLoading={isLoading}
+		/>
+	)
+}
+
+function SeoModalContent({
+	targetType,
+	targetId,
+	name,
+	onClose,
+	initialData,
+	isLoading,
+}: {
+	targetType: TargetType
+	targetId: string
+	name: string
+	onClose: () => void
+	initialData: SeoTargetRecord
+	isLoading: boolean
+}) {
 	const utils = trpc.useUtils()
 	const updateMut = trpc.seo.update.useMutation({
 		onSuccess: () => {
 			utils.seo.getByTarget.invalidate({ targetType, targetId })
 		},
 	})
-
-	const empty = useMemo(
-		() => ({
-			title: '',
-			description: '',
-			keywords: '',
-			ogTitle: '',
-			ogDescription: '',
-			ogImage: '',
-			canonicalUrl: '',
-			noIndex: false,
-		}),
-		[],
+	const [form, setForm] = useState<SeoFormState>(() =>
+		getSeoFormState(initialData),
 	)
-
-	const [form, setForm] = useState(empty)
 	const [saved, setSaved] = useState(false)
-
-	useEffect(() => {
-		if (!data) {
-			setForm(empty)
-			return
-		}
-		setForm({
-			title: data.title ?? '',
-			description: data.description ?? '',
-			keywords: data.keywords ?? '',
-			ogTitle: data.ogTitle ?? '',
-			ogDescription: data.ogDescription ?? '',
-			ogImage: data.ogImage ?? '',
-			canonicalUrl: data.canonicalUrl ?? '',
-			noIndex: !!data.noIndex,
-		})
-	}, [data, empty])
 
 	const onSave = async () => {
 		setSaved(false)

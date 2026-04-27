@@ -8,13 +8,13 @@ import {
 	Plus,
 	Pencil,
 	Trash2,
-	X,
 	FileText,
 	Calendar,
 	Code2,
 	ChevronDown,
 	ChevronUp,
 } from 'lucide-react'
+import AdminModal from '@/shared/ui/AdminModal'
 import { generateSlug } from '@/shared/lib/generateSlug'
 
 type PageItem = RouterOutputs['pages']['getAll'][number]
@@ -232,6 +232,7 @@ function PageFormModal({
 
 	const inputCls =
 		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+	const formId = 'page-form-modal'
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -264,7 +265,7 @@ function PageFormModal({
 			updateMut.mutate({ id: editId, ...data })
 		} else {
 			createMut.mutate(data, {
-				onSuccess: (created: any) => {
+				onSuccess: created => {
 					if (pendingImage?.key) {
 						updateImageMut.mutate({
 							pageId: created.id,
@@ -279,23 +280,35 @@ function PageFormModal({
 	}
 
 	return (
-		<div className='fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm'>
-			<div className='my-8 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-				{/* Header */}
-				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
-					<h2 className='text-lg font-semibold text-foreground'>
-						{editId ? 'Редактировать страницу' : 'Новая страница'}
-					</h2>
-					<button
-						onClick={onClose}
-						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-					>
-						<X className='h-5 w-5' />
-					</button>
-				</div>
-
-				{/* Body */}
-				<form onSubmit={handleSubmit} className='space-y-4 p-6'>
+		<AdminModal
+			isOpen
+			onClose={onClose}
+			title={editId ? 'Редактировать страницу' : 'Новая страница'}
+			size='lg'
+			scrollable
+			footer={[
+				<button
+					key='cancel'
+					type='button'
+					onClick={onClose}
+					className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+				>
+					Отмена
+				</button>,
+				<button
+					key='submit'
+					type='submit'
+					form={formId}
+					disabled={createMut.isPending || updateMut.isPending}
+					className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
+				>
+					{createMut.isPending || updateMut.isPending
+						? 'Сохранение...'
+						: 'Сохранить'}
+				</button>,
+			]}
+		>
+			<form id={formId} onSubmit={handleSubmit} className='space-y-4 p-6'>
 					<div className='grid gap-4 sm:grid-cols-2'>
 						<div>
 							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
@@ -436,6 +449,7 @@ function PageFormModal({
 						}}
 						isLoading={updateImageMut.isPending || removeImageMut.isPending}
 						label='Обложка страницы'
+						aspectRatio='landscape'
 					/>
 
 					<div className='grid gap-4 sm:grid-cols-2'>
@@ -497,26 +511,7 @@ function PageFormModal({
 						/>
 					</div>
 
-					<div className='flex justify-end gap-2 pt-2'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-						>
-							Отмена
-						</button>
-						<button
-							type='submit'
-							disabled={createMut.isPending || updateMut.isPending}
-							className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
-						>
-							{createMut.isPending || updateMut.isPending
-								? 'Сохранение...'
-								: 'Сохранить'}
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
+			</form>
+		</AdminModal>
 	)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import type { ProductImage } from '@/shared/types/product'
@@ -26,6 +26,10 @@ interface ProductImagesFieldProps {
 	images: EditableProductImage[]
 	onChange: (images: EditableProductImage[]) => void
 	disabled?: boolean
+	canUpload?: boolean
+	showHeader?: boolean
+	emptyTitle?: string
+	emptyDescription?: string
 }
 
 function normalizeImages(
@@ -87,14 +91,45 @@ export default function ProductImagesField({
 	images,
 	onChange,
 	disabled,
+	canUpload = true,
+	showHeader = true,
+	emptyTitle,
+	emptyDescription,
 }: ProductImagesFieldProps) {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const [uploading, setUploading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [activeIndex, setActiveIndex] = useState(0)
 
 	const busy = disabled || uploading
+	const uploadLocked = !canUpload
+	const previewImage = images[activeIndex] ?? images[0] ?? null
+	const previewIndex = previewImage
+		? Math.max(
+				0,
+				images.findIndex(image => image === previewImage),
+			)
+		: 0
+
+	useEffect(() => {
+		if (images.length === 0) {
+			setActiveIndex(0)
+			return
+		}
+
+		setActiveIndex(currentIndex => {
+			if (currentIndex >= 0 && currentIndex < images.length) {
+				return currentIndex
+			}
+
+			const mainIndex = images.findIndex(image => image.isMain)
+			return mainIndex >= 0 ? mainIndex : 0
+		})
+	}, [images])
 
 	const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		if (uploadLocked) return
+
 		const files = Array.from(event.target.files ?? [])
 		if (files.length === 0) return
 
@@ -151,6 +186,9 @@ export default function ProductImagesField({
 		if (!removedImage) return
 
 		await cleanupPendingImage(removedImage)
+		if (activeIndex === index && index > 0) {
+			setActiveIndex(index - 1)
+		}
 		onChange(
 			normalizeImages(images.filter((_, imageIndex) => imageIndex !== index)),
 		)
@@ -177,29 +215,34 @@ export default function ProductImagesField({
 		)
 	}
 
+	const resolvedEmptyTitle =
+		emptyTitle ?? (uploadLocked ? 'Сохраните товар, чтобы загрузить фото' : 'Загрузите фото товара')
+	const resolvedEmptyDescription =
+		emptyDescription ??
+		(uploadLocked
+			? 'Сначала сохраните карточку, после этого можно будет добавить фотографии и выбрать главное изображение.'
+			: 'Нажмите на область или кнопку ниже, чтобы добавить фотографии товара.')
+
 	return (
 		<div className='space-y-3'>
-			<div className='flex items-center justify-between gap-3'>
-				<div>
-					<p className='text-sm font-medium text-foreground'>
-						Изображения товара
-					</p>
-					<p className='text-xs text-muted-foreground'>
-						Загрузите несколько изображений, выберите главное и поменяйте
-						порядок стрелками.
-					</p>
+			{showHeader ? (
+				<div className='flex items-center justify-between gap-3'>
+					<div>
+						<p className='text-sm font-medium text-foreground'>
+							Изображения товара
+						</p>
+						<p className='text-xs text-muted-foreground'>
+							Большое окно показывает текущий кадр, а ниже можно быстро
+							переключаться между остальными фото.
+						</p>
+					</div>
+					{images.length > 0 ? (
+						<span className='rounded-full border border-border bg-muted/30 px-3 py-1 text-[11px] text-muted-foreground'>
+							{images.length} фото
+						</span>
+					) : null}
 				</div>
-				<Button
-					type='button'
-					variant='outline'
-					size='sm'
-					disabled={busy}
-					onClick={() => inputRef.current?.click()}
-				>
-					<ImagePlus className='mr-1 h-4 w-4' />
-					{uploading ? 'Загрузка...' : 'Добавить фото'}
-				</Button>
-			</div>
+			) : null}
 
 			<input
 				ref={inputRef}
@@ -208,93 +251,183 @@ export default function ProductImagesField({
 				multiple
 				className='hidden'
 				onChange={handleUpload}
-				disabled={busy}
+				disabled={busy || uploadLocked}
 			/>
 
 			{error ? <p className='text-sm text-destructive'>{error}</p> : null}
 
-			{images.length === 0 ? (
-				<div className='rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground'>
-					Изображения пока не добавлены.
-				</div>
-			) : (
-				<div className='grid grid-cols-2 gap-3 md:grid-cols-3'>
-					{images.map((image, index) => (
-						<div
-							key={image.id ?? `${image.key}-${index}`}
-							className={`overflow-hidden rounded-xl border bg-muted/20 ${
-								image.isMain
-									? 'border-primary ring-1 ring-primary/40'
-									: 'border-border'
-							}`}
-						>
-							<div className='relative aspect-square bg-muted/30'>
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img
-									src={image.url}
-									alt={image.originalName ?? `Изображение ${index + 1}`}
-									className='h-full w-full object-cover'
-								/>
-								<div className='absolute left-2 top-2'>
+			<div className='space-y-3'>
+				<button
+					type='button'
+					onClick={() => {
+						if (previewImage || uploadLocked) return
+						inputRef.current?.click()
+					}}
+					disabled={busy || uploadLocked}
+					className={`group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border bg-muted/20 transition-colors ${
+						previewImage
+							? 'aspect-4/3 border-border bg-muted/30'
+							: uploadLocked
+								? 'aspect-square border-dashed border-border bg-muted/10'
+								: 'aspect-square border-dashed border-border hover:bg-muted/30'
+					}`}
+				>
+					{previewImage ? (
+						<>
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								src={previewImage.url}
+								alt={previewImage.originalName ?? `Изображение ${previewIndex + 1}`}
+								className='h-full w-full object-cover'
+							/>
+							<div className='absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3'>
+								<div className='flex flex-wrap items-center gap-2'>
 									<span
-										className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-											image.isMain
+										className={`rounded-full px-2.5 py-1 text-[10px] font-medium shadow-sm ${
+											previewImage.isMain
 												? 'bg-primary text-primary-foreground'
-												: 'bg-black/50 text-white'
+												: 'bg-black/55 text-white'
 										}`}
 									>
-										{image.isMain ? 'Главное' : `#${index + 1}`}
+										{previewImage.isMain ? 'Главное фото' : `Фото #${previewIndex + 1}`}
 									</span>
+									<p className='max-w-2xs truncate rounded-full bg-black/45 px-2.5 py-1 text-[10px] text-white'>
+										{previewImage.originalName ?? previewImage.key}
+									</p>
 								</div>
-							</div>
-							<div className='space-y-2 p-2'>
-								<p className='truncate text-xs text-muted-foreground'>
-									{image.originalName ?? image.key}
-								</p>
-								<div className='grid grid-cols-2 gap-2'>
+								<div className='flex items-center gap-1.5 rounded-xl bg-black/35 p-1.5 backdrop-blur-sm'>
 									<Button
 										type='button'
-										variant='ghost'
-										size='sm'
-										disabled={busy || index === 0}
-										onClick={() => moveImage(index, -1)}
+										variant='icon'
+										size='icon-sm'
+										disabled={busy || previewIndex === 0}
+										onClick={event => {
+											event.stopPropagation()
+											moveImage(previewIndex, -1)
+										}}
+										className='rounded-md bg-white/12 text-white hover:bg-white/20 hover:text-white'
+										aria-label='Переместить фото влево'
 									>
 										<ArrowLeft className='h-4 w-4' />
 									</Button>
 									<Button
 										type='button'
-										variant='ghost'
-										size='sm'
-										disabled={busy || index === images.length - 1}
-										onClick={() => moveImage(index, 1)}
+										variant='icon'
+										size='icon-sm'
+										disabled={busy || previewIndex === images.length - 1}
+										onClick={event => {
+											event.stopPropagation()
+											moveImage(previewIndex, 1)
+										}}
+										className='rounded-md bg-white/12 text-white hover:bg-white/20 hover:text-white'
+										aria-label='Переместить фото вправо'
 									>
 										<ArrowRight className='h-4 w-4' />
 									</Button>
 									<Button
 										type='button'
-										variant={image.isMain ? 'primary' : 'outline'}
-										size='sm'
-										disabled={busy || image.isMain}
-										onClick={() => setMainImage(index)}
+										variant='icon'
+										size='icon-sm'
+										disabled={busy || previewImage.isMain}
+										onClick={event => {
+											event.stopPropagation()
+											setMainImage(previewIndex)
+										}}
+										className='rounded-md bg-white/12 text-white hover:bg-white/20 hover:text-white'
+										aria-label='Сделать главным фото'
 									>
-										<Star className='mr-1 h-4 w-4' /> Главное
+										<Star className='h-4 w-4' />
 									</Button>
 									<Button
 										type='button'
-										variant='ghost'
-										size='sm'
+										variant='icon'
+										size='icon-sm'
 										disabled={busy}
-										onClick={() => void removeImage(index)}
-										className='text-destructive hover:text-destructive'
+										onClick={event => {
+											event.stopPropagation()
+											void removeImage(previewIndex)
+										}}
+										className='rounded-md bg-white/12 text-white hover:bg-red-500/80 hover:text-white'
+										aria-label='Удалить фото'
 									>
-										<Trash2 className='mr-1 h-4 w-4' /> Удалить
+										<Trash2 className='h-4 w-4' />
 									</Button>
 								</div>
 							</div>
+						</>
+					) : (
+						<div className='flex max-w-[15rem] flex-col items-center gap-4 px-6 text-center text-muted-foreground'>
+							<div
+								className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${
+									uploadLocked
+										? 'border-border bg-background text-foreground'
+										: 'border-dashed border-border bg-background/60'
+								}`}
+							>
+								<ImagePlus className='h-6 w-6' />
+							</div>
+							<div className='space-y-1'>
+								<p className='text-sm font-medium text-foreground'>
+									{resolvedEmptyTitle}
+								</p>
+								{resolvedEmptyDescription ? (
+									<p className='text-xs leading-5 text-muted-foreground'>
+										{resolvedEmptyDescription}
+									</p>
+								) : null}
+							</div>
 						</div>
+					)}
+				</button>
+
+				{uploadLocked && !previewImage ? null : (
+					<div className='flex flex-wrap gap-2'>
+					{images.map((image, index) => (
+						<button
+							key={image.id ?? `${image.key}-${index}`}
+							type='button'
+							onClick={() => setActiveIndex(index)}
+							className={`group relative h-18 w-18 overflow-hidden rounded-xl border transition-all sm:h-20 sm:w-20 ${
+								index === previewIndex
+									? 'border-primary ring-2 ring-primary/25'
+									: 'border-border bg-muted/20 hover:border-primary/40'
+							}`}
+							aria-label={`Показать фото ${index + 1}`}
+						>
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								src={image.url}
+								alt={image.originalName ?? `Миниатюра ${index + 1}`}
+								className='h-full w-full object-cover'
+							/>
+							<div className='absolute inset-x-1 bottom-1 flex items-center justify-between gap-1'>
+								<span className='rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] text-white'>
+									{index + 1}
+								</span>
+								{image.isMain ? (
+									<span className='rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground'>
+										<Star className='h-2.5 w-2.5' />
+									</span>
+								) : null}
+							</div>
+						</button>
 					))}
-				</div>
-			)}
+
+					<button
+						type='button'
+						onClick={() => inputRef.current?.click()}
+						disabled={busy || uploadLocked}
+						className='flex h-18 w-18 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/15 text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground disabled:opacity-50 sm:h-20 sm:w-20'
+						aria-label='Добавить изображения'
+					>
+						<ImagePlus className='h-4 w-4 sm:h-5 sm:w-5' />
+						<span className='mt-1 text-[10px] font-medium'>
+							{uploading ? '...' : 'Добавить'}
+						</span>
+					</button>
+					</div>
+				)}
+			</div>
 		</div>
 	)
 }

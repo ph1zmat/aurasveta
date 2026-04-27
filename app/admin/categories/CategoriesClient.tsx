@@ -1,14 +1,14 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 import FileUploader from '@/shared/ui/FileUploader'
+import AdminModal from '@/shared/ui/AdminModal'
 import {
 	Pencil,
 	Trash2,
 	Plus,
-	X,
 	FolderTree,
 	Package,
 	ArrowRight,
@@ -21,6 +21,7 @@ import {
 	MonitorOff,
 } from 'lucide-react'
 import { generateSlug } from '@/shared/lib/generateSlug'
+import { findNodeInTree } from '@/lib/utils/tree'
 
 type CategoryNodeData = NonNullable<
 	RouterOutputs['categories']['getTree']
@@ -28,6 +29,51 @@ type CategoryNodeData = NonNullable<
 
 type CategoryMode = 'MANUAL' | 'FILTER'
 type CategoryFilterKind = 'PROPERTY_VALUE' | 'SALE'
+type CategoryFormState = {
+	name: string
+	slug: string
+	description: string
+	categoryMode: CategoryMode
+	filterKind: CategoryFilterKind
+	filterPropertyId: string
+	filterPropertyValueId: string
+	showInHeader: boolean
+	slugTouched: boolean
+	pendingImage: {
+		key: string
+		originalName: string
+	} | null
+}
+
+function getCategoryFormState(editCat: CategoryNodeData | null): CategoryFormState {
+	if (!editCat) {
+		return {
+			name: '',
+			slug: '',
+			description: '',
+			categoryMode: 'MANUAL',
+			filterKind: 'PROPERTY_VALUE',
+			filterPropertyId: '',
+			filterPropertyValueId: '',
+			showInHeader: true,
+			slugTouched: false,
+			pendingImage: null,
+		}
+	}
+
+	return {
+		name: editCat.name ?? '',
+		slug: editCat.slug ?? '',
+		description: editCat.description ?? '',
+		categoryMode: editCat.categoryMode ?? 'MANUAL',
+		filterKind: editCat.filterKind ?? 'PROPERTY_VALUE',
+		filterPropertyId: editCat.filterPropertyId ?? '',
+		filterPropertyValueId: editCat.filterPropertyValueId ?? '',
+		showInHeader: editCat.showInHeader ?? true,
+		slugTouched: true,
+		pendingImage: null,
+	}
+}
 
 function getCategoryModeLabel(category: CategoryNodeData) {
 	return category.categoryMode === 'FILTER'
@@ -267,21 +313,7 @@ function CategoryDetailView({
 	const [showAddChild, setShowAddChild] = useState(false)
 	const [editChildId, setEditChildId] = useState<string | null>(null)
 
-	const findInTree = (
-		nodes: CategoryNodeData[],
-		id: string,
-	): CategoryNodeData | null => {
-		for (const n of nodes) {
-			if (n.id === id) return n
-			if (n.children) {
-				const found = findInTree(n.children, id)
-				if (found) return found
-			}
-		}
-		return null
-	}
-
-	const category = tree ? findInTree(tree, categoryId) : null
+	const category = tree ? findNodeInTree(tree, categoryId) : null
 	const children = category?.children ?? []
 	const productCount = category?._count?.products ?? 0
 
@@ -317,7 +349,7 @@ function CategoryDetailView({
 			<div className='overflow-hidden rounded-2xl border border-border bg-muted/10'>
 				<div className='flex gap-6 p-6'>
 					{/* Image */}
-					<div className='h-40 w-40 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20'>
+					<div className='w-44 shrink-0'>
 						<FileUploader
 							currentImage={category.imagePath ?? null}
 							onUploaded={(key, originalName) =>
@@ -329,6 +361,10 @@ function CategoryDetailView({
 							}
 							onRemove={() => removeImageMut.mutate(categoryId)}
 							isLoading={updateImageMut.isPending || removeImageMut.isPending}
+							aspectRatio='square'
+							compact
+							hideLabel
+							helperText=''
 						/>
 					</div>
 
@@ -456,7 +492,6 @@ function CategoryDetailView({
 					onClose={() => setShowEditModal(false)}
 					onSuccess={() => {
 						setShowEditModal(false)
-						refetchTree()
 					}}
 				/>
 			)}
@@ -468,7 +503,6 @@ function CategoryDetailView({
 					onClose={() => setShowAddChild(false)}
 					onSuccess={() => {
 						setShowAddChild(false)
-						refetchTree()
 					}}
 				/>
 			)}
@@ -490,7 +524,7 @@ function CategoryFormModal({
 	onSuccess: () => void
 }) {
 	const utils = trpc.useUtils()
-	const { data: tree, refetch } = trpc.categories.getTree.useQuery()
+	const { data: tree } = trpc.categories.getTree.useQuery()
 	const invalidateCategoryQueries = async () => {
 		await Promise.all([
 			utils.categories.getTree.invalidate(),
@@ -512,84 +546,66 @@ function CategoryFormModal({
 		},
 	})
 	const updateImageMut = trpc.categories.updateImagePath.useMutation({
-		onSuccess: async () => {
-			await invalidateCategoryQueries()
-			refetch()
-		},
+		onSuccess: invalidateCategoryQueries,
 	})
 	const removeImageMut = trpc.categories.removeImage.useMutation({
-		onSuccess: async () => {
-			await invalidateCategoryQueries()
-			refetch()
-		},
+		onSuccess: invalidateCategoryQueries,
 	})
 
-	const findInTree = (
-		nodes: CategoryNodeData[],
-		id: string,
-	): CategoryNodeData | null => {
-		for (const n of nodes) {
-			if (n.id === id) return n
-			if (n.children) {
-				const found = findInTree(n.children, id)
-				if (found) return found
-			}
-		}
-		return null
-	}
-
-	const editCat = editId && tree ? findInTree(tree, editId) : null
+	const editCat = editId && tree ? findNodeInTree(tree, editId) : null
 	const { data: properties } = trpc.properties.getAll.useQuery()
-	const [name, setName] = useState('')
-	const [slug, setSlug] = useState('')
-	const [description, setDescription] = useState('')
-	const [categoryMode, setCategoryMode] = useState<CategoryMode>('MANUAL')
-	const [filterKind, setFilterKind] =
-		useState<CategoryFilterKind>('PROPERTY_VALUE')
-	const [filterPropertyId, setFilterPropertyId] = useState('')
-	const [filterPropertyValueId, setFilterPropertyValueId] = useState('')
-	const [showInHeader, setShowInHeader] = useState(true)
-	const [slugTouched, setSlugTouched] = useState(false)
-	const [pendingImage, setPendingImage] = useState<{
-		key: string
-		originalName: string
-	} | null>(null)
 
-	useEffect(() => {
-		if (!editCat) {
-			setName('')
-			setSlug('')
-			setDescription('')
-			setCategoryMode('MANUAL')
-			setFilterKind('PROPERTY_VALUE')
-			setFilterPropertyId('')
-			setFilterPropertyValueId('')
-			setShowInHeader(true)
-			setSlugTouched(false)
-			return
-		}
+	return (
+		<CategoryFormModalContent
+			key={`${editId ?? 'new'}:${editCat?.id ?? 'blank'}`}
+			editId={editId}
+			parentId={parentId}
+			onClose={onClose}
+			onSuccess={onSuccess}
+			createMut={createMut}
+			updateMut={updateMut}
+			updateImageMut={updateImageMut}
+			removeImageMut={removeImageMut}
+			editCat={editCat}
+			properties={properties ?? []}
+		/>
+	)
+}
 
-		setName(editCat.name ?? '')
-		setSlug(editCat.slug ?? '')
-		setDescription(editCat.description ?? '')
-		setCategoryMode(editCat.categoryMode ?? 'MANUAL')
-		setFilterKind(editCat.filterKind ?? 'PROPERTY_VALUE')
-		setFilterPropertyId(editCat.filterPropertyId ?? '')
-		setFilterPropertyValueId(editCat.filterPropertyValueId ?? '')
-		setShowInHeader(editCat.showInHeader ?? true)
-		setSlugTouched(true)
-	}, [editCat])
-
+function CategoryFormModalContent({
+	editId,
+	parentId,
+	onClose,
+	onSuccess,
+	createMut,
+	updateMut,
+	updateImageMut,
+	removeImageMut,
+	editCat,
+	properties,
+}: {
+	editId: string | null
+	parentId: string | null
+	onClose: () => void
+	onSuccess: () => void
+	createMut: ReturnType<typeof trpc.categories.create.useMutation>
+	updateMut: ReturnType<typeof trpc.categories.update.useMutation>
+	updateImageMut: ReturnType<typeof trpc.categories.updateImagePath.useMutation>
+	removeImageMut: ReturnType<typeof trpc.categories.removeImage.useMutation>
+	editCat: CategoryNodeData | null
+	properties: RouterOutputs['properties']['getAll']
+}) {
+	const [form, setForm] = useState<CategoryFormState>(() =>
+		getCategoryFormState(editCat),
+	)
 	const selectedFilterPropertyId =
-		categoryMode === 'FILTER' && filterKind === 'PROPERTY_VALUE'
-			? filterPropertyId
+		form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
+			? form.filterPropertyId
 			: ''
 
 	const { data: selectedProperty } = trpc.properties.getById.useQuery(
 		selectedFilterPropertyId,
-		{
-			enabled: Boolean(selectedFilterPropertyId),
-		},
+		{ enabled: Boolean(selectedFilterPropertyId) },
 	)
 
 	const availableValues = useMemo(
@@ -599,73 +615,90 @@ function CategoryFormModal({
 
 	const inputCls =
 		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+	const formId = 'category-form-modal'
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
 		const data = {
-			name,
-			slug: slug || generateSlug(name),
-			description: description || undefined,
+			name: form.name,
+			slug: form.slug || generateSlug(form.name),
+			description: form.description || undefined,
 			parentId: parentId || undefined,
-			categoryMode,
-			filterKind: categoryMode === 'FILTER' ? filterKind : null,
+			categoryMode: form.categoryMode,
+			filterKind: form.categoryMode === 'FILTER' ? form.filterKind : null,
 			filterPropertyId:
-				categoryMode === 'FILTER' && filterKind === 'PROPERTY_VALUE'
-					? filterPropertyId || null
+				form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
+					? form.filterPropertyId || null
 					: null,
 			filterPropertyValueId:
-				categoryMode === 'FILTER' && filterKind === 'PROPERTY_VALUE'
-					? filterPropertyValueId || null
+				form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
+					? form.filterPropertyValueId || null
 					: null,
-			showInHeader,
+			showInHeader: form.showInHeader,
 		}
+
 		if (editId) {
 			updateMut.mutate({ id: editId, ...data })
-		} else {
-			createMut.mutate(data as any, {
-				onSuccess: (created: any) => {
-					if (pendingImage?.key) {
-						updateImageMut.mutate({
-							categoryId: created.id,
-							imagePath: pendingImage.key,
-							imageOriginalName: pendingImage.originalName,
-						})
-					}
-					onSuccess()
-				},
-			})
+			return
 		}
+
+		createMut.mutate(data, {
+			onSuccess: created => {
+				if (form.pendingImage?.key) {
+					updateImageMut.mutate({
+						categoryId: created.id,
+						imagePath: form.pendingImage.key,
+						imageOriginalName: form.pendingImage.originalName,
+					})
+				}
+				onSuccess()
+			},
+		})
 	}
 
 	return (
-		<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
-			<div className='flex w-full max-w-xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-				{/* Header */}
-				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
-					<h2 className='text-lg font-semibold text-foreground'>
-						{editId ? 'Редактировать категорию' : 'Новая категория'}
-					</h2>
-					<button
-						onClick={onClose}
-						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-					>
-						<X className='h-5 w-5' />
-					</button>
-				</div>
-
-				{/* Body */}
-				<form onSubmit={handleSubmit} className='space-y-4 p-6'>
+		<AdminModal
+			isOpen
+			onClose={onClose}
+			title={editId ? 'Редактировать категорию' : 'Новая категория'}
+			size='md'
+			footer={[
+				<button
+					key='cancel'
+					type='button'
+					onClick={onClose}
+					className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+				>
+					Отмена
+				</button>,
+				<button
+					key='submit'
+					type='submit'
+					form={formId}
+					disabled={createMut.isPending || updateMut.isPending}
+					className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
+				>
+					{createMut.isPending || updateMut.isPending
+						? 'Сохранение...'
+						: 'Сохранить'}
+				</button>,
+			]}
+		>
+			<form id={formId} onSubmit={handleSubmit} className='space-y-4 p-6'>
 					<div>
 						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
 							Название <span className='text-destructive'>*</span>
 						</label>
 						<input
 							required
-							value={name}
+							value={form.name}
 							onChange={e => {
 								const val = e.target.value
-								setName(val)
-								if (!slugTouched) setSlug(generateSlug(val))
+								setForm(prev => ({
+									...prev,
+									name: val,
+									slug: prev.slugTouched ? prev.slug : generateSlug(val),
+								}))
 							}}
 							className={inputCls}
 							placeholder='Название категории'
@@ -677,13 +710,19 @@ function CategoryFormModal({
 						</label>
 						<input
 							required
-							value={slug}
+							value={form.slug}
 							onChange={e => {
-								setSlugTouched(true)
-								setSlug(e.target.value)
+								setForm(prev => ({
+									...prev,
+									slugTouched: true,
+									slug: e.target.value,
+								}))
 							}}
 							onBlur={() => {
-								if (slug) setSlug(generateSlug(slug))
+								setForm(prev => ({
+									...prev,
+									slug: prev.slug ? generateSlug(prev.slug) : prev.slug,
+								}))
 							}}
 							className={inputCls}
 							placeholder='category-slug'
@@ -694,8 +733,10 @@ function CategoryFormModal({
 							Описание
 						</label>
 						<textarea
-							value={description}
-							onChange={e => setDescription(e.target.value)}
+							value={form.description}
+							onChange={e =>
+								setForm(prev => ({ ...prev, description: e.target.value }))
+							}
 							rows={3}
 							className='flex w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 							placeholder='Описание категории'
@@ -708,15 +749,19 @@ function CategoryFormModal({
 								Тип категории
 							</label>
 							<select
-								value={categoryMode}
+								value={form.categoryMode}
 								onChange={e => {
 									const nextMode = e.target.value as CategoryMode
-									setCategoryMode(nextMode)
-									if (nextMode === 'MANUAL') {
-										setFilterKind('PROPERTY_VALUE')
-										setFilterPropertyId('')
-										setFilterPropertyValueId('')
-									}
+									setForm(prev => ({
+										...prev,
+										categoryMode: nextMode,
+										filterKind:
+											nextMode === 'MANUAL' ? 'PROPERTY_VALUE' : prev.filterKind,
+										filterPropertyId:
+											nextMode === 'MANUAL' ? '' : prev.filterPropertyId,
+										filterPropertyValueId:
+											nextMode === 'MANUAL' ? '' : prev.filterPropertyValueId,
+									}))
 								}}
 								className={inputCls}
 							>
@@ -726,7 +771,7 @@ function CategoryFormModal({
 						</div>
 
 						<div className='text-xs leading-5 text-muted-foreground'>
-							{categoryMode === 'FILTER'
+							{form.categoryMode === 'FILTER'
 								? 'Такая категория не требует ручной привязки товаров — витрина сама покажет товары по сохранённому правилу.'
 								: 'Обычная категория работает как раньше: товары привязываются к ней напрямую.'}
 						</div>
@@ -734,8 +779,10 @@ function CategoryFormModal({
 						<label className='col-span-full flex items-start gap-3 rounded-xl border border-border/70 bg-background/70 px-4 py-3'>
 							<input
 								type='checkbox'
-								checked={showInHeader}
-								onChange={e => setShowInHeader(e.target.checked)}
+								checked={form.showInHeader}
+								onChange={e =>
+									setForm(prev => ({ ...prev, showInHeader: e.target.checked }))
+								}
 								className='mt-0.5 h-4 w-4 rounded border-border accent-primary'
 							/>
 							<span className='space-y-1'>
@@ -749,21 +796,26 @@ function CategoryFormModal({
 							</span>
 						</label>
 
-						{categoryMode === 'FILTER' && (
+						{form.categoryMode === 'FILTER' && (
 							<>
 								<div>
 									<label className='mb-1 block text-xs font-medium text-muted-foreground'>
 										Правило фильтрации
 									</label>
 									<select
-										value={filterKind}
+										value={form.filterKind}
 										onChange={e => {
 											const nextKind = e.target.value as CategoryFilterKind
-											setFilterKind(nextKind)
-											if (nextKind !== 'PROPERTY_VALUE') {
-												setFilterPropertyId('')
-												setFilterPropertyValueId('')
-											}
+											setForm(prev => ({
+												...prev,
+												filterKind: nextKind,
+												filterPropertyId:
+													nextKind === 'PROPERTY_VALUE' ? prev.filterPropertyId : '',
+												filterPropertyValueId:
+													nextKind === 'PROPERTY_VALUE'
+														? prev.filterPropertyValueId
+														: '',
+											}))
 										}}
 										className={inputCls}
 									>
@@ -772,22 +824,25 @@ function CategoryFormModal({
 									</select>
 								</div>
 
-								{filterKind === 'PROPERTY_VALUE' && (
+								{form.filterKind === 'PROPERTY_VALUE' && (
 									<>
 										<div>
 											<label className='mb-1 block text-xs font-medium text-muted-foreground'>
 												Свойство
 											</label>
 											<select
-												value={filterPropertyId}
+												value={form.filterPropertyId}
 												onChange={e => {
-													setFilterPropertyId(e.target.value)
-													setFilterPropertyValueId('')
+													setForm(prev => ({
+														...prev,
+														filterPropertyId: e.target.value,
+														filterPropertyValueId: '',
+													}))
 												}}
 												className={inputCls}
 												required={
-													categoryMode === 'FILTER' &&
-													filterKind === 'PROPERTY_VALUE'
+													form.categoryMode === 'FILTER' &&
+													form.filterKind === 'PROPERTY_VALUE'
 												}
 											>
 												<option value=''>Выберите свойство</option>
@@ -804,17 +859,22 @@ function CategoryFormModal({
 												Значение
 											</label>
 											<select
-												value={filterPropertyValueId}
-												onChange={e => setFilterPropertyValueId(e.target.value)}
+												value={form.filterPropertyValueId}
+												onChange={e =>
+													setForm(prev => ({
+														...prev,
+														filterPropertyValueId: e.target.value,
+													}))
+												}
 												className={inputCls}
-												disabled={!filterPropertyId}
+												disabled={!form.filterPropertyId}
 												required={
-													categoryMode === 'FILTER' &&
-													filterKind === 'PROPERTY_VALUE'
+													form.categoryMode === 'FILTER' &&
+													form.filterKind === 'PROPERTY_VALUE'
 												}
 											>
 												<option value=''>
-													{!filterPropertyId
+													{!form.filterPropertyId
 														? 'Сначала выберите свойство'
 														: availableValues.length > 0
 															? 'Выберите значение'
@@ -834,7 +894,7 @@ function CategoryFormModal({
 					</div>
 
 					<FileUploader
-						currentImage={editCat?.imagePath ?? pendingImage?.key ?? null}
+						currentImage={editCat?.imagePath ?? form.pendingImage?.key ?? null}
 						onUploaded={(key, originalName) => {
 							if (editId) {
 								updateImageMut.mutate({
@@ -843,37 +903,22 @@ function CategoryFormModal({
 									imageOriginalName: originalName,
 								})
 							} else {
-								setPendingImage({ key, originalName })
+								setForm(prev => ({
+									...prev,
+									pendingImage: { key, originalName },
+								}))
 							}
 						}}
 						onRemove={() => {
 							if (editId) removeImageMut.mutate(editId)
-							else setPendingImage(null)
+							else setForm(prev => ({ ...prev, pendingImage: null }))
 						}}
 						isLoading={updateImageMut.isPending || removeImageMut.isPending}
 						label='Изображение'
+						aspectRatio='square'
 					/>
 
-					<div className='flex justify-end gap-2 pt-2'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-						>
-							Отмена
-						</button>
-						<button
-							type='submit'
-							disabled={createMut.isPending || updateMut.isPending}
-							className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
-						>
-							{createMut.isPending || updateMut.isPending
-								? 'Сохранение...'
-								: 'Сохранить'}
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
+			</form>
+		</AdminModal>
 	)
 }

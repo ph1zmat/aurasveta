@@ -123,19 +123,15 @@ function CatalogFilterLinkControls({
 	const propertiesQuery = trpc.properties.getAll.useQuery()
 	const categories = categoriesQuery.data ?? []
 	const properties = propertiesQuery.data ?? []
-	const [linkMode, setLinkMode] = useState<'manual' | 'auto'>(() =>
+	const [linkModeState, setLinkModeState] = useState<'manual' | 'auto'>(() =>
 		categoryId || propertyId || propertyValueId ? 'auto' : 'manual',
 	)
 	const { data: selectedProperty } = trpc.properties.getById.useQuery(
 		propertyId ?? '',
 		{ enabled: Boolean(propertyId) },
 	)
-
-	useEffect(() => {
-		if (categoryId || propertyId || propertyValueId) {
-			setLinkMode('auto')
-		}
-	}, [categoryId, propertyId, propertyValueId])
+	const linkMode =
+		categoryId || propertyId || propertyValueId ? 'auto' : linkModeState
 
 	const selectedCategory = categories?.find(c => c.id === categoryId)
 	const selectedValue = selectedProperty?.values.find(
@@ -175,7 +171,7 @@ function CatalogFilterLinkControls({
 					<button
 						type='button'
 						onClick={() => {
-							setLinkMode('manual')
+							setLinkModeState('manual')
 							onCategoryIdChange(undefined)
 							onPropertyIdChange(undefined)
 							onPropertyValueIdChange(undefined)
@@ -190,7 +186,7 @@ function CatalogFilterLinkControls({
 					</button>
 					<button
 						type='button'
-						onClick={() => setLinkMode('auto')}
+						onClick={() => setLinkModeState('auto')}
 						className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
 							linkMode === 'auto'
 								? 'bg-background text-foreground shadow-sm'
@@ -218,7 +214,7 @@ function CatalogFilterLinkControls({
 					value={categoryId ?? ''}
 					onChange={e => {
 						const next = e.target.value || undefined
-						setLinkMode(next ? 'auto' : linkMode)
+						setLinkModeState(next ? 'auto' : 'manual')
 						onCategoryIdChange(next)
 						if (next) {
 							onPropertyIdChange(undefined)
@@ -247,7 +243,7 @@ function CatalogFilterLinkControls({
 					value={propertyId ?? ''}
 					onChange={e => {
 						const next = e.target.value || undefined
-						setLinkMode(next ? 'auto' : linkMode)
+						setLinkModeState(next ? 'auto' : 'manual')
 						onPropertyIdChange(next)
 						onPropertyValueIdChange(undefined)
 						if (next) onCategoryIdChange(undefined)
@@ -274,7 +270,7 @@ function CatalogFilterLinkControls({
 					value={propertyValueId ?? ''}
 					onChange={e => {
 						const next = e.target.value || undefined
-						setLinkMode(next ? 'auto' : linkMode)
+						setLinkModeState(next ? 'auto' : 'manual')
 						onPropertyValueIdChange(next)
 					}}
 					disabled={linkMode === 'manual' || !selectedProperty}
@@ -303,7 +299,7 @@ function CatalogFilterLinkControls({
 						<button
 							type='button'
 							onClick={() => {
-								setLinkMode('auto')
+								setLinkModeState('auto')
 								onCategoryIdChange(undefined)
 								onPropertyIdChange(undefined)
 								onPropertyValueIdChange(undefined)
@@ -397,6 +393,7 @@ function SlideImagePicker({
 			onUploaded={key => onChange(key)}
 			onRemove={() => onChange('')}
 			label='Изображение слайда'
+			aspectRatio='landscape'
 		/>
 	)
 }
@@ -1032,7 +1029,7 @@ function BrandCarouselConfigEditor({
 						<div className='space-y-3'>
 							{values.map((brand, index) => (
 								<BrandValueEditorCard
-									key={brand.id}
+									key={`${brand.id}:${brand.value}:${brand.slug}:${brand.photo ?? ''}`}
 									propertySlug={propSlug}
 									propertyId={propertyDetails.id}
 									brand={brand}
@@ -1087,6 +1084,8 @@ function BrandCarouselConfigEditor({
 										setNewValue(prev => ({ ...prev, photo: null }))
 									}
 									label='Фото бренда'
+									aspectRatio='square'
+									compact
 								/>
 							</div>
 							<div className='mt-3 flex justify-end'>
@@ -1158,14 +1157,6 @@ function BrandValueEditorCard({
 		},
 	})
 
-	useEffect(() => {
-		setDraft({
-			value: brand.value,
-			slug: brand.slug,
-			photo: brand.photo ?? null,
-		})
-	}, [brand.id, brand.value, brand.slug, brand.photo])
-
 	const isDirty =
 		draft.value !== brand.value ||
 		draft.slug !== brand.slug ||
@@ -1204,6 +1195,8 @@ function BrandValueEditorCard({
 					onUploaded={key => setDraft(prev => ({ ...prev, photo: key }))}
 					onRemove={() => setDraft(prev => ({ ...prev, photo: null }))}
 					label='Фото бренда'
+					aspectRatio='square'
+					compact
 				/>
 				<div className='space-y-3'>
 					<div className='grid gap-3 md:grid-cols-2'>
@@ -1695,6 +1688,7 @@ function RoomImagePicker({
 			onUploaded={key => onChange(key)}
 			onRemove={() => onChange('')}
 			label='Фото комнаты'
+			aspectRatio='landscape'
 		/>
 	)
 }

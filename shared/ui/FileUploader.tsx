@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Button } from '@/shared/ui/Button'
 import { ImagePlus, Trash2, AlertCircle, Loader2 } from 'lucide-react'
+import { cn } from '@/shared/lib/utils'
 
 // MIME-типы совпадают с серверным ALLOWED_TYPES (SVG исключён — XSS-риск)
 const ALLOWED_CLIENT_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
@@ -32,6 +32,11 @@ interface FileUploaderProps {
 	onRemove?: () => void
 	isLoading?: boolean
 	label?: string
+	aspectRatio?: 'square' | 'landscape' | 'portrait'
+	compact?: boolean
+	hideLabel?: boolean
+	helperText?: string
+	className?: string
 }
 
 export default function FileUploader({
@@ -40,12 +45,23 @@ export default function FileUploader({
 	onRemove,
 	isLoading,
 	label = 'Изображение',
+	aspectRatio = 'square',
+	compact = false,
+	hideLabel = false,
+	helperText = 'PNG, JPG, WebP, GIF. Макс. 10 МБ.',
+	className,
 }: FileUploaderProps) {
 	const [preview, setPreview] = useState<string | null>(null)
 	const [resolvedCurrent, setResolvedCurrent] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [uploading, setUploading] = useState(false)
 	const inputRef = useRef<HTMLInputElement>(null)
+	const aspectClassName =
+		aspectRatio === 'landscape'
+			? 'aspect-4/3'
+			: aspectRatio === 'portrait'
+				? 'aspect-3/4'
+				: 'aspect-square'
 
 	// Автоматически резолвим S3-ключи в presigned URL для отображения
 	useEffect(() => {
@@ -70,6 +86,7 @@ export default function FileUploader({
 	// preview имеет приоритет (свежая загрузка), затем resolved existing
 	const displayImage = preview ?? resolvedCurrent ?? null
 	const busy = isLoading || uploading
+	const previewLabel = displayImage ? 'Изображение загружено' : 'Изображение не выбрано'
 	const handleFileChange = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
 			setError(null)
@@ -125,54 +142,122 @@ export default function FileUploader({
 	}, [onRemove])
 
 	return (
-		<div className='space-y-2'>
-			<label className='text-sm font-medium text-foreground'>{label}</label>
-
-			{displayImage && (
-				<div className='relative w-full max-w-[200px] overflow-hidden rounded-lg border border-border'>
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img
-						src={displayImage}
-						alt='Превью'
-						className='h-auto w-full object-contain'
-					/>
-				</div>
-			)}
-
-			{error && (
-				<div className='flex items-center gap-1.5 text-sm text-destructive'>
-					<AlertCircle className='h-4 w-4 shrink-0' />
-					{error}
-				</div>
-			)}
-
-			<div className='flex items-center gap-2'>
-				<Button
-					type='button'
-					variant='outline'
-					size='sm'
-					disabled={busy}
-					onClick={() => inputRef.current?.click()}
-				>
-					{uploading ? (
-						<Loader2 className='mr-1 h-4 w-4 animate-spin' />
-					) : (
-						<ImagePlus className='mr-1 h-4 w-4' />
+		<div className={cn('space-y-3', className)}>
+			{!hideLabel && (
+				<div className='space-y-1'>
+					<label className='block text-sm font-medium text-foreground'>{label}</label>
+					{!compact && (
+						<p className='text-xs leading-5 text-muted-foreground'>
+							Большое окно показывает текущее изображение, а компактные кнопки
+							ниже позволяют быстро заменить или удалить файл.
+						</p>
 					)}
-					{uploading ? 'Загрузка...' : displayImage ? 'Заменить' : 'Загрузить'}
-				</Button>
+				</div>
+			)}
 
-				{displayImage && onRemove && (
-					<Button
-						type='button'
-						variant='ghost'
-						size='sm'
-						disabled={busy}
-						onClick={handleRemove}
-					>
-						<Trash2 className='mr-1 h-4 w-4' /> Удалить
-					</Button>
+			<div className={cn('space-y-3', compact && 'space-y-2')}>
+				<button
+					type='button'
+					onClick={() => {
+						if (displayImage) return
+						inputRef.current?.click()
+					}}
+					disabled={busy}
+					className={cn(
+						'group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border bg-muted/20 transition-colors',
+						aspectClassName,
+						displayImage
+							? 'border-border bg-muted/30'
+							: 'border-dashed border-border hover:bg-muted/30',
+						compact && 'rounded-xl',
+					)}
+				>
+					{displayImage ? (
+						<>
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								src={displayImage}
+								alt={label}
+								className='h-full w-full object-cover'
+							/>
+							<div className='absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3'>
+								<span className='rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white shadow-sm'>
+									{previewLabel}
+								</span>
+								{busy ? (
+									<span className='inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white shadow-sm'>
+										<Loader2 className='h-3 w-3 animate-spin' />
+										Загрузка...
+									</span>
+								) : null}
+							</div>
+						</>
+					) : (
+						<div className='flex max-w-sm flex-col items-center gap-3 px-6 text-center text-muted-foreground'>
+							<div className='flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-background/60'>
+								{uploading ? (
+									<Loader2 className='h-6 w-6 animate-spin' />
+								) : (
+									<ImagePlus className='h-6 w-6' />
+								)}
+							</div>
+							<div className='space-y-1'>
+								<p className='text-sm font-medium text-foreground'>
+									Загрузите изображение
+								</p>
+								{!compact && (
+									<p className='text-xs leading-5 text-muted-foreground'>
+										Нажмите на область, чтобы добавить файл. Кнопки под
+										превью сохраняют форму аккуратной и не ломают раскладку.
+									</p>
+								)}
+							</div>
+						</div>
+					)}
+				</button>
+
+				{error && (
+					<div className='flex items-center gap-1.5 text-sm text-destructive'>
+						<AlertCircle className='h-4 w-4 shrink-0' />
+						{error}
+					</div>
 				)}
+
+				<div className='flex flex-wrap gap-2'>
+					<button
+						type='button'
+						onClick={() => inputRef.current?.click()}
+						disabled={busy}
+						className='flex h-18 w-18 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/15 text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground disabled:opacity-50 sm:h-20 sm:w-20'
+						aria-label={displayImage ? 'Заменить изображение' : 'Загрузить изображение'}
+					>
+						{uploading ? (
+							<Loader2 className='h-4 w-4 animate-spin sm:h-5 sm:w-5' />
+						) : (
+							<ImagePlus className='h-4 w-4 sm:h-5 sm:w-5' />
+						)}
+						<span className='mt-1 text-[10px] font-medium'>
+							{uploading ? '...' : displayImage ? 'Заменить' : 'Добавить'}
+						</span>
+					</button>
+
+					{displayImage && onRemove && (
+						<button
+							type='button'
+							onClick={handleRemove}
+							disabled={busy}
+							className='flex h-18 w-18 shrink-0 flex-col items-center justify-center rounded-xl border border-border bg-muted/20 text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive disabled:opacity-50 sm:h-20 sm:w-20'
+							aria-label='Удалить изображение'
+						>
+							<Trash2 className='h-4 w-4 sm:h-5 sm:w-5' />
+							<span className='mt-1 text-[10px] font-medium'>Удалить</span>
+						</button>
+					)}
+				</div>
+
+				{helperText ? (
+					<p className='text-xs text-muted-foreground'>{helperText}</p>
+				) : null}
 			</div>
 
 			<input
@@ -182,10 +267,6 @@ export default function FileUploader({
 				className='hidden'
 				onChange={handleFileChange}
 			/>
-
-			<p className='text-xs text-muted-foreground'>
-				PNG, JPG, WebP, GIF. Макс. 10 МБ.
-			</p>
 		</div>
 	)
 }

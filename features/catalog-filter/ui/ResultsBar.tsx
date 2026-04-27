@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { useFilterDrawer } from '@/features/catalog-filter/ui/MobileFilterWrapper'
 import { useSearchParams } from 'next/navigation'
@@ -9,23 +8,11 @@ import CountBadge from '@/shared/ui/CountBadge'
 
 interface ResultsBarProps {
 	total: number
-	sortOptions?: string[]
-	defaultSort?: string
 }
 
 export default function ResultsBar({
 	total,
-	sortOptions = [
-		'по популярности',
-		'по цене ↑',
-		'по цене ↓',
-		'по новизне',
-		'по рейтингу',
-	],
-	defaultSort = 'по популярности',
 }: ResultsBarProps) {
-	const [sort, setSort] = useState(defaultSort)
-	const [open, setOpen] = useState(false)
 	const onMobileFilterOpen = useFilterDrawer()
 	const searchParams = useSearchParams()
 
