@@ -12,6 +12,15 @@ interface BrandCarouselByPropertyConfig {
 	linkCategoryId?: string
 	linkPropertyId?: string
 	linkPropertyValueId?: string
+	brandLinks?: Record<
+		string,
+		{
+			href?: string
+			linkCategoryId?: string
+			linkPropertyId?: string
+			linkPropertyValueId?: string
+		}
+	>
 }
 
 interface BrandCarouselByPropertySectionProps {
@@ -48,6 +57,19 @@ export default async function BrandCarouselByPropertySection({
 
 	if (!property || property.values.length === 0) return null
 
+	const items = await Promise.all(
+		property.values.map(async item => {
+			const customHref = await resolveCatalogLinkHref(prisma, {
+				...(config?.brandLinks?.[item.id] ?? {}),
+			})
+
+			return {
+				...item,
+				href: customHref ?? `/catalog?prop.${filterParam}=${item.slug}`,
+			}
+		}),
+	)
+
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
 			<div className='mb-4 flex items-center justify-between md:mb-6'>
@@ -67,8 +89,10 @@ export default async function BrandCarouselByPropertySection({
 				visibleItems={6}
 				gap={16}
 				arrows
-				arrowsPosition='inside'
-				loop={false}
+				arrowsPosition='outside'
+				dots
+				loop
+				slideClassName='h-full'
 				breakpoints={{
 					0: { visibleItems: 2, gap: 8 },
 					480: { visibleItems: 3, gap: 10 },
@@ -76,13 +100,13 @@ export default async function BrandCarouselByPropertySection({
 					1024: { visibleItems: 6, gap: 16 },
 				}}
 			>
-				{property.values.map(item => (
+				{items.map(item => (
 					<Link
 						key={item.id}
-						href={`/catalog?prop.${filterParam}=${item.slug}`}
-						className='group flex h-full flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/20'
+						href={item.href}
+						className='group flex h-full min-h-[144px] flex-col items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/20'
 					>
-						<div className='flex h-20 w-full items-center justify-center overflow-hidden rounded-lg bg-muted/20'>
+						<div className='flex h-24 w-full items-center justify-center overflow-hidden rounded-xl bg-muted/20'>
 							{item.photo ? (
 								// eslint-disable-next-line @next/next/no-img-element
 								<img
@@ -95,12 +119,12 @@ export default async function BrandCarouselByPropertySection({
 									className='h-full w-full object-cover'
 								/>
 							) : (
-								<span className='px-3 text-center text-xs text-muted-foreground'>
+								<span className='px-3 text-center text-xs font-medium text-muted-foreground'>
 									{item.value}
 								</span>
 							)}
 						</div>
-						<span className='line-clamp-2 text-center text-xs font-medium text-foreground'>
+						<span className='line-clamp-2 text-center text-sm font-medium text-foreground'>
 							{item.value}
 						</span>
 					</Link>

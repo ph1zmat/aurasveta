@@ -1,10 +1,10 @@
 ﻿'use client'
 
 import { useMemo, useState } from 'react'
+import { readBooleanParam, readStringParam } from '@aurasveta/shared-admin'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
-import AdminModal from '@/shared/ui/AdminModal'
 import {
 	Plus,
 	Pencil,
@@ -16,38 +16,32 @@ import {
 	ChevronRight,
 	Image as ImageIcon,
 } from 'lucide-react'
+import PropertyFormModal from './PropertyFormModal'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
 
 type PropertyItem = RouterOutputs['properties']['getAll'][number]
 type PropertyValue = PropertyItem['values'][number]
-type PropertyFormState = {
-	name: string
-	slug: string
-	hasPhoto: boolean
-}
-
-function getPropertyFormState(
-	editProp?: RouterOutputs['properties']['getById'] | null,
-): PropertyFormState {
-	return {
-		name: editProp?.name ?? '',
-		slug: editProp?.slug ?? '',
-		hasPhoto: editProp?.hasPhoto ?? false,
-	}
-}
 
 /* ============ Main ============ */
 
 export default function PropertiesClient() {
 	const { data: properties, refetch } = trpc.properties.getAll.useQuery()
-	const deleteMut = trpc.properties.delete.useMutation({ onSuccess: () => refetch() })
-	const deleteValueMut = trpc.properties.deleteValue.useMutation({ onSuccess: () => refetch() })
-	const createValueMut = trpc.properties.createValue.useMutation({ onSuccess: () => refetch() })
-
-	const [showForm, setShowForm] = useState(false)
-	const [editId, setEditId] = useState<string | null>(null)
-	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [search, setSearch] = useState('')
-	const [addValueFor, setAddValueFor] = useState<string | null>(null)
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
+	const deleteMut = trpc.properties.delete.useMutation({
+		onSuccess: () => refetch(),
+	})
+	const deleteValueMut = trpc.properties.deleteValue.useMutation({
+		onSuccess: () => refetch(),
+	})
+	const createValueMut = trpc.properties.createValue.useMutation({
+		onSuccess: () => refetch(),
+	})
+	const showCreate =
+		readBooleanParam(searchParams.get('create'), false) === true
+	const editId = readStringParam(searchParams.get('edit')) || null
+	const expandedId = readStringParam(searchParams.get('expand')) || null
+	const search = readStringParam(searchParams.get('search'))
+	const addValueFor = readStringParam(searchParams.get('addValue')) || null
 	const [newValue, setNewValue] = useState({ value: '', slug: '' })
 
 	const filtered = useMemo(() => {
@@ -68,7 +62,7 @@ export default function PropertiesClient() {
 			value: newValue.value,
 			slug: newValue.slug || undefined,
 		})
-		setAddValueFor(null)
+		updateSearchParams({ addValue: null }, { history: 'replace' })
 		setNewValue({ value: '', slug: '' })
 	}
 
@@ -80,8 +74,10 @@ export default function PropertiesClient() {
 				</h1>
 				<button
 					onClick={() => {
-						setEditId(null)
-						setShowForm(true)
+						updateSearchParams(
+							{ create: true, edit: null },
+							{ history: 'push' },
+						)
 					}}
 					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
 				>
@@ -94,17 +90,30 @@ export default function PropertiesClient() {
 					type='search'
 					placeholder='Поиск свойств...'
 					value={search}
-					onChange={e => setSearch(e.target.value)}
+					onChange={e =>
+						updateSearchParams(
+							{ search: e.target.value },
+							{ history: 'replace' },
+						)
+					}
 					className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 				/>
 			)}
 
-			{showForm && (
+			{(showCreate || Boolean(editId)) && (
 				<PropertyFormModal
 					editId={editId}
-					onClose={() => setShowForm(false)}
+					onClose={() =>
+						updateSearchParams(
+							{ create: null, edit: null },
+							{ history: 'replace' },
+						)
+					}
 					onSuccess={() => {
-						setShowForm(false)
+						updateSearchParams(
+							{ create: null, edit: null },
+							{ history: 'replace' },
+						)
 						refetch()
 					}}
 				/>
@@ -125,7 +134,10 @@ export default function PropertiesClient() {
 									<div className='flex items-center gap-3'>
 										<button
 											onClick={() =>
-												setExpandedId(isExpanded ? null : prop.id)
+												updateSearchParams(
+													{ expand: isExpanded ? null : prop.id },
+													{ history: 'replace' },
+												)
 											}
 											className='flex items-center gap-2 text-left'
 										>
@@ -161,8 +173,10 @@ export default function PropertiesClient() {
 									<div className='flex gap-1'>
 										<button
 											onClick={() => {
-												setEditId(prop.id)
-												setShowForm(true)
+												updateSearchParams(
+													{ edit: prop.id, create: null },
+													{ history: 'push' },
+												)
 											}}
 											className='rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 										>
@@ -242,7 +256,12 @@ export default function PropertiesClient() {
 													size='sm'
 													variant='ghost'
 													type='button'
-													onClick={() => setAddValueFor(null)}
+													onClick={() =>
+														updateSearchParams(
+															{ addValue: null },
+															{ history: 'replace' },
+														)
+													}
 												>
 													<X className='h-4 w-4' />
 												</Button>
@@ -250,7 +269,10 @@ export default function PropertiesClient() {
 										) : (
 											<button
 												onClick={() => {
-													setAddValueFor(prop.id)
+													updateSearchParams(
+														{ addValue: prop.id },
+														{ history: 'push' },
+													)
 													setNewValue({ value: '', slug: '' })
 												}}
 												className='mt-3 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground'
@@ -275,123 +297,3 @@ export default function PropertiesClient() {
 		</div>
 	)
 }
-
-/* ============ Form Modal ============ */
-
-function PropertyFormModal({
-	editId,
-	onClose,
-	onSuccess,
-}: {
-	editId: string | null
-	onClose: () => void
-	onSuccess: () => void
-}) {
-	const createMut = trpc.properties.create.useMutation({ onSuccess })
-	const updateMut = trpc.properties.update.useMutation({ onSuccess })
-	const { data: editProp } = trpc.properties.getById.useQuery(editId!, {
-		enabled: !!editId,
-	})
-
-	return (
-		<PropertyFormModalContent
-			key={`${editId ?? 'new'}:${editProp?.id ?? 'blank'}`}
-			editId={editId}
-			onClose={onClose}
-			createMut={createMut}
-			updateMut={updateMut}
-			initialForm={getPropertyFormState(editProp)}
-		/>
-	)
-}
-
-function PropertyFormModalContent({
-	editId,
-	onClose,
-	createMut,
-	updateMut,
-	initialForm,
-}: {
-	editId: string | null
-	onClose: () => void
-	createMut: ReturnType<typeof trpc.properties.create.useMutation>
-	updateMut: ReturnType<typeof trpc.properties.update.useMutation>
-	initialForm: PropertyFormState
-}) {
-	const [form, setForm] = useState<PropertyFormState>(initialForm)
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		if (editId) {
-			updateMut.mutate({ id: editId, name: form.name, slug: form.slug, hasPhoto: form.hasPhoto })
-		} else {
-			createMut.mutate({ name: form.name, slug: form.slug, hasPhoto: form.hasPhoto })
-		}
-	}
-
-	const inputCls =
-		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-	const formId = 'property-form-modal'
-
-	return (
-		<AdminModal
-			isOpen
-			onClose={onClose}
-			title={editId ? 'Редактировать свойство' : 'Новое свойство'}
-			size='sm'
-			footer={[
-				<Button key='cancel' variant='ghost' type='button' onClick={onClose}>
-					Отмена
-				</Button>,
-				<Button
-					key='submit'
-					type='submit'
-					form={formId}
-					disabled={createMut.isPending || updateMut.isPending}
-				>
-					{editId ? 'Сохранить' : 'Создать'}
-				</Button>,
-			]}
-		>
-			<form id={formId} onSubmit={handleSubmit} className='space-y-4 px-6 py-5'>
-					<div className='grid grid-cols-2 gap-3'>
-						<div>
-							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-								Название
-							</label>
-							<input
-								required
-								value={form.name}
-								onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-								placeholder='Цвет'
-								className={inputCls}
-							/>
-						</div>
-						<div>
-							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-								Slug
-							</label>
-							<input
-								required
-								value={form.slug}
-								onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
-								placeholder='color'
-								className={`${inputCls} font-mono`}
-							/>
-						</div>
-					</div>
-					<label className='flex items-center gap-2 text-sm text-foreground'>
-						<input
-							type='checkbox'
-							checked={form.hasPhoto}
-							onChange={e => setForm(f => ({ ...f, hasPhoto: e.target.checked }))}
-							className='h-4 w-4 rounded border-border'
-						/>
-						Значения со фото
-					</label>
-			</form>
-		</AdminModal>
-	)
-}
-
-

@@ -4,15 +4,15 @@ E-commerce платформа на Next.js 16 с SSR, tRPC API, Prisma ORM и be
 
 ## Стек технологий
 
-| Слой | Технология |
-|------|-----------|
-| Framework | Next.js 16.2 (App Router, Turbopack) |
-| API | tRPC v11 (httpBatchStreamLink, superjson) |
-| ORM | Prisma 7 + NeonDB PostgreSQL |
-| Auth | better-auth v1.5 (email/password, GitHub, Google) |
-| State | Jotai (анонимная корзина/избранное), TanStack React Query |
-| UI | Tailwind CSS 4, shadcn/ui, Recharts |
-| Architecture | Feature-Sliced Design (FSD) |
+| Слой         | Технология                                                |
+| ------------ | --------------------------------------------------------- |
+| Framework    | Next.js 16.2 (App Router, Turbopack)                      |
+| API          | tRPC v11 (httpBatchStreamLink, superjson)                 |
+| ORM          | Prisma 7 + NeonDB PostgreSQL                              |
+| Auth         | better-auth v1.5 (email/password, GitHub, Google)         |
+| State        | Jotai (анонимная корзина/избранное), TanStack React Query |
+| UI           | Tailwind CSS 4, shadcn/ui, Recharts                       |
+| Architecture | Feature-Sliced Design (FSD)                               |
 
 ## Быстрый старт
 
@@ -34,13 +34,13 @@ npm run dev
 
 ## Переменные окружения
 
-| Переменная | Описание |
-|-----------|----------|
-| `DATABASE_URL` | URL подключения к PostgreSQL (NeonDB) |
-| `BETTER_AUTH_SECRET` | Секрет для подписи сессий |
-| `NEXT_PUBLIC_BETTER_AUTH_URL` | Публичный URL приложения |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth GitHub (необяз.) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (необяз.) |
+| Переменная                                  | Описание                              |
+| ------------------------------------------- | ------------------------------------- |
+| `DATABASE_URL`                              | URL подключения к PostgreSQL (NeonDB) |
+| `BETTER_AUTH_SECRET`                        | Секрет для подписи сессий             |
+| `NEXT_PUBLIC_BETTER_AUTH_URL`               | Публичный URL приложения              |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth GitHub (необяз.)                |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (необяз.)                |
 
 ## Структура проекта (FSD)
 
@@ -56,20 +56,20 @@ prisma/           — схема и миграции
 
 ## Основные маршруты
 
-| Маршрут | Описание |
-|---------|----------|
-| `/` | Главная страница |
-| `/catalog` | Каталог товаров |
-| `/catalog/[slug]` | Категория |
-| `/product/[slug]` | Карточка товара |
-| `/cart` | Корзина |
-| `/favorites` | Избранное |
-| `/compare` | Сравнение |
-| `/pages/[slug]` | Контентные страницы (О нас, Доставка и т.д.) |
-| `/login`, `/register` | Авторизация |
-| `/admin/*` | Админ-панель |
-| `/api/trpc/*` | tRPC API |
-| `/api/auth/*` | better-auth API |
+| Маршрут               | Описание                                     |
+| --------------------- | -------------------------------------------- |
+| `/`                   | Главная страница                             |
+| `/catalog`            | Каталог товаров                              |
+| `/catalog/[slug]`     | Категория                                    |
+| `/product/[slug]`     | Карточка товара                              |
+| `/cart`               | Корзина                                      |
+| `/favorites`          | Избранное                                    |
+| `/compare`            | Сравнение                                    |
+| `/pages/[slug]`       | Контентные страницы (О нас, Доставка и т.д.) |
+| `/login`, `/register` | Авторизация                                  |
+| `/admin/*`            | Админ-панель                                 |
+| `/api/trpc/*`         | tRPC API                                     |
+| `/api/auth/*`         | better-auth API                              |
 
 ## Команды
 
@@ -90,6 +90,10 @@ npx prisma db seed   # Заполнить БД тестовыми данными
 ## Деплой
 
 См. [docs/deployment.md](docs/deployment.md).
+
+## Документация по новой админке
+
+- [Старт миграции на TanStack-first admin (Фазы 0–1)](docs/admin-tanstack-migration.md)
 
 ## Deploy on Vercel
 

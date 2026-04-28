@@ -25,7 +25,9 @@ export default function AdminDashboard() {
 	const { data: recentPaid, refetch: refetchPaid } =
 		trpc.orders.getAllOrders.useQuery({ status: 'PAID', page: 1, limit: 4 })
 
-	const [selectedOrder, setSelectedOrder] = useState<(typeof pendingOrders)[number] | null>(null)
+	const [selectedOrder, setSelectedOrder] = useState<
+		(typeof pendingOrders)[number] | null
+	>(null)
 
 	const pendingOrders = recentPending?.items ?? []
 	const paidOrders = recentPaid?.items ?? []

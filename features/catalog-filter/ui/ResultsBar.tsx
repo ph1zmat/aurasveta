@@ -10,9 +10,7 @@ interface ResultsBarProps {
 	total: number
 }
 
-export default function ResultsBar({
-	total,
-}: ResultsBarProps) {
+export default function ResultsBar({ total }: ResultsBarProps) {
 	const onMobileFilterOpen = useFilterDrawer()
 	const searchParams = useSearchParams()
 

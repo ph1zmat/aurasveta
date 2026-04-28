@@ -187,8 +187,8 @@ export const ordersRouter = createTRPCRouter({
 
 			const where: Prisma.OrderWhereInput = input.status
 				? {
-					AND: [baseWhere, { status: input.status }],
-				}
+						AND: [baseWhere, { status: input.status }],
+					}
 				: baseWhere
 
 			const [items, total, groupedCounts] = await Promise.all([
@@ -205,11 +205,11 @@ export const ordersRouter = createTRPCRouter({
 					take: input.limit,
 				}),
 				ctx.prisma.order.count({ where }),
-					ctx.prisma.order.groupBy({
-						by: ['status'],
-						where: baseWhere,
-						_count: { _all: true },
-					}),
+				ctx.prisma.order.groupBy({
+					by: ['status'],
+					where: baseWhere,
+					_count: { _all: true },
+				}),
 			])
 
 			const countsByStatus = groupedCounts.reduce(

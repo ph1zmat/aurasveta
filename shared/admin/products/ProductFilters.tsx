@@ -171,7 +171,9 @@ export default function ProductFilters({
 							icon={<ArrowUpDown className='h-3.5 w-3.5' />}
 						/>
 						<div className='flex flex-col gap-1'>
-							<span className='text-xs font-medium text-muted-foreground'>Наличие</span>
+							<span className='text-xs font-medium text-muted-foreground'>
+								Наличие
+							</span>
 							<div className='flex h-9 items-center gap-3 rounded-lg border border-border bg-background px-3'>
 								{[
 									{ label: 'Все', value: undefined },

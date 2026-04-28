@@ -1,5 +1,7 @@
 import { requireCmsAccess } from '@/lib/auth/auth-utils'
 import AdminNotificationsClient from './AdminNotificationsClient'
+import AdminCommandPalette from './components/AdminCommandPalette'
+import AdminQueryDevtools from './components/AdminQueryDevtools'
 import AdminSidebar from './components/AdminSidebar'
 
 export default async function AdminLayout({
@@ -12,6 +14,8 @@ export default async function AdminLayout({
 	return (
 		<div className='flex min-h-screen bg-background'>
 			<AdminNotificationsClient />
+			<AdminQueryDevtools />
+			<AdminCommandPalette userRole={role} />
 			<AdminSidebar userEmail={session.user.email ?? ''} userRole={role} />
 
 			{/* Main */}

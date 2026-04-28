@@ -22,7 +22,9 @@
 			}
 		],
 		"paths": {
-			"@/*": ["./*"]
+			"@/*": ["./*"],
+			"@aurasveta/shared-admin": ["./packages/shared-admin/src/index.ts"],
+			"@aurasveta/shared-admin/*": ["./packages/shared-admin/src/*"]
 		}
 	},
 	"include": [

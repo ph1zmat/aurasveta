@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
 	DndContext,
 	PointerSensor,
@@ -16,6 +16,11 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import {
+	readBooleanParam,
+	readStringParam,
+	useUnsavedChangesGuard,
+} from '@aurasveta/shared-admin'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
@@ -32,6 +37,7 @@ import {
 	LayoutGrid,
 } from 'lucide-react'
 import { SectionConfigEditor } from './SectionConfigEditor'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
 
 type SectionItem = RouterOutputs['homeSection']['getAll'][number]
 type SectionTypeItem = RouterOutputs['sectionType']['getAll'][number]
@@ -295,13 +301,25 @@ function SortableSectionRow({
 }
 
 export default function HomeSectionsClient() {
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
 	const { data: sections, refetch } = trpc.homeSection.getAll.useQuery()
 	const { data: sectionTypes, refetch: refetchSectionTypes } =
 		trpc.sectionType.getAll.useQuery()
 
-	const [showForm, setShowForm] = useState(false)
-	const [showTypeForm, setShowTypeForm] = useState(false)
-	const [editItem, setEditItem] = useState<SectionItem | null>(null)
+	const showForm =
+		readBooleanParam(searchParams.get('create'), false) === true ||
+		Boolean(readStringParam(searchParams.get('edit')))
+	const showTypeForm =
+		readBooleanParam(searchParams.get('createType'), false) === true
+	const editId = readStringParam(searchParams.get('edit')) || null
+	const typeComponentParam = readStringParam(searchParams.get('typeComponent'))
+	const editItem = useMemo(
+		() =>
+			editId && sections
+				? (sections.find(item => item.id === editId) ?? null)
+				: null,
+		[editId, sections],
+	)
 	const [typeForm, setTypeForm] = useState({
 		name: SECTION_TYPE_PRESETS[0]?.name ?? '',
 		component: SECTION_TYPE_PRESETS[0]?.component ?? '',
@@ -317,6 +335,8 @@ export default function HomeSectionsClient() {
 		isActive: true,
 		config: {},
 	})
+	const [hasSectionFormChanges, setHasSectionFormChanges] = useState(false)
+	const [hasTypeFormChanges, setHasTypeFormChanges] = useState(false)
 
 	const sensors = useSensors(useSensor(PointerSensor))
 	const existingPresetComponents = useMemo(
@@ -336,15 +356,75 @@ export default function HomeSectionsClient() {
 	)
 
 	const orderedSections = useMemo(() => sections ?? [], [sections])
+	const formRouteKey = showForm ? (editId ?? 'create') : 'closed'
+	const typeFormRouteKey = showTypeForm
+		? typeComponentParam || 'createType'
+		: 'closed'
+	const confirmSectionDiscard = useUnsavedChangesGuard(hasSectionFormChanges)
+	const confirmTypeDiscard = useUnsavedChangesGuard(hasTypeFormChanges)
+
+	useEffect(() => {
+		if (!showForm) return
+
+		if (editItem) {
+			queueMicrotask(() => {
+				setForm({
+					sectionTypeId: editItem.sectionTypeId,
+					title: editItem.title ?? '',
+					isActive: editItem.isActive,
+					config: (editItem.config as Record<string, unknown>) ?? {},
+				})
+				setHasSectionFormChanges(false)
+			})
+			return
+		}
+
+		const firstType = sectionTypes?.[0]
+		const preset = getPresetByComponent(firstType?.component)
+		queueMicrotask(() => {
+			setForm({
+				sectionTypeId: firstType?.id ?? '',
+				title: preset?.defaultTitle ?? firstType?.name ?? '',
+				isActive: true,
+				config: clonePresetConfig(firstType?.component),
+			})
+			setHasSectionFormChanges(false)
+		})
+	}, [formRouteKey, editItem, sectionTypes, showForm])
+
+	useEffect(() => {
+		if (!showTypeForm) return
+
+		const preset =
+			getPresetByComponent(typeComponentParam) ?? SECTION_TYPE_PRESETS[0]
+		queueMicrotask(() => {
+			setTypeForm({
+				name: preset?.name ?? '',
+				component: preset?.component ?? '',
+			})
+			setHasTypeFormChanges(false)
+		})
+	}, [showTypeForm, typeComponentParam, typeFormRouteKey])
 
 	function closeForm() {
-		setShowForm(false)
-		setEditItem(null)
+		if (!confirmSectionDiscard()) return
+		setHasSectionFormChanges(false)
+		updateSearchParams({ create: null, edit: null }, { history: 'replace' })
+	}
+
+	function closeTypeForm() {
+		if (!confirmTypeDiscard()) return
+		setHasTypeFormChanges(false)
+		updateSearchParams(
+			{ createType: null, typeComponent: null },
+			{ history: 'replace' },
+		)
 	}
 
 	const createMut = trpc.homeSection.create.useMutation({
 		onSuccess: () => {
 			refetch()
+			setHasSectionFormChanges(false)
 			closeForm()
 		},
 	})
@@ -356,7 +436,8 @@ export default function HomeSectionsClient() {
 				name: SECTION_TYPE_PRESETS[0]?.name ?? '',
 				component: SECTION_TYPE_PRESETS[0]?.component ?? '',
 			})
-			setShowTypeForm(false)
+			setHasTypeFormChanges(false)
+			closeTypeForm()
 			setForm(prev => ({
 				...prev,
 				sectionTypeId: created.id,
@@ -371,6 +452,7 @@ export default function HomeSectionsClient() {
 	const updateMut = trpc.homeSection.update.useMutation({
 		onSuccess: () => {
 			refetch()
+			setHasSectionFormChanges(false)
 			closeForm()
 		},
 	})
@@ -388,25 +470,18 @@ export default function HomeSectionsClient() {
 	}
 
 	function openCreate() {
-		const firstType = sectionTypes?.[0]
-		const preset = getPresetByComponent(firstType?.component)
-		setEditItem(null)
-		setForm({
-			sectionTypeId: firstType?.id ?? '',
-			title: preset?.defaultTitle ?? firstType?.name ?? '',
-			isActive: true,
-			config: clonePresetConfig(firstType?.component),
-		})
-		setShowForm(true)
+		updateSearchParams({ create: true, edit: null }, { history: 'push' })
 	}
 
 	function openCreateType(component?: string) {
 		const preset = getPresetByComponent(component) ?? SECTION_TYPE_PRESETS[0]
-		setTypeForm({
-			name: preset?.name ?? '',
-			component: preset?.component ?? '',
-		})
-		setShowTypeForm(true)
+		updateSearchParams(
+			{
+				createType: true,
+				typeComponent: preset?.component ?? '',
+			},
+			{ history: 'push' },
+		)
 	}
 
 	function createTypeFromPreset(preset: SectionTypePreset) {
@@ -425,14 +500,7 @@ export default function HomeSectionsClient() {
 	}
 
 	function openEdit(section: SectionItem) {
-		setEditItem(section)
-		setForm({
-			sectionTypeId: section.sectionTypeId,
-			title: section.title ?? '',
-			isActive: section.isActive,
-			config: (section.config as Record<string, unknown>) ?? {},
-		})
-		setShowForm(true)
+		updateSearchParams({ edit: section.id, create: null }, { history: 'push' })
 	}
 
 	function handleSubmit(e: React.FormEvent) {
@@ -505,7 +573,7 @@ export default function HomeSectionsClient() {
 				<div
 					className='fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-16'
 					onClick={e => {
-						if (e.target === e.currentTarget) setShowTypeForm(false)
+						if (e.target === e.currentTarget) closeTypeForm()
 					}}
 				>
 					<div className='flex w-full max-w-xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
@@ -515,7 +583,7 @@ export default function HomeSectionsClient() {
 							</h2>
 							<button
 								type='button'
-								onClick={() => setShowTypeForm(false)}
+								onClick={closeTypeForm}
 								className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 							>
 								<X className='h-4 w-4' />
@@ -536,6 +604,7 @@ export default function HomeSectionsClient() {
 									value={typeForm.component}
 									onChange={e => {
 										const preset = getPresetByComponent(e.target.value)
+										setHasTypeFormChanges(true)
 										setTypeForm({
 											name: preset?.name ?? '',
 											component: preset?.component ?? e.target.value,
@@ -563,9 +632,10 @@ export default function HomeSectionsClient() {
 								<input
 									required
 									value={typeForm.name}
-									onChange={e =>
+									onChange={e => {
+										setHasTypeFormChanges(true)
 										setTypeForm(prev => ({ ...prev, name: e.target.value }))
-									}
+									}}
 									placeholder='Баннер'
 									className={inputCls}
 								/>
@@ -578,12 +648,13 @@ export default function HomeSectionsClient() {
 								<input
 									required
 									value={typeForm.component}
-									onChange={e =>
+									onChange={e => {
+										setHasTypeFormChanges(true)
 										setTypeForm(prev => ({
 											...prev,
 											component: e.target.value,
 										}))
-									}
+									}}
 									placeholder='Banner'
 									className={`${inputCls} font-mono`}
 								/>
@@ -615,7 +686,7 @@ export default function HomeSectionsClient() {
 								variant='ghost'
 								type='button'
 								size='sm'
-								onClick={() => setShowTypeForm(false)}
+								onClick={closeTypeForm}
 							>
 								Отмена
 							</Button>
@@ -643,7 +714,7 @@ export default function HomeSectionsClient() {
 						if (e.target === e.currentTarget) closeForm()
 					}}
 				>
-					<div className='flex w-full max-w-2xl max-h-[80vh] flex-col rounded-2xl border border-border bg-card shadow-2xl'>
+					<div className='flex w-full max-w-5xl max-h-[88vh] flex-col rounded-2xl border border-border bg-card shadow-2xl'>
 						<div className='flex shrink-0 items-center justify-between border-b border-border px-6 py-4'>
 							<h2 className='text-base font-semibold text-foreground'>
 								{editItem ? 'Редактировать секцию' : 'Новая секция'}
@@ -684,6 +755,7 @@ export default function HomeSectionsClient() {
 												type => type.id === e.target.value,
 											)
 											const preset = getPresetByComponent(nextType?.component)
+											setHasSectionFormChanges(true)
 											setForm(f => ({
 												...f,
 												sectionTypeId: e.target.value,
@@ -741,9 +813,10 @@ export default function HomeSectionsClient() {
 									</label>
 									<input
 										value={form.title}
-										onChange={e =>
+										onChange={e => {
+											setHasSectionFormChanges(true)
 											setForm(f => ({ ...f, title: e.target.value }))
-										}
+										}}
 										placeholder='Переопределить заголовок секции'
 										className={inputCls}
 									/>
@@ -760,7 +833,14 @@ export default function HomeSectionsClient() {
 									<SectionConfigEditor
 										componentName={currentComponentName}
 										value={form.config}
-										onChange={config => setForm(f => ({ ...f, config }))}
+										onChange={config => {
+											setHasSectionFormChanges(true)
+											setForm(f => ({
+												...f,
+												config:
+													typeof config === 'function' ? config(f.config) : config,
+											}))
+										}}
 									/>
 								)}
 
@@ -769,9 +849,10 @@ export default function HomeSectionsClient() {
 										type='checkbox'
 										id='isActive'
 										checked={form.isActive}
-										onChange={e =>
+										onChange={e => {
+											setHasSectionFormChanges(true)
 											setForm(f => ({ ...f, isActive: e.target.checked }))
-										}
+										}}
 										className='h-4 w-4 rounded border-border accent-primary'
 									/>
 									<label htmlFor='isActive' className='text-sm text-foreground'>

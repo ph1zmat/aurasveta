@@ -1,16 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import {
+	readEnumParam,
+	readPositiveIntParam,
+	readStringParam,
+	useDebouncedValue,
+} from '@aurasveta/shared-admin'
 import { trpc } from '@/lib/trpc/client'
 import type { RouterOutputs } from '@/lib/trpc/client'
-import {
-	Search,
-	ShoppingBag,
-	CreditCard,
-	CircleDot,
-} from 'lucide-react'
+import { Search, ShoppingBag, CreditCard, CircleDot } from 'lucide-react'
 import OrderCard from '@/shared/admin/orders/OrderCard'
 import OrderDetailsModal from '@/shared/admin/orders/OrderDetailsModal'
+import { ORDER_STATUS_CONFIG } from '@/shared/admin/orders/orderStatus'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
 
 type OrdersListResponse = RouterOutputs['orders']['getAllOrders']
 type OrderListItem = OrdersListResponse['items'][number]
@@ -27,14 +29,20 @@ const TABS: { key: Status | 'ALL'; label: string }[] = [
 ]
 
 export default function OrdersClient() {
-	const [activeTab, setActiveTab] = useState<Status | 'ALL'>('ALL')
-	const [search, setSearch] = useState('')
-	const [selectedId, setSelectedId] = useState<string | null>(null)
-	const [page, setPage] = useState(1)
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
+	const activeTab = readEnumParam(
+		searchParams.get('status'),
+		['ALL', 'PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const,
+		'ALL',
+	)
+	const search = readStringParam(searchParams.get('search'))
+	const debouncedSearch = useDebouncedValue(search, 250)
+	const selectedId = readStringParam(searchParams.get('order')) || null
+	const page = readPositiveIntParam(searchParams.get('page'), 1)
 
 	const { data, refetch } = trpc.orders.getAllOrders.useQuery({
 		status: activeTab === 'ALL' ? undefined : activeTab,
-		search: search || undefined,
+		search: debouncedSearch || undefined,
 		page,
 		limit: 24,
 	})
@@ -42,7 +50,9 @@ export default function OrdersClient() {
 	const items = data?.items ?? []
 	const totalPages = data?.totalPages ?? 1
 	const countsByStatus = data?.countsByStatus
-	const selectedOrder = items.find((order: OrderListItem) => order.id === selectedId)
+	const selectedOrder = items.find(
+		(order: OrderListItem) => order.id === selectedId,
+	)
 
 	return (
 		<div className='space-y-5'>
@@ -62,8 +72,10 @@ export default function OrdersClient() {
 					{(countsByStatus?.PENDING ?? 0) > 0 && (
 						<button
 							onClick={() => {
-								setActiveTab('PENDING')
-								setPage(1)
+								updateSearchParams(
+									{ status: 'PENDING', page: 1 },
+									{ history: 'replace' },
+								)
 							}}
 							className='flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-500 transition-colors hover:bg-amber-500/20'
 						>
@@ -74,8 +86,10 @@ export default function OrdersClient() {
 					{(countsByStatus?.PAID ?? 0) > 0 && (
 						<button
 							onClick={() => {
-								setActiveTab('PAID')
-								setPage(1)
+								updateSearchParams(
+									{ status: 'PAID', page: 1 },
+									{ history: 'replace' },
+								)
 							}}
 							className='flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-500 transition-colors hover:bg-emerald-500/20'
 						>
@@ -92,9 +106,15 @@ export default function OrdersClient() {
 					<button
 						key={tab.key}
 						onClick={() => {
-							setActiveTab(tab.key)
-							setPage(1)
-							setSearch('')
+							updateSearchParams(
+								{
+									status: tab.key === 'ALL' ? null : tab.key,
+									page: 1,
+									search: null,
+									order: null,
+								},
+								{ history: 'replace' },
+							)
 						}}
 						className={`flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
 							activeTab === tab.key
@@ -107,7 +127,7 @@ export default function OrdersClient() {
 							activeTab === tab.key &&
 							data?.total != null && (
 								<span
-									className={`ml-1 flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-semibold ${STATUS_CONFIG[tab.key as Status].bg} ${STATUS_CONFIG[tab.key as Status].color}`}
+									className={`ml-1 flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-semibold ${ORDER_STATUS_CONFIG[tab.key as Status].bg} ${ORDER_STATUS_CONFIG[tab.key as Status].color}`}
 								>
 									{data.total}
 								</span>
@@ -121,7 +141,12 @@ export default function OrdersClient() {
 				<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
 				<input
 					value={search}
-					onChange={e => setSearch(e.target.value)}
+					onChange={e =>
+						updateSearchParams(
+							{ search: e.target.value, page: 1, order: null },
+							{ history: 'replace' },
+						)
+					}
 					placeholder='Поиск по номеру, имени, email, телефону...'
 					className='flex h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 				/>
@@ -134,7 +159,9 @@ export default function OrdersClient() {
 						<OrderCard
 							key={order.id}
 							order={order}
-							onClick={() => setSelectedId(order.id)}
+							onClick={() =>
+								updateSearchParams({ order: order.id }, { history: 'push' })
+							}
 							variant='default'
 						/>
 					))}
@@ -152,7 +179,12 @@ export default function OrdersClient() {
 			{totalPages > 1 && !search && (
 				<div className='flex items-center justify-center gap-2 pt-2'>
 					<button
-						onClick={() => setPage(p => Math.max(1, p - 1))}
+						onClick={() =>
+							updateSearchParams(
+								{ page: Math.max(1, page - 1) },
+								{ history: 'replace' },
+							)
+						}
 						disabled={page === 1}
 						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
 					>
@@ -162,7 +194,12 @@ export default function OrdersClient() {
 						{page} / {totalPages}
 					</span>
 					<button
-						onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+						onClick={() =>
+							updateSearchParams(
+								{ page: Math.min(totalPages, page + 1) },
+								{ history: 'replace' },
+							)
+						}
 						disabled={page === totalPages}
 						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
 					>
@@ -175,14 +212,15 @@ export default function OrdersClient() {
 			{selectedOrder && (
 				<OrderDetailsModal
 					order={selectedOrder}
-					onClose={() => setSelectedId(null)}
+					onClose={() =>
+						updateSearchParams({ order: null }, { history: 'replace' })
+					}
 					onStatusChange={() => {
 						refetch()
-						setSelectedId(null)
+						updateSearchParams({ order: null }, { history: 'replace' })
 					}}
 				/>
 			)}
 		</div>
 	)
 }
-

@@ -30,6 +30,17 @@ export default async function BrandsCarouselServer({
 					linkPropertyValueId: config?.linkPropertyValueId as
 						| string
 						| undefined,
+					brandLinks: (config?.brandLinks as
+						| Record<
+								string,
+								{
+									href?: string
+									linkCategoryId?: string
+									linkPropertyId?: string
+									linkPropertyValueId?: string
+								}
+						  >
+						| undefined),
 				}}
 			/>
 		)
@@ -46,9 +57,19 @@ export default async function BrandsCarouselServer({
 		.map((name: string) => ({
 			name,
 			slug: name.toLowerCase().replace(/\s+/g, '-'),
+			href: `/catalog?prop.${
+				(config?.filterParam as string | undefined) ?? propertySlug
+			}=${name.toLowerCase().replace(/\s+/g, '-')}`,
 		}))
 
 	const heading = (config?.heading as string | undefined) ?? title ?? 'Бренды'
 
-	return <BrandsCarousel brands={brands} heading={heading} />
+	return (
+		<BrandsCarousel
+			brands={brands}
+			heading={heading}
+			viewAllHref={config?.viewAllHref as string | undefined}
+			viewAllLabel={config?.viewAllLabel as string | undefined}
+		/>
+	)
 }

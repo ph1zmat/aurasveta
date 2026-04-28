@@ -39,7 +39,9 @@ export function useFavorites() {
 	const productIds = useMemo<string[]>(
 		() =>
 			isAuth
-				? (serverFavorites?.map((favorite: ServerFavoriteItem) => favorite.productId) ?? [])
+				? (serverFavorites?.map(
+						(favorite: ServerFavoriteItem) => favorite.productId,
+					) ?? [])
 				: anonFavorites,
 		[isAuth, serverFavorites, anonFavorites],
 	)

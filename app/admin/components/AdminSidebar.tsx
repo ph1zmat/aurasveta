@@ -1,43 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { formatForDisplay } from '@tanstack/hotkeys'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-	LogOut,
-	Menu,
-	X,
-	LayoutDashboard,
-	Package,
-	FolderTree,
-	SlidersHorizontal,
-	FileText,
-	ShoppingCart,
-	Download,
-	Webhook,
-	Search,
-	Settings,
-	LayoutGrid,
-} from 'lucide-react'
+import { LogOut, Menu, Search, X } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/auth-client'
-
-const NAV_ITEMS = {
-	admin: [
-		{ href: '/admin', label: 'Дашборд', icon: LayoutDashboard },
-		{ href: '/admin/home-sections', label: 'Секции', icon: LayoutGrid },
-		{ href: '/admin/products', label: 'Товары', icon: Package },
-		{ href: '/admin/categories', label: 'Категории', icon: FolderTree },
-		{ href: '/admin/properties', label: 'Свойства', icon: SlidersHorizontal },
-		{ href: '/admin/pages', label: 'Страницы', icon: FileText },
-		{ href: '/admin/orders', label: 'Заказы', icon: ShoppingCart },
-		{ href: '/admin/import-export', label: 'Импорт/Экспорт', icon: Download },
-		{ href: '/admin/webhooks', label: 'Вебхуки', icon: Webhook },
-		{ href: '/admin/seo', label: 'SEO', icon: Search },
-		{ href: '/admin/settings', label: 'Настройки', icon: Settings },
-	],
-	editor: [{ href: '/admin/pages', label: 'Страницы', icon: FileText }],
-}
+import { openAdminCommandPalette } from './admin-command-palette.store'
+import { getAdminNavItems } from './admin-nav'
 
 interface AdminSidebarProps {
 	userEmail: string
@@ -48,7 +19,7 @@ export default function AdminSidebar({
 	userEmail,
 	userRole,
 }: AdminSidebarProps) {
-	const items = userRole === 'ADMIN' ? NAV_ITEMS.admin : NAV_ITEMS.editor
+	const items = getAdminNavItems(userRole)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const pathname = usePathname()
 	const router = useRouter()
@@ -83,6 +54,32 @@ export default function AdminSidebar({
 				>
 					Аура Света CMS
 				</Link>
+			</div>
+
+			<div className='px-3 pt-4'>
+				<button
+					type='button'
+					onClick={() => {
+						openAdminCommandPalette()
+						setSidebarOpen(false)
+					}}
+					className='flex w-full items-center gap-3 rounded-2xl border border-border bg-background/80 px-3 py-3 text-left transition-colors hover:bg-muted'
+				>
+					<div className='rounded-xl bg-primary/10 p-2 text-primary'>
+						<Search className='h-4 w-4' />
+					</div>
+					<div className='min-w-0 flex-1'>
+						<div className='text-sm font-medium text-foreground'>
+							Command palette
+						</div>
+						<div className='truncate text-xs text-muted-foreground'>
+							Переходы, создание сущностей и быстрые сценарии.
+						</div>
+					</div>
+					<kbd className='rounded-lg border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground'>
+						{formatForDisplay('Mod+K')}
+					</kbd>
+				</button>
 			</div>
 
 			<nav className='mt-4 space-y-1 px-3'>
