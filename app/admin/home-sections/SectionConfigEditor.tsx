@@ -4,7 +4,7 @@
  * SectionConfigEditor (web admin version)
  * Визуальный редактор конфига секции главной страницы.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type SetStateAction } from 'react'
 import {
 	DndContext,
 	PointerSensor,
@@ -30,6 +30,48 @@ import {
 } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import FileUploader from '@/shared/ui/FileUploader'
+
+type ConfigValue = Record<string, unknown>
+type ConfigChange = SetStateAction<ConfigValue>
+type ConfigChangeHandler = (change: ConfigChange) => void
+
+interface BrandCardLinkConfig {
+	href?: string
+	linkCategoryId?: string
+	linkPropertyId?: string
+	linkPropertyValueId?: string
+}
+
+type BrandCardLinkMap = Record<string, BrandCardLinkConfig>
+
+function normalizeBrandLinkConfig(
+	config?: BrandCardLinkConfig | null,
+): BrandCardLinkConfig | undefined {
+	if (!config) return undefined
+	const normalized: BrandCardLinkConfig = {
+		href: config.href?.trim() || undefined,
+		linkCategoryId: config.linkCategoryId || undefined,
+		linkPropertyId: config.linkPropertyId || undefined,
+		linkPropertyValueId: config.linkPropertyValueId || undefined,
+	}
+	if (
+		!normalized.href &&
+		!normalized.linkCategoryId &&
+		!normalized.linkPropertyId &&
+		!normalized.linkPropertyValueId
+	) {
+		return undefined
+	}
+	return normalized
+}
+
+function readBrandLinkMap(value: ConfigValue): BrandCardLinkMap {
+	const raw = value.brandLinks
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+		return {}
+	}
+	return raw as BrandCardLinkMap
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -159,13 +201,13 @@ function CatalogFilterLinkControls({
 			: 'Без фильтра'
 
 	useEffect(() => {
-		if (linkMode === 'auto') {
+		if (linkMode === 'auto' && (href ?? '') !== autoHref) {
 			onHrefChange(autoHref)
 		}
-	}, [autoHref, linkMode, onHrefChange])
+	}, [autoHref, href, linkMode, onHrefChange])
 
 	return (
-		<div className={`grid grid-cols-2 gap-3 ${className ?? ''}`}>
+		<div className={`grid gap-3 md:grid-cols-2 ${className ?? ''}`}>
 			<Field label='Режим ссылки' className='col-span-2'>
 				<div className='inline-flex rounded-lg border border-border bg-muted/20 p-1'>
 					<button
@@ -293,7 +335,7 @@ function CatalogFilterLinkControls({
 				</select>
 			</Field>
 			<Field label='Автогенерация ссылки' className='col-span-2'>
-				<div className='space-y-2 rounded-lg border border-dashed border-border px-3 py-2'>
+				<div className='space-y-2 rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2.5'>
 					<div className='flex items-center justify-between gap-2'>
 						<p className='text-[10px] text-muted-foreground'>{modeLabel}</p>
 						<button
@@ -309,7 +351,7 @@ function CatalogFilterLinkControls({
 							Сбросить фильтры
 						</button>
 					</div>
-					<div className='flex items-center gap-2'>
+					<div className='flex flex-wrap items-center gap-2'>
 						<p className='min-w-0 flex-1 truncate text-xs text-muted-foreground'>
 							{finalHref}
 						</p>
@@ -421,8 +463,8 @@ function BannerConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const sensors = useSensors(useSensor(PointerSensor))
 	const slides: BannerSlide[] = Array.isArray(value.slides)
@@ -431,7 +473,7 @@ function BannerConfigEditor({
 	const slideIds = slides.map((_, idx) => `slide-${idx}`)
 
 	function setSlides(next: BannerSlide[]) {
-		onChange({ ...value, slides: next })
+		onChange(prev => ({ ...prev, slides: next }))
 	}
 	function updateSlide(idx: number, patch: Partial<BannerSlide>) {
 		setSlides(slides.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
@@ -589,7 +631,7 @@ function BannerConfigEditor({
 				</SortableContext>
 			</DndContext>
 
-			<div className='grid grid-cols-2 gap-3 border-t border-border pt-3'>
+			<div className='grid gap-3 border-t border-border pt-3 md:grid-cols-2'>
 				<Field label='Мин. высота слайда (px)'>
 					<input
 						type='number'
@@ -598,7 +640,10 @@ function BannerConfigEditor({
 						className={inputCls}
 						value={(value.minHeight as number | undefined) ?? 280}
 						onChange={e =>
-							onChange({ ...value, minHeight: Number(e.target.value) })
+							onChange(prev => ({
+								...prev,
+								minHeight: Number(e.target.value),
+							}))
 						}
 					/>
 				</Field>
@@ -609,7 +654,10 @@ function BannerConfigEditor({
 								type='checkbox'
 								checked={Boolean(value.autoPlay)}
 								onChange={e =>
-									onChange({ ...value, autoPlay: e.target.checked })
+									onChange(prev => ({
+										...prev,
+										autoPlay: e.target.checked,
+									}))
 								}
 								className='h-4 w-4 rounded accent-primary'
 							/>
@@ -625,10 +673,10 @@ function BannerConfigEditor({
 								style={{ maxWidth: 100 }}
 								value={(value.autoPlayInterval as number | undefined) ?? 4000}
 								onChange={e =>
-									onChange({
-										...value,
+									onChange(prev => ({
+										...prev,
 										autoPlayInterval: Number(e.target.value),
-									})
+									}))
 								}
 								title='Интервал (мс)'
 							/>
@@ -646,8 +694,8 @@ function ProductGridConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const categoriesQuery = trpc.categories.getAll.useQuery()
 	const propertiesQuery = trpc.properties.getAll.useQuery()
@@ -668,7 +716,7 @@ function ProductGridConfigEditor({
 	)
 
 	function set(key: string, val: unknown) {
-		onChange({ ...value, [key]: val })
+		onChange(prev => ({ ...prev, [key]: val }))
 	}
 
 	const selectedCategory = categories.find(c => c.id === selectedCategoryId)
@@ -690,17 +738,17 @@ function ProductGridConfigEditor({
 					className={selectCls}
 					value={source}
 					onChange={e =>
-						onChange({
-							...value,
+						onChange(prev => ({
+							...prev,
 							source: e.target.value,
 							...(e.target.value !== 'property'
 								? {
 										propertyId: undefined,
 										_propertyId: undefined,
 										propertyValueId: undefined,
-									}
+								  }
 								: {}),
-						})
+						}))
 					}
 				>
 					<option value='promotion'>Акции (со скидкой)</option>
@@ -742,12 +790,12 @@ function ProductGridConfigEditor({
 							className={selectCls}
 							value={selectedPropId}
 							onChange={e =>
-								onChange({
-									...value,
+								onChange(prev => ({
+									...prev,
 									propertyId: e.target.value || undefined,
 									_propertyId: e.target.value || undefined,
 									propertyValueId: undefined,
-								})
+								}))
 							}
 						>
 							<option value=''>
@@ -803,7 +851,7 @@ function ProductGridConfigEditor({
 				</>
 			)}
 
-			<div className='grid grid-cols-2 gap-3'>
+			<div className='grid gap-3 md:grid-cols-2'>
 				<Field label='Сортировка'>
 					<select
 						className={selectCls}
@@ -882,8 +930,8 @@ function BrandCarouselConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const utils = trpc.useUtils()
 	const propertiesQuery = trpc.properties.getAll.useQuery()
@@ -894,56 +942,109 @@ function BrandCarouselConfigEditor({
 		enabled: Boolean(propSlug),
 	})
 	const propertyDetails = propertyDetailsQuery.data
+	const brandLinkMap = useMemo(() => readBrandLinkMap(value), [value])
 	const [newValue, setNewValue] = useState({
 		value: '',
 		slug: '',
 		photo: null as string | null,
+		linkHref: '',
+		linkCategoryId: undefined as string | undefined,
+		linkPropertyId: undefined as string | undefined,
+		linkPropertyValueId: undefined as string | undefined,
 	})
+
+	function upsertBrandLink(brandId: string, nextConfig?: BrandCardLinkConfig | null) {
+		onChange(prev => {
+			const nextLinks = { ...readBrandLinkMap(prev) }
+			const normalized = normalizeBrandLinkConfig(nextConfig)
+			if (normalized) nextLinks[brandId] = normalized
+			else delete nextLinks[brandId]
+
+			if (Object.keys(nextLinks).length === 0) {
+				const nextConfig = { ...prev }
+				delete nextConfig.brandLinks
+				return nextConfig
+			}
+
+			return {
+				...prev,
+				brandLinks: nextLinks,
+			}
+		})
+	}
+
 	const createValueMut = trpc.properties.createValue.useMutation({
-		onSuccess: async () => {
+		onSuccess: async created => {
+			upsertBrandLink(created.id, {
+				href: newValue.linkHref,
+				linkCategoryId: newValue.linkCategoryId,
+				linkPropertyId: newValue.linkPropertyId,
+				linkPropertyValueId: newValue.linkPropertyValueId,
+			})
 			await Promise.all([
 				utils.properties.getBySlug.invalidate(propSlug),
 				utils.properties.getById.invalidate(matchedProperty?.id),
 				utils.properties.getAll.invalidate(),
 			])
-			setNewValue({ value: '', slug: '', photo: null })
+			setNewValue({
+				value: '',
+				slug: '',
+				photo: null,
+				linkHref: '',
+				linkCategoryId: undefined,
+				linkPropertyId: undefined,
+				linkPropertyValueId: undefined,
+			})
 		},
 	})
 	const values = useMemo(() => propertyDetails?.values ?? [], [propertyDetails])
 
 	function set(key: string, val: unknown) {
-		onChange({ ...value, [key]: val })
+		onChange(prev => ({ ...prev, [key]: val }))
 	}
 
 	return (
-		<div className='space-y-3'>
-			<Field
-				label='Характеристика (группа значений)'
-				hint='Каждое значение становится одним элементом карусели'
-			>
-				<select
-					className={selectCls}
-					value={propSlug}
-					onChange={e => {
-						set('propertySlug', e.target.value)
-						set('filterParam', e.target.value)
-					}}
+		<div className='space-y-4'>
+			<div className='grid gap-3 md:grid-cols-2'>
+				<Field
+					label='Характеристика (группа значений)'
+					hint='Каждое значение становится одним элементом карусели'
 				>
-					<option value=''>
-						{getRemoteSelectPlaceholder({
-							isLoading: propertiesQuery.isLoading,
-							hasError: Boolean(propertiesQuery.error),
-							hasItems: properties.length > 0,
-							emptyLabel: 'Нет свойств в каталоге',
-						})}
-					</option>
-					{properties.map(p => (
-						<option key={p.slug} value={p.slug}>
-							{p.name} ({p.slug})
+					<select
+						className={selectCls}
+						value={propSlug}
+						onChange={e => {
+							set('propertySlug', e.target.value)
+							set('filterParam', e.target.value)
+						}}
+					>
+						<option value=''>
+							{getRemoteSelectPlaceholder({
+								isLoading: propertiesQuery.isLoading,
+								hasError: Boolean(propertiesQuery.error),
+								hasItems: properties.length > 0,
+								emptyLabel: 'Нет свойств в каталоге',
+							})}
 						</option>
-					))}
-				</select>
-			</Field>
+						{properties.map(p => (
+							<option key={p.slug} value={p.slug}>
+								{p.name} ({p.slug})
+							</option>
+						))}
+					</select>
+				</Field>
+				<Field
+					label='Параметр URL для фильтра каталога'
+					hint='Формат карточек: /catalog?prop.{параметр}=значение'
+				>
+					<input
+						className={inputCls}
+						value={(value.filterParam as string | undefined) ?? propSlug}
+						onChange={e => set('filterParam', e.target.value)}
+						placeholder={propSlug}
+					/>
+				</Field>
+			</div>
 			{!propertiesQuery.isLoading &&
 				!propertiesQuery.error &&
 				properties.length === 0 && (
@@ -952,18 +1053,7 @@ function BrandCarouselConfigEditor({
 						например, `brand`, и список заработает автоматически.
 					</p>
 				)}
-			<Field
-				label='Параметр URL для фильтра каталога'
-				hint='Формат карточек: /catalog?prop.{параметр}=значение'
-			>
-				<input
-					className={inputCls}
-					value={(value.filterParam as string | undefined) ?? propSlug}
-					onChange={e => set('filterParam', e.target.value)}
-					placeholder={propSlug}
-				/>
-			</Field>
-			<div className='grid grid-cols-2 gap-3 border-t border-border pt-3'>
+			<div className='grid gap-3 border-t border-border pt-3 md:grid-cols-2'>
 				<Field label='Текст ссылки'>
 					<input
 						className={inputCls}
@@ -987,6 +1077,7 @@ function BrandCarouselConfigEditor({
 				onPropertyValueIdChange={id => set('linkPropertyValueId', id)}
 				hrefLabel='Ссылка «Смотреть все»'
 				hrefPlaceholder='/catalog'
+				className='rounded-xl border border-border bg-muted/10 p-3'
 			/>
 
 			<div className='space-y-3 rounded-xl border border-border bg-muted/10 p-4'>
@@ -1033,6 +1124,11 @@ function BrandCarouselConfigEditor({
 									propertySlug={propSlug}
 									propertyId={propertyDetails.id}
 									brand={brand}
+									linkConfig={brandLinkMap[brand.id]}
+									onLinkConfigChange={nextLinkConfig =>
+										upsertBrandLink(brand.id, nextLinkConfig)
+									}
+									filterParam={(value.filterParam as string | undefined) ?? propSlug}
 									index={index}
 								/>
 							))}
@@ -1042,39 +1138,7 @@ function BrandCarouselConfigEditor({
 							<p className='mb-3 text-xs font-medium text-foreground'>
 								Добавить бренд в секцию
 							</p>
-							<div className='grid gap-3 md:grid-cols-[1fr_180px]'>
-								<Field label='Название бренда'>
-									<input
-										className={inputCls}
-										value={newValue.value}
-										onChange={e => {
-											const nextValue = e.target.value
-											setNewValue(prev => ({
-												...prev,
-												value: nextValue,
-												slug:
-													prev.slug ||
-													nextValue
-														.toLowerCase()
-														.replace(/\s+/g, '-')
-														.replace(/[^a-zа-яё0-9-]/gi, ''),
-											}))
-										}}
-										placeholder='Maytoni'
-									/>
-								</Field>
-								<Field label='Slug'>
-									<input
-										className={`${inputCls} font-mono`}
-										value={newValue.slug}
-										onChange={e =>
-											setNewValue(prev => ({ ...prev, slug: e.target.value }))
-										}
-										placeholder='maytoni'
-									/>
-								</Field>
-							</div>
-							<div className='mt-3'>
+							<div className='grid gap-3 md:grid-cols-[220px_1fr]'>
 								<FileUploader
 									currentImage={newValue.photo}
 									onUploaded={key =>
@@ -1086,7 +1150,79 @@ function BrandCarouselConfigEditor({
 									label='Фото бренда'
 									aspectRatio='square'
 									compact
+									helperText=''
 								/>
+								<div className='space-y-3'>
+									<div className='grid gap-3 md:grid-cols-2'>
+										<Field label='Название бренда'>
+											<input
+												className={inputCls}
+												value={newValue.value}
+												onChange={e => {
+													const nextValue = e.target.value
+													setNewValue(prev => ({
+														...prev,
+														value: nextValue,
+														slug:
+															prev.slug ||
+															nextValue
+																.toLowerCase()
+																.replace(/\s+/g, '-')
+																.replace(/[^a-zа-яё0-9-]/gi, ''),
+													}))
+												}}
+												placeholder='Maytoni'
+											/>
+										</Field>
+										<Field label='Slug'>
+											<input
+												className={`${inputCls} font-mono`}
+												value={newValue.slug}
+												onChange={e =>
+													setNewValue(prev => ({ ...prev, slug: e.target.value }))
+												}
+												placeholder='maytoni'
+											/>
+										</Field>
+									</div>
+									<div className='rounded-xl border border-border bg-muted/10 p-3'>
+										<CatalogFilterLinkControls
+											href={newValue.linkHref}
+											onHrefChange={href =>
+												setNewValue(prev => ({
+													...prev,
+													linkHref: href ?? '',
+												}))
+											}
+											categoryId={newValue.linkCategoryId}
+											onCategoryIdChange={id =>
+												setNewValue(prev => ({
+													...prev,
+													linkCategoryId: id,
+												}))
+											}
+											propertyId={newValue.linkPropertyId}
+											onPropertyIdChange={id =>
+												setNewValue(prev => ({
+													...prev,
+													linkPropertyId: id,
+													linkPropertyValueId: undefined,
+												}))
+											}
+											propertyValueId={newValue.linkPropertyValueId}
+											onPropertyValueIdChange={id =>
+												setNewValue(prev => ({
+													...prev,
+													linkPropertyValueId: id,
+												}))
+											}
+											hrefLabel='Ссылка карточки бренда'
+											hrefPlaceholder={`/catalog?prop.${
+												(value.filterParam as string | undefined) ?? propSlug
+											}=${newValue.slug || 'maytoni'}`}
+										/>
+									</div>
+								</div>
 							</div>
 							<div className='mt-3 flex justify-end'>
 								<button
@@ -1119,6 +1255,9 @@ function BrandValueEditorCard({
 	propertySlug,
 	propertyId,
 	brand,
+	linkConfig,
+	onLinkConfigChange,
+	filterParam,
 	index,
 }: {
 	propertySlug: string
@@ -1130,13 +1269,28 @@ function BrandValueEditorCard({
 		photo?: string | null
 		order?: number
 	}
+	linkConfig?: BrandCardLinkConfig
+	onLinkConfigChange: (nextConfig?: BrandCardLinkConfig) => void
+	filterParam: string
 	index: number
 }) {
 	const utils = trpc.useUtils()
+	const defaultLinkConfig: BrandCardLinkConfig = {
+		linkPropertyId: propertyId,
+		linkPropertyValueId: brand.id,
+	}
+	const initialLinkConfig = {
+		...defaultLinkConfig,
+		...linkConfig,
+	}
 	const [draft, setDraft] = useState({
 		value: brand.value,
 		slug: brand.slug,
 		photo: brand.photo ?? null,
+		linkHref: initialLinkConfig.href ?? '',
+		linkCategoryId: initialLinkConfig.linkCategoryId,
+		linkPropertyId: initialLinkConfig.linkPropertyId,
+		linkPropertyValueId: initialLinkConfig.linkPropertyValueId,
 	})
 	const updateValueMut = trpc.properties.updateValue.useMutation({
 		onSuccess: async () => {
@@ -1160,7 +1314,38 @@ function BrandValueEditorCard({
 	const isDirty =
 		draft.value !== brand.value ||
 		draft.slug !== brand.slug ||
-		(draft.photo ?? null) !== (brand.photo ?? null)
+		(draft.photo ?? null) !== (brand.photo ?? null) ||
+		draft.linkHref !== (initialLinkConfig.href ?? '') ||
+		draft.linkCategoryId !== initialLinkConfig.linkCategoryId ||
+		draft.linkPropertyId !== initialLinkConfig.linkPropertyId ||
+		draft.linkPropertyValueId !== initialLinkConfig.linkPropertyValueId
+
+	async function handleSave() {
+		const nextLinkConfig = normalizeBrandLinkConfig({
+			href: draft.linkHref,
+			linkCategoryId: draft.linkCategoryId,
+			linkPropertyId: draft.linkPropertyId,
+			linkPropertyValueId: draft.linkPropertyValueId,
+		})
+
+		const isDefaultLinkConfig =
+			!nextLinkConfig?.href &&
+			nextLinkConfig?.linkCategoryId === undefined &&
+			(nextLinkConfig?.linkPropertyId ?? defaultLinkConfig.linkPropertyId) ===
+				defaultLinkConfig.linkPropertyId &&
+			(nextLinkConfig?.linkPropertyValueId ??
+				defaultLinkConfig.linkPropertyValueId) ===
+				defaultLinkConfig.linkPropertyValueId
+
+		await updateValueMut.mutateAsync({
+			id: brand.id,
+			value: draft.value.trim(),
+			slug: draft.slug.trim(),
+			photo: draft.photo,
+		})
+
+		onLinkConfigChange(isDefaultLinkConfig ? undefined : nextLinkConfig)
+	}
 
 	return (
 		<div className='rounded-xl border border-border bg-background/80 p-3'>
@@ -1170,7 +1355,7 @@ function BrandValueEditorCard({
 						Бренд {index + 1}
 					</p>
 					<p className='text-[10px] text-muted-foreground'>
-						Карточка секции будет вести на `/catalog?prop.{propertySlug}=
+						Карточка секции по умолчанию ведёт на `/catalog?prop.{filterParam}=
 						{draft.slug || brand.slug}`
 					</p>
 				</div>
@@ -1197,6 +1382,7 @@ function BrandValueEditorCard({
 					label='Фото бренда'
 					aspectRatio='square'
 					compact
+					helperText=''
 				/>
 				<div className='space-y-3'>
 					<div className='grid gap-3 md:grid-cols-2'>
@@ -1221,6 +1407,32 @@ function BrandValueEditorCard({
 							/>
 						</Field>
 					</div>
+					<div className='rounded-xl border border-border bg-muted/10 p-3'>
+						<CatalogFilterLinkControls
+							href={draft.linkHref}
+							onHrefChange={href =>
+								setDraft(prev => ({ ...prev, linkHref: href ?? '' }))
+							}
+							categoryId={draft.linkCategoryId}
+							onCategoryIdChange={id =>
+								setDraft(prev => ({ ...prev, linkCategoryId: id }))
+							}
+							propertyId={draft.linkPropertyId}
+							onPropertyIdChange={id =>
+								setDraft(prev => ({
+									...prev,
+									linkPropertyId: id,
+									linkPropertyValueId: undefined,
+								}))
+							}
+							propertyValueId={draft.linkPropertyValueId}
+							onPropertyValueIdChange={id =>
+								setDraft(prev => ({ ...prev, linkPropertyValueId: id }))
+							}
+							hrefLabel='Ссылка карточки бренда'
+							hrefPlaceholder={`/catalog?prop.${filterParam}=${draft.slug || brand.slug}`}
+						/>
+					</div>
 					<div className='flex justify-end gap-2'>
 						<button
 							type='button'
@@ -1229,6 +1441,10 @@ function BrandValueEditorCard({
 									value: brand.value,
 									slug: brand.slug,
 									photo: brand.photo ?? null,
+									linkHref: initialLinkConfig.href ?? '',
+									linkCategoryId: initialLinkConfig.linkCategoryId,
+									linkPropertyId: initialLinkConfig.linkPropertyId,
+									linkPropertyValueId: initialLinkConfig.linkPropertyValueId,
 								})
 							}
 							className='rounded-md border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50'
@@ -1238,14 +1454,9 @@ function BrandValueEditorCard({
 						</button>
 						<button
 							type='button'
-							onClick={() =>
-								updateValueMut.mutate({
-									id: brand.id,
-									value: draft.value.trim(),
-									slug: draft.slug.trim(),
-									photo: draft.photo,
-								})
-							}
+							onClick={() => {
+								void handleSave()
+							}}
 							className='rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
 							disabled={
 								!isDirty ||
@@ -1269,15 +1480,15 @@ function CategoryCarouselConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const categoriesQuery = trpc.categories.getAll.useQuery()
 	const categories = categoriesQuery.data ?? []
 	const rootCategories = categories.filter(c => !c.parentId)
 
 	function set(key: string, val: unknown) {
-		onChange({ ...value, [key]: val })
+		onChange(prev => ({ ...prev, [key]: val }))
 	}
 
 	return (
@@ -1307,7 +1518,7 @@ function CategoryCarouselConfigEditor({
 						только они появятся в каталоге.
 					</p>
 				)}
-			<div className='grid grid-cols-2 gap-3'>
+			<div className='grid gap-3 md:grid-cols-2'>
 				<Field label='Максимум категорий'>
 					<input
 						type='number'
@@ -1354,8 +1565,8 @@ function AdvantagesConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const sensors = useSensors(useSensor(PointerSensor))
 	const items: AdvItem[] = Array.isArray(value.items)
@@ -1364,7 +1575,7 @@ function AdvantagesConfigEditor({
 	const itemIds = items.map((_, idx) => `adv-${idx}`)
 
 	function setItems(next: AdvItem[]) {
-		onChange({ ...value, items: next })
+		onChange(prev => ({ ...prev, items: next }))
 	}
 	function update(idx: number, patch: Partial<AdvItem>) {
 		setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
@@ -1460,7 +1671,7 @@ function AdvantagesConfigEditor({
 											</button>
 										</div>
 									</div>
-									<div className='grid grid-cols-3 gap-2'>
+									<div className='grid gap-2 md:grid-cols-3'>
 										<Field label='Иконка'>
 											<select
 												className={selectCls}
@@ -1511,15 +1722,15 @@ function AboutTextConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const paragraphs: string[] = Array.isArray(value.paragraphs)
 		? (value.paragraphs as string[])
 		: []
 
 	function setParagraphs(next: string[]) {
-		onChange({ ...value, paragraphs: next })
+		onChange(prev => ({ ...prev, paragraphs: next }))
 	}
 
 	return (
@@ -1528,7 +1739,7 @@ function AboutTextConfigEditor({
 				<input
 					className={inputCls}
 					value={(value.heading as string | undefined) ?? ''}
-					onChange={e => onChange({ ...value, heading: e.target.value })}
+					onChange={e => onChange(prev => ({ ...prev, heading: e.target.value }))}
 					placeholder='Интернет магазин освещения Аура Света'
 				/>
 			</Field>
@@ -1584,7 +1795,9 @@ function AboutTextConfigEditor({
 						checked={
 							value.expandable === undefined ? true : Boolean(value.expandable)
 						}
-						onChange={e => onChange({ ...value, expandable: e.target.checked })}
+						onChange={e =>
+							onChange(prev => ({ ...prev, expandable: e.target.checked }))
+						}
 						className='h-4 w-4 rounded accent-primary'
 					/>
 					Показывать кнопку «Развернуть / свернуть»
@@ -1600,8 +1813,8 @@ function PopularQueriesConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	return (
 		<div className='space-y-3'>
@@ -1609,7 +1822,7 @@ function PopularQueriesConfigEditor({
 				<input
 					className={inputCls}
 					value={(value.heading as string | undefined) ?? ''}
-					onChange={e => onChange({ ...value, heading: e.target.value })}
+					onChange={e => onChange(prev => ({ ...prev, heading: e.target.value }))}
 					placeholder='Популярные запросы'
 				/>
 			</Field>
@@ -1623,7 +1836,9 @@ function PopularQueriesConfigEditor({
 					max={30}
 					className={inputCls}
 					value={(value.limit as number | undefined) ?? 10}
-					onChange={e => onChange({ ...value, limit: Number(e.target.value) })}
+					onChange={e =>
+						onChange(prev => ({ ...prev, limit: Number(e.target.value) }))
+					}
 				/>
 			</Field>
 		</div>
@@ -1689,6 +1904,8 @@ function RoomImagePicker({
 			onRemove={() => onChange('')}
 			label='Фото комнаты'
 			aspectRatio='landscape'
+			compact
+			helperText=''
 		/>
 	)
 }
@@ -1697,8 +1914,8 @@ function RoomCategoriesConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const sensors = useSensors(useSensor(PointerSensor))
 	const rooms: RoomItem[] =
@@ -1708,7 +1925,7 @@ function RoomCategoriesConfigEditor({
 	const roomIds = rooms.map((_, idx) => `room-${idx}`)
 
 	function setRooms(next: RoomItem[]) {
-		onChange({ ...value, rooms: next })
+		onChange(prev => ({ ...prev, rooms: next }))
 	}
 	function update(idx: number, patch: Partial<RoomItem>) {
 		setRooms(rooms.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
@@ -1731,12 +1948,12 @@ function RoomCategoriesConfigEditor({
 	}
 
 	return (
-		<div className='space-y-3'>
+		<div className='space-y-4'>
 			<Field label='Заголовок секции'>
 				<input
 					className={inputCls}
 					value={(value.heading as string | undefined) ?? ''}
-					onChange={e => onChange({ ...value, heading: e.target.value })}
+					onChange={e => onChange(prev => ({ ...prev, heading: e.target.value }))}
 					placeholder='Товары по расположению'
 				/>
 			</Field>
@@ -1764,7 +1981,7 @@ function RoomCategoriesConfigEditor({
 						{rooms.map((room, idx) => (
 							<SortableBlock key={roomIds[idx]} id={roomIds[idx]}>
 								<div className='rounded-xl border border-border bg-muted/10 p-3'>
-									<div className='flex items-start gap-3'>
+									<div className='grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]'>
 										<div className='shrink-0'>
 											<p className='mb-1 text-[10px] text-muted-foreground'>
 												Фото
@@ -1774,7 +1991,7 @@ function RoomCategoriesConfigEditor({
 												onChange={key => update(idx, { image: key })}
 											/>
 										</div>
-										<div className='min-w-0 flex-1 space-y-2'>
+										<div className='min-w-0 space-y-3'>
 											<div className='flex items-center justify-between'>
 												<span className='text-xs font-medium text-foreground'>
 													Комната {idx + 1}
@@ -1807,8 +2024,8 @@ function RoomCategoriesConfigEditor({
 													</button>
 												</div>
 											</div>
-											<div className='grid grid-cols-2 gap-2'>
-												<Field label='Название'>
+											<div className='grid gap-3 md:grid-cols-2'>
+												<Field label='Название' className='md:col-span-1'>
 													<input
 														className={inputCls}
 														value={room.label}
@@ -1818,7 +2035,7 @@ function RoomCategoriesConfigEditor({
 														placeholder='В СПАЛЬНЮ'
 													/>
 												</Field>
-												<div className='col-span-2'>
+												<div className='md:col-span-2 rounded-xl border border-border/70 bg-background/70 p-3'>
 													<CatalogFilterLinkControls
 														href={room.href}
 														onHrefChange={href =>
@@ -1870,8 +2087,8 @@ function MinimalHeadingEditor({
 	showLimit,
 	defaultLimit,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 	placeholder: string
 	hint?: string
 	showLimit?: boolean
@@ -1883,7 +2100,7 @@ function MinimalHeadingEditor({
 				<input
 					className={inputCls}
 					value={(value.heading as string | undefined) ?? ''}
-					onChange={e => onChange({ ...value, heading: e.target.value })}
+					onChange={e => onChange(prev => ({ ...prev, heading: e.target.value }))}
 					placeholder={placeholder}
 				/>
 			</Field>
@@ -1896,7 +2113,7 @@ function MinimalHeadingEditor({
 						className={inputCls}
 						value={(value.limit as number | undefined) ?? defaultLimit ?? 8}
 						onChange={e =>
-							onChange({ ...value, limit: Number(e.target.value) })
+							onChange(prev => ({ ...prev, limit: Number(e.target.value) }))
 						}
 					/>
 				</Field>
@@ -1912,8 +2129,8 @@ function SimpleProductSectionEditor({
 	onChange,
 	defaults,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 	defaults: {
 		heading: string
 		limit: number
@@ -1922,19 +2139,19 @@ function SimpleProductSectionEditor({
 	}
 }) {
 	function set(key: string, val: unknown) {
-		onChange({ ...value, [key]: val })
+		onChange(prev => ({ ...prev, [key]: val }))
 	}
 	return (
-		<div className='space-y-3'>
-			<Field label='Заголовок секции'>
-				<input
-					className={inputCls}
-					value={(value.heading as string | undefined) ?? ''}
-					onChange={e => set('heading', e.target.value)}
-					placeholder={defaults.heading}
-				/>
-			</Field>
-			<div className='grid grid-cols-2 gap-3'>
+		<div className='space-y-4'>
+			<div className='grid gap-3 md:grid-cols-[minmax(0,1.4fr)_180px_220px]'>
+				<Field label='Заголовок секции'>
+					<input
+						className={inputCls}
+						value={(value.heading as string | undefined) ?? ''}
+						onChange={e => set('heading', e.target.value)}
+						placeholder={defaults.heading}
+					/>
+				</Field>
 				<Field label='Количество товаров'>
 					<input
 						type='number'
@@ -1966,6 +2183,7 @@ function SimpleProductSectionEditor({
 				onPropertyValueIdChange={id => set('linkPropertyValueId', id)}
 				hrefLabel='Ссылка «Смотреть все»'
 				hrefPlaceholder={defaults.viewAllHref}
+				className='rounded-xl border border-border bg-muted/10 p-3'
 			/>
 		</div>
 	)
@@ -1977,11 +2195,11 @@ function PopularCategoriesConfigEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	function set(key: string, val: unknown) {
-		onChange({ ...value, [key]: val })
+		onChange(prev => ({ ...prev, [key]: val }))
 	}
 	return (
 		<div className='space-y-3'>
@@ -2016,8 +2234,8 @@ function RawJsonEditor({
 	value,
 	onChange,
 }: {
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const [text, setText] = useState(() => JSON.stringify(value, null, 2))
 	const [err, setErr] = useState<string | null>(null)
@@ -2076,8 +2294,8 @@ export function SectionConfigEditor({
 	onChange,
 }: {
 	componentName: string
-	value: Record<string, unknown>
-	onChange: (v: Record<string, unknown>) => void
+	value: ConfigValue
+	onChange: ConfigChangeHandler
 }) {
 	const [showRaw, setShowRaw] = useState(false)
 	const hasVisual = VISUAL_COMPONENTS.has(componentName)

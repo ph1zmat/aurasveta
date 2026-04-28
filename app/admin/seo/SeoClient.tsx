@@ -1,6 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import {
+	readEnumParam,
+	readPositiveIntParam,
+	readStringParam,
+	useUnsavedChangesGuard,
+} from '@aurasveta/shared-admin'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import {
 	Globe,
@@ -24,6 +30,7 @@ import {
 	X,
 } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
 
 type TargetType = 'product' | 'category' | 'page'
 type SeoPageItem = RouterOutputs['pages']['getAll'][number]
@@ -57,13 +64,26 @@ function getSeoFormState(data: SeoTargetRecord): SeoFormState {
 /* ============ Main ============ */
 
 export default function SeoClient() {
-	const [activeTab, setActiveTab] = useState<'pages' | 'categories' | 'products'>('pages')
-	const [search, setSearch] = useState('')
-	const [editTarget, setEditTarget] = useState<{
-		type: TargetType
-		id: string
-		name: string
-	} | null>(null)
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
+	const activeTab = readEnumParam(
+		searchParams.get('tab'),
+		['pages', 'categories', 'products'] as const,
+		'pages',
+	)
+	const search = readStringParam(searchParams.get('search'))
+	const editTargetType = readStringParam(searchParams.get('targetType')) as
+		| TargetType
+		| ''
+	const editTargetId = readStringParam(searchParams.get('targetId'))
+	const editTargetName = readStringParam(searchParams.get('targetName'))
+	const editTarget =
+		editTargetType && editTargetId
+			? {
+					type: editTargetType,
+					id: editTargetId,
+					name: editTargetName || editTargetId,
+				}
+			: null
 
 	const tabs = [
 		{ key: 'pages' as const, label: 'Страницы', icon: FileText },
@@ -91,8 +111,10 @@ export default function SeoClient() {
 						<button
 							key={tab.key}
 							onClick={() => {
-								setActiveTab(tab.key)
-								setSearch('')
+								updateSearchParams(
+									{ tab: tab.key, search: null, page: 1 },
+									{ history: 'replace' },
+								)
 							}}
 							className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
 								activeTab === tab.key
@@ -112,16 +134,67 @@ export default function SeoClient() {
 				<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
 				<input
 					value={search}
-					onChange={e => setSearch(e.target.value)}
+					onChange={e =>
+						updateSearchParams(
+							{ search: e.target.value, page: 1 },
+							{ history: 'replace' },
+						)
+					}
 					placeholder='Поиск...'
 					className='flex h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 				/>
 			</div>
 
 			{/* Tab content */}
-			{activeTab === 'pages' && <PagesTab search={search} onEdit={setEditTarget} />}
-			{activeTab === 'categories' && <CategoriesTab search={search} onEdit={setEditTarget} />}
-			{activeTab === 'products' && <ProductsTab search={search} onEdit={setEditTarget} />}
+			{activeTab === 'pages' && (
+				<PagesTab
+					search={search}
+					onEdit={target =>
+						updateSearchParams(
+							{
+								targetType: target.type,
+								targetId: target.id,
+								targetName: target.name,
+							},
+							{ history: 'push' },
+						)
+					}
+				/>
+			)}
+			{activeTab === 'categories' && (
+				<CategoriesTab
+					search={search}
+					onEdit={target =>
+						updateSearchParams(
+							{
+								targetType: target.type,
+								targetId: target.id,
+								targetName: target.name,
+							},
+							{ history: 'push' },
+						)
+					}
+				/>
+			)}
+			{activeTab === 'products' && (
+				<ProductsTab
+					search={search}
+					page={readPositiveIntParam(searchParams.get('page'), 1)}
+					onPageChange={page =>
+						updateSearchParams({ page }, { history: 'replace' })
+					}
+					onEdit={target =>
+						updateSearchParams(
+							{
+								targetType: target.type,
+								targetId: target.id,
+								targetName: target.name,
+							},
+							{ history: 'push' },
+						)
+					}
+				/>
+			)}
 
 			{/* Modal */}
 			{editTarget && (
@@ -129,7 +202,12 @@ export default function SeoClient() {
 					targetType={editTarget.type}
 					targetId={editTarget.id}
 					name={editTarget.name}
-					onClose={() => setEditTarget(null)}
+					onClose={() =>
+						updateSearchParams(
+							{ targetType: null, targetId: null, targetName: null },
+							{ history: 'replace' },
+						)
+					}
 				/>
 			)}
 		</div>
@@ -206,7 +284,13 @@ function PagesTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
 
 /* ============ Categories Tab ============ */
 
-function CategoriesTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
+function CategoriesTab({
+	search,
+	onEdit,
+}: {
+	search: string
+	onEdit: EditHandler
+}) {
 	const { data: categories } = trpc.categories.getAll.useQuery()
 
 	const filtered = useMemo(() => {
@@ -257,9 +341,17 @@ function CategoriesTab({ search, onEdit }: { search: string; onEdit: EditHandler
 
 /* ============ Products Tab ============ */
 
-function ProductsTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
-	const [page, setPage] = useState(1)
-
+function ProductsTab({
+	search,
+	page,
+	onPageChange,
+	onEdit,
+}: {
+	search: string
+	page: number
+	onPageChange: (page: number) => void
+	onEdit: EditHandler
+}) {
 	const { data } = trpc.products.getMany.useQuery({
 		page,
 		limit: 24,
@@ -307,7 +399,7 @@ function ProductsTab({ search, onEdit }: { search: string; onEdit: EditHandler }
 			{totalPages > 1 && (
 				<div className='flex items-center justify-center gap-2 pt-2'>
 					<button
-						onClick={() => setPage(p => Math.max(1, p - 1))}
+						onClick={() => onPageChange(Math.max(1, page - 1))}
 						disabled={page === 1}
 						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
 					>
@@ -317,7 +409,7 @@ function ProductsTab({ search, onEdit }: { search: string; onEdit: EditHandler }
 						{page} / {totalPages}
 					</span>
 					<button
-						onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+						onClick={() => onPageChange(Math.min(totalPages, page + 1))}
 						disabled={page === totalPages}
 						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
 					>
@@ -409,7 +501,9 @@ function SeoCard({
 					className={`absolute left-2 top-2 flex items-center gap-1 rounded-full ${st.bg} px-2 py-0.5`}
 				>
 					<StatusIcon className={`h-3 w-3 ${st.color}`} />
-					<span className={`text-[10px] font-medium ${st.color}`}>{st.label}</span>
+					<span className={`text-[10px] font-medium ${st.color}`}>
+						{st.label}
+					</span>
 				</div>
 
 				{/* noIndex badge */}
@@ -438,7 +532,9 @@ function SeoCard({
 			{/* Content */}
 			<div className='flex flex-1 flex-col gap-2 p-3'>
 				<div className='min-w-0'>
-					<div className='truncate text-sm font-semibold text-foreground'>{name}</div>
+					<div className='truncate text-sm font-semibold text-foreground'>
+						{name}
+					</div>
 					{subtitle && (
 						<div className='truncate font-mono text-[11px] text-muted-foreground'>
 							{subtitle}
@@ -488,7 +584,10 @@ function SeoModal({
 	name: string
 	onClose: () => void
 }) {
-	const { data, isLoading } = trpc.seo.getByTarget.useQuery({ targetType, targetId })
+	const { data, isLoading } = trpc.seo.getByTarget.useQuery({
+		targetType,
+		targetId,
+	})
 
 	return (
 		<SeoModalContent
@@ -528,6 +627,11 @@ function SeoModalContent({
 		getSeoFormState(initialData),
 	)
 	const [saved, setSaved] = useState(false)
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+	const confirmDiscard = useUnsavedChangesGuard(hasUnsavedChanges)
+	const safeClose = () => {
+		if (confirmDiscard()) onClose()
+	}
 
 	const onSave = async () => {
 		setSaved(false)
@@ -543,13 +647,16 @@ function SeoModalContent({
 			canonicalUrl: form.canonicalUrl || null,
 			noIndex: form.noIndex,
 		})
+		setHasUnsavedChanges(false)
 		setSaved(true)
 		setTimeout(() => setSaved(false), 2500)
 	}
 
 	const previewTitle = form.title || form.ogTitle || 'Заголовок страницы'
 	const previewDesc =
-		form.description || form.ogDescription || 'Описание страницы для поисковых систем...'
+		form.description ||
+		form.ogDescription ||
+		'Описание страницы для поисковых систем...'
 
 	const typeLabels: Record<TargetType, string> = {
 		page: 'Страница',
@@ -563,13 +670,15 @@ function SeoModalContent({
 				{/* Header */}
 				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
 					<div>
-						<h2 className='text-lg font-semibold text-foreground'>SEO настройки</h2>
+						<h2 className='text-lg font-semibold text-foreground'>
+							SEO настройки
+						</h2>
 						<p className='text-xs text-muted-foreground'>
 							{typeLabels[targetType]}: {name}
 						</p>
 					</div>
 					<button
-						onClick={onClose}
+						onClick={safeClose}
 						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 					>
 						<X className='h-5 w-5' />
@@ -585,7 +694,9 @@ function SeoModalContent({
 							Предпросмотр в поиске
 						</div>
 						<div className='rounded-xl border border-border bg-background p-4'>
-							<div className='truncate text-base text-blue-600'>{previewTitle}</div>
+							<div className='truncate text-base text-blue-600'>
+								{previewTitle}
+							</div>
 							<div className='mt-0.5 truncate text-xs text-emerald-700'>
 								{form.canonicalUrl || 'https://example.com/...'}
 							</div>
@@ -606,7 +717,10 @@ function SeoModalContent({
 								icon={Type}
 								label='Title'
 								value={form.title}
-								onChange={v => setForm(f => ({ ...f, title: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, title: v }))
+								}}
 								placeholder='SEO заголовок'
 								maxRecommended={60}
 							/>
@@ -614,7 +728,10 @@ function SeoModalContent({
 								icon={AlignLeft}
 								label='Description'
 								value={form.description}
-								onChange={v => setForm(f => ({ ...f, description: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, description: v }))
+								}}
 								placeholder='SEO описание'
 								maxRecommended={160}
 								multiline
@@ -623,14 +740,20 @@ function SeoModalContent({
 								icon={Tag}
 								label='Keywords'
 								value={form.keywords}
-								onChange={v => setForm(f => ({ ...f, keywords: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, keywords: v }))
+								}}
 								placeholder='ключевое, слово, фраза'
 							/>
 							<SeoField
 								icon={Link2}
 								label='Canonical URL'
 								value={form.canonicalUrl}
-								onChange={v => setForm(f => ({ ...f, canonicalUrl: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, canonicalUrl: v }))
+								}}
 								placeholder='https://...'
 							/>
 						</div>
@@ -647,14 +770,20 @@ function SeoModalContent({
 								icon={Type}
 								label='OG Title'
 								value={form.ogTitle}
-								onChange={v => setForm(f => ({ ...f, ogTitle: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, ogTitle: v }))
+								}}
 								placeholder='Заголовок для соцсетей'
 							/>
 							<SeoField
 								icon={AlignLeft}
 								label='OG Description'
 								value={form.ogDescription}
-								onChange={v => setForm(f => ({ ...f, ogDescription: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, ogDescription: v }))
+								}}
 								placeholder='Описание для соцсетей'
 								multiline
 							/>
@@ -662,7 +791,10 @@ function SeoModalContent({
 								icon={ImageIcon}
 								label='OG Image'
 								value={form.ogImage}
-								onChange={v => setForm(f => ({ ...f, ogImage: v }))}
+								onChange={v => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, ogImage: v }))
+								}}
 								placeholder='https://... /image.jpg'
 							/>
 						</div>
@@ -685,7 +817,10 @@ function SeoModalContent({
 							<input
 								type='checkbox'
 								checked={form.noIndex}
-								onChange={e => setForm(f => ({ ...f, noIndex: e.target.checked }))}
+								onChange={e => {
+									setHasUnsavedChanges(true)
+									setForm(f => ({ ...f, noIndex: e.target.checked }))
+								}}
 								className='sr-only'
 							/>
 							<div>
@@ -720,7 +855,7 @@ function SeoModalContent({
 						)}
 					</div>
 					<div className='flex gap-2'>
-						<Button variant='ghost' onClick={onClose}>
+						<Button variant='ghost' onClick={safeClose}>
 							Отмена
 						</Button>
 						<Button onClick={onSave} disabled={updateMut.isPending}>
@@ -806,4 +941,3 @@ function EmptySearch() {
 		</div>
 	)
 }
-

@@ -5,7 +5,13 @@ import { ImagePlus, Trash2, AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 
 // MIME-типы совпадают с серверным ALLOWED_TYPES (SVG исключён — XSS-риск)
-const ALLOWED_CLIENT_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
+const ALLOWED_CLIENT_TYPES = [
+	'image/png',
+	'image/jpeg',
+	'image/jpg',
+	'image/webp',
+	'image/gif',
+]
 
 /** Проверяет, является ли строка S3-ключом (не URL и не legacy-путём) */
 function isS3Key(value: string): boolean {
@@ -47,7 +53,7 @@ export default function FileUploader({
 	label = 'Изображение',
 	aspectRatio = 'square',
 	compact = false,
-	hideLabel = false,
+	hideLabel = true,
 	helperText = 'PNG, JPG, WebP, GIF. Макс. 10 МБ.',
 	className,
 }: FileUploaderProps) {
@@ -86,7 +92,9 @@ export default function FileUploader({
 	// preview имеет приоритет (свежая загрузка), затем resolved existing
 	const displayImage = preview ?? resolvedCurrent ?? null
 	const busy = isLoading || uploading
-	const previewLabel = displayImage ? 'Изображение загружено' : 'Изображение не выбрано'
+	const previewLabel = displayImage
+		? 'Изображение загружено'
+		: 'Изображение не выбрано'
 	const handleFileChange = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
 			setError(null)
@@ -145,13 +153,9 @@ export default function FileUploader({
 		<div className={cn('space-y-3', className)}>
 			{!hideLabel && (
 				<div className='space-y-1'>
-					<label className='block text-sm font-medium text-foreground'>{label}</label>
-					{!compact && (
-						<p className='text-xs leading-5 text-muted-foreground'>
-							Большое окно показывает текущее изображение, а компактные кнопки
-							ниже позволяют быстро заменить или удалить файл.
-						</p>
-					)}
+					<label className='block text-sm font-medium text-foreground'>
+						{label}
+					</label>
 				</div>
 			)}
 
@@ -194,22 +198,11 @@ export default function FileUploader({
 						</>
 					) : (
 						<div className='flex max-w-sm flex-col items-center gap-3 px-6 text-center text-muted-foreground'>
-							<div className='flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-background/60'>
+							<div className='flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-background/60 cursor-pointer'>
 								{uploading ? (
 									<Loader2 className='h-6 w-6 animate-spin' />
 								) : (
 									<ImagePlus className='h-6 w-6' />
-								)}
-							</div>
-							<div className='space-y-1'>
-								<p className='text-sm font-medium text-foreground'>
-									Загрузите изображение
-								</p>
-								{!compact && (
-									<p className='text-xs leading-5 text-muted-foreground'>
-										Нажмите на область, чтобы добавить файл. Кнопки под
-										превью сохраняют форму аккуратной и не ломают раскладку.
-									</p>
 								)}
 							</div>
 						</div>
@@ -229,7 +222,9 @@ export default function FileUploader({
 						onClick={() => inputRef.current?.click()}
 						disabled={busy}
 						className='flex h-18 w-18 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/15 text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground disabled:opacity-50 sm:h-20 sm:w-20'
-						aria-label={displayImage ? 'Заменить изображение' : 'Загрузить изображение'}
+						aria-label={
+							displayImage ? 'Заменить изображение' : 'Загрузить изображение'
+						}
 					>
 						{uploading ? (
 							<Loader2 className='h-4 w-4 animate-spin sm:h-5 sm:w-5' />

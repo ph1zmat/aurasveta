@@ -15,30 +15,34 @@ export const trpc = createTRPCReact<AppRouter>()
 const _devUrl =
 	Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000'
 let API_URL = __DEV__ ? _devUrl : 'https://aurasveta.ru'
-export function setApiUrlForTRPC(url: string) { API_URL = url }
+export function setApiUrlForTRPC(url: string) {
+	API_URL = url
+}
 
 export function TRPCProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient()
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: createTrpcLinks({
-        url: `${API_URL}/api/trpc`,
-        mode: 'batch',
-        getHeaders: async () => {
-          if (Platform.OS === 'web') return {} // browser sends cookies automatically
-          const token = await getToken()
-          return token ? { Cookie: `better-auth.session_token=${token}` } : {}
-        },
-        fetch: Platform.OS === 'web'
-          ? (url, opts) => globalThis.fetch(url, { ...opts, credentials: 'include' })
-          : undefined,
-      }),
-    }),
-  )
+	const queryClient = useQueryClient()
+	const [trpcClient] = useState(() =>
+		trpc.createClient({
+			links: createTrpcLinks({
+				url: `${API_URL}/api/trpc`,
+				mode: 'batch',
+				getHeaders: async () => {
+					if (Platform.OS === 'web') return {} // browser sends cookies automatically
+					const token = await getToken()
+					return token ? { Cookie: `better-auth.session_token=${token}` } : {}
+				},
+				fetch:
+					Platform.OS === 'web'
+						? (url, opts) =>
+								globalThis.fetch(url, { ...opts, credentials: 'include' })
+						: undefined,
+			}),
+		}),
+	)
 
-  return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      {children}
-    </trpc.Provider>
-  )
+	return (
+		<trpc.Provider client={trpcClient} queryClient={queryClient}>
+			{children}
+		</trpc.Provider>
+	)
 }

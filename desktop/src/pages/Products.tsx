@@ -314,7 +314,10 @@ function ProductFormModal({
 			isActive: form.isActive,
 			properties: propRows
 				.filter(r => r.propertyId && r.propertyValueId)
-				.map(r => ({ propertyId: r.propertyId, propertyValueId: r.propertyValueId })),
+				.map(r => ({
+					propertyId: r.propertyId,
+					propertyValueId: r.propertyValueId,
+				})),
 		}
 
 		if (editId) {
@@ -388,7 +391,8 @@ function ProductFormModal({
 												editProduct.images[0].displayUrl ??
 												editProduct.images[0].imageAsset?.url ??
 												resolveImgUrl(
-													editProduct.images[0].url ?? editProduct.images[0].key,
+													editProduct.images[0].url ??
+														editProduct.images[0].key,
 													apiBaseUrl,
 												)
 											}
@@ -564,7 +568,10 @@ function ProductFormModal({
 								variant='ghost'
 								size='sm'
 								onClick={() =>
-									setPropRows(r => [...r, { propertyId: '', propertyValueId: '' }])
+									setPropRows(r => [
+										...r,
+										{ propertyId: '', propertyValueId: '' },
+									])
 								}
 								className='gap-1 text-xs'
 							>
@@ -629,14 +636,19 @@ function ProductFormModal({
 													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = { ...next[idx], propertyValueId: e.target.value }
+														next[idx] = {
+															...next[idx],
+															propertyValueId: e.target.value,
+														}
 														setPropRows(next)
 													}}
 													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 												>
 													<option value=''>Выберите значение...</option>
 													{(property.values ?? []).map((v: any) => (
-														<option key={v.id} value={v.id}>{v.value}</option>
+														<option key={v.id} value={v.id}>
+															{v.value}
+														</option>
 													))}
 												</select>
 											) : property?.type === 'BOOLEAN' ? (
@@ -644,14 +656,19 @@ function ProductFormModal({
 													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = { ...next[idx], propertyValueId: e.target.value }
+														next[idx] = {
+															...next[idx],
+															propertyValueId: e.target.value,
+														}
 														setPropRows(next)
 													}}
 													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 												>
 													<option value=''>Выберите значение...</option>
 													{(property.values ?? []).map((v: any) => (
-														<option key={v.id} value={v.id}>{v.value}</option>
+														<option key={v.id} value={v.id}>
+															{v.value}
+														</option>
 													))}
 												</select>
 											) : (
@@ -659,14 +676,19 @@ function ProductFormModal({
 													value={row.propertyValueId}
 													onChange={e => {
 														const next = [...propRows]
-														next[idx] = { ...next[idx], propertyValueId: e.target.value }
+														next[idx] = {
+															...next[idx],
+															propertyValueId: e.target.value,
+														}
 														setPropRows(next)
 													}}
 													className='h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 												>
 													<option value=''>Выберите значение...</option>
 													{(property?.values ?? []).map((v: any) => (
-														<option key={v.id} value={v.id}>{v.value}</option>
+														<option key={v.id} value={v.id}>
+															{v.value}
+														</option>
 													))}
 												</select>
 											)}
@@ -810,4 +832,3 @@ function Field({
 		</div>
 	)
 }
-

@@ -4,7 +4,11 @@ import { useMemo } from 'react'
 import { Clock, MapPin, MessageSquare, Phone, User } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import AdminModal from '@/shared/ui/AdminModal'
-import { ORDER_STATUS_CONFIG, ORDER_TRANSITIONS, type AdminOrderStatus } from './orderStatus'
+import {
+	ORDER_STATUS_CONFIG,
+	ORDER_TRANSITIONS,
+	type AdminOrderStatus,
+} from './orderStatus'
 
 export interface AdminOrderDetailsItem {
 	id: string
@@ -69,11 +73,15 @@ export default function OrderDetailsModal({
 			onClose={onClose}
 			title={
 				<div className='flex items-center gap-3'>
-					<div className={`flex h-10 w-10 items-center justify-center rounded-xl ${st.bg}`}>
+					<div
+						className={`flex h-10 w-10 items-center justify-center rounded-xl ${st.bg}`}
+					>
 						<StatusIcon className={`h-5 w-5 ${st.color}`} />
 					</div>
 					<div>
-						<div className='font-mono text-sm text-muted-foreground'>#{order.id.slice(-8)}</div>
+						<div className='font-mono text-sm text-muted-foreground'>
+							#{order.id.slice(-8)}
+						</div>
 						<div className={`text-sm font-medium ${st.color}`}>{st.label}</div>
 					</div>
 				</div>
@@ -81,8 +89,8 @@ export default function OrderDetailsModal({
 			size='lg'
 			scrollable
 			footer={
-				availableTransitions.length > 0
-					? availableTransitions.map(transition => {
+				availableTransitions.length > 0 ? (
+					availableTransitions.map(transition => {
 						const Icon = transition.icon
 						const isDestructive = transition.next === 'CANCELLED'
 
@@ -105,7 +113,15 @@ export default function OrderDetailsModal({
 							</button>
 						)
 					})
-					: <button type='button' onClick={onClose} className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'>Закрыть</button>
+				) : (
+					<button
+						type='button'
+						onClick={onClose}
+						className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+					>
+						Закрыть
+					</button>
+				)
 			}
 		>
 			<div className='space-y-4 p-6'>
@@ -176,7 +192,10 @@ export default function OrderDetailsModal({
 
 				<div className='flex justify-end'>
 					<div className='text-lg font-bold text-foreground'>
-						Итого: <span className='tabular-nums'>{order.total.toLocaleString('ru-RU')} ₽</span>
+						Итого:{' '}
+						<span className='tabular-nums'>
+							{order.total.toLocaleString('ru-RU')} ₽
+						</span>
 					</div>
 				</div>
 			</div>

@@ -5,7 +5,9 @@ export interface UploadedImageAsset {
 	originalName: string | null
 }
 
-export async function uploadImageAsset(file: File): Promise<UploadedImageAsset> {
+export async function uploadImageAsset(
+	file: File,
+): Promise<UploadedImageAsset> {
 	const apiUrl = (await getApiUrl()).replace(/\/+$/, '')
 	const token = await getToken()
 

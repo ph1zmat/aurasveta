@@ -1,44 +1,24 @@
 'use client'
 
 import { useState } from 'react'
+import { readBooleanParam } from '@aurasveta/shared-admin'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
-import { Button } from '@/shared/ui/Button'
-import AdminModal from '@/shared/ui/AdminModal'
-import {
-	Plus,
-	Trash2,
-	Send,
-	Webhook,
-	Link2,
-	Zap,
-	CheckCircle2,
-	Globe,
-} from 'lucide-react'
-
-const EVENTS = [
-	'product.created',
-	'product.updated',
-	'order.created',
-	'order.updated',
-] as const
-
-const EVENT_COLORS: Record<string, { color: string; bg: string }> = {
-	'product.created': { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-	'product.updated': { color: 'text-blue-500', bg: 'bg-blue-500/10' },
-	'order.created': { color: 'text-amber-500', bg: 'bg-amber-500/10' },
-	'order.updated': { color: 'text-violet-500', bg: 'bg-violet-500/10' },
-}
+import { Plus, Trash2, Send, Webhook, Globe } from 'lucide-react'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
+import WebhookFormModal from './WebhookFormModal'
+import { EVENT_COLORS } from './webhook-config'
 
 type WebhookItem = RouterOutputs['webhooks']['getAll'][number]
 
 export default function WebhooksClient() {
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
 	const { data: webhooks, refetch } = trpc.webhooks.getAll.useQuery()
 	const deleteMut = trpc.webhooks.delete.useMutation({
 		onSuccess: () => refetch(),
 	})
 	const testMut = trpc.webhooks.test.useMutation()
 
-	const [showForm, setShowForm] = useState(false)
+	const showForm = readBooleanParam(searchParams.get('create'), false) === true
 	const [testResult, setTestResult] = useState<{
 		id: string
 		data: unknown
@@ -57,7 +37,9 @@ export default function WebhooksClient() {
 					</h1>
 				</div>
 				<button
-					onClick={() => setShowForm(true)}
+					onClick={() =>
+						updateSearchParams({ create: true }, { history: 'push' })
+					}
 					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
 				>
 					<Plus className='h-4 w-4' /> Добавить
@@ -146,126 +128,15 @@ export default function WebhooksClient() {
 			{/* Modal */}
 			{showForm && (
 				<WebhookFormModal
-					onClose={() => setShowForm(false)}
+					onClose={() =>
+						updateSearchParams({ create: null }, { history: 'replace' })
+					}
 					onSuccess={() => {
-						setShowForm(false)
+						updateSearchParams({ create: null }, { history: 'replace' })
 						refetch()
 					}}
 				/>
 			)}
 		</div>
-	)
-}
-
-/* ============ Webhook Form Modal ============ */
-
-function WebhookFormModal({
-	onClose,
-	onSuccess,
-}: {
-	onClose: () => void
-	onSuccess: () => void
-}) {
-	const createMut = trpc.webhooks.create.useMutation({ onSuccess })
-	const [url, setUrl] = useState('')
-	const [events, setEvents] = useState<string[]>([])
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		createMut.mutate({ url, events })
-	}
-	const formId = 'webhook-form-modal'
-
-	return (
-		<AdminModal
-			isOpen
-			onClose={onClose}
-			title='Новый вебхук'
-			size='sm'
-			footer={[
-				<Button key='cancel' variant='ghost' type='button' onClick={onClose}>
-					Отмена
-				</Button>,
-				<Button
-					key='submit'
-					type='submit'
-					form={formId}
-					disabled={events.length === 0 || createMut.isPending}
-				>
-					Создать
-				</Button>,
-			]}
-		>
-			<form id={formId} onSubmit={handleSubmit} className='space-y-5 px-6 py-5'>
-					<div>
-						<label className='mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground'>
-							<Link2 className='h-3 w-3' /> URL
-						</label>
-						<input
-							value={url}
-							onChange={e => setUrl(e.target.value)}
-							type='url'
-							required
-							className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-							placeholder='https://example.com/webhook'
-						/>
-					</div>
-
-					<div>
-						<label className='mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground'>
-							<Zap className='h-3 w-3' /> События
-						</label>
-						<div className='space-y-2'>
-							{EVENTS.map(ev => {
-								const ec = EVENT_COLORS[ev] ?? {
-									color: 'text-muted-foreground',
-									bg: 'bg-muted',
-								}
-								const checked = events.includes(ev)
-								return (
-									<label
-										key={ev}
-										onClick={() => {
-											setEvents(prev =>
-												prev.includes(ev)
-													? prev.filter(item => item !== ev)
-													: [...prev, ev],
-											)
-										}}
-										className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-											checked
-												? `border-primary/30 ${ec.bg}`
-												: 'border-border bg-muted/10 hover:bg-muted/20'
-										}`}
-									>
-										<input
-											type='checkbox'
-											checked={checked}
-											readOnly
-											className='sr-only'
-										/>
-										<div
-											className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-												checked
-													? 'border-primary bg-primary'
-													: 'border-muted-foreground/30'
-											}`}
-										>
-											{checked && (
-												<CheckCircle2 className='h-3 w-3 text-primary-foreground' />
-											)}
-										</div>
-										<span
-											className={`text-sm font-medium ${checked ? ec.color : 'text-muted-foreground'}`}
-										>
-											{ev}
-										</span>
-									</label>
-								)
-							})}
-						</div>
-					</div>
-			</form>
-		</AdminModal>
 	)
 }

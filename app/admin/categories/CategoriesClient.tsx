@@ -1,10 +1,9 @@
 ﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { readBooleanParam, readStringParam } from '@aurasveta/shared-admin'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/Button'
 import FileUploader from '@/shared/ui/FileUploader'
-import AdminModal from '@/shared/ui/AdminModal'
 import {
 	Pencil,
 	Trash2,
@@ -20,60 +19,13 @@ import {
 	Monitor,
 	MonitorOff,
 } from 'lucide-react'
-import { generateSlug } from '@/shared/lib/generateSlug'
 import { findNodeInTree } from '@/lib/utils/tree'
+import CategoryFormModal from './CategoryFormModal'
+import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
 
 type CategoryNodeData = NonNullable<
 	RouterOutputs['categories']['getTree']
 >[number]
-
-type CategoryMode = 'MANUAL' | 'FILTER'
-type CategoryFilterKind = 'PROPERTY_VALUE' | 'SALE'
-type CategoryFormState = {
-	name: string
-	slug: string
-	description: string
-	categoryMode: CategoryMode
-	filterKind: CategoryFilterKind
-	filterPropertyId: string
-	filterPropertyValueId: string
-	showInHeader: boolean
-	slugTouched: boolean
-	pendingImage: {
-		key: string
-		originalName: string
-	} | null
-}
-
-function getCategoryFormState(editCat: CategoryNodeData | null): CategoryFormState {
-	if (!editCat) {
-		return {
-			name: '',
-			slug: '',
-			description: '',
-			categoryMode: 'MANUAL',
-			filterKind: 'PROPERTY_VALUE',
-			filterPropertyId: '',
-			filterPropertyValueId: '',
-			showInHeader: true,
-			slugTouched: false,
-			pendingImage: null,
-		}
-	}
-
-	return {
-		name: editCat.name ?? '',
-		slug: editCat.slug ?? '',
-		description: editCat.description ?? '',
-		categoryMode: editCat.categoryMode ?? 'MANUAL',
-		filterKind: editCat.filterKind ?? 'PROPERTY_VALUE',
-		filterPropertyId: editCat.filterPropertyId ?? '',
-		filterPropertyValueId: editCat.filterPropertyValueId ?? '',
-		showInHeader: editCat.showInHeader ?? true,
-		slugTouched: true,
-		pendingImage: null,
-	}
-}
 
 function getCategoryModeLabel(category: CategoryNodeData) {
 	return category.categoryMode === 'FILTER'
@@ -84,27 +36,53 @@ function getCategoryModeLabel(category: CategoryNodeData) {
 /* ============ Main Entry ============ */
 
 export default function CategoriesClient() {
-	const [selectedId, setSelectedId] = useState<string | null>(null)
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
+	const selectedId = readStringParam(searchParams.get('category')) || null
 
 	if (selectedId) {
 		return (
 			<CategoryDetailView
 				categoryId={selectedId}
-				onBack={() => setSelectedId(null)}
+				onBack={() =>
+					updateSearchParams(
+						{
+							category: null,
+							edit: null,
+							create: null,
+							parent: null,
+						},
+						{ history: 'push' },
+					)
+				}
 			/>
 		)
 	}
 
-	return <CategoriesGrid onSelect={setSelectedId} />
+	return (
+		<CategoriesGrid
+			onSelect={id =>
+				updateSearchParams(
+					{
+						category: id,
+						edit: null,
+						create: null,
+						parent: null,
+					},
+					{ history: 'push' },
+				)
+			}
+		/>
+	)
 }
 
 /* ============ Grid of root categories ============ */
 
 function CategoriesGrid({ onSelect }: { onSelect: (id: string) => void }) {
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
 	const treeQuery = trpc.categories.getTree.useQuery()
 	const allCategoriesQuery = trpc.categories.getAll.useQuery()
 	const { data: tree, refetch, error, isLoading, isFetching } = treeQuery
-	const [showForm, setShowForm] = useState(false)
+	const showForm = readBooleanParam(searchParams.get('create'), false) === true
 	const totalCategories = allCategoriesQuery.data?.length ?? 0
 	const hasOnlyNestedCategories =
 		!isLoading && !error && (tree?.length ?? 0) === 0 && totalCategories > 0
@@ -115,7 +93,16 @@ function CategoriesGrid({ onSelect }: { onSelect: (id: string) => void }) {
 				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
 					Категории
 				</h1>
-				<Button size='sm' variant='primary' onClick={() => setShowForm(true)}>
+				<Button
+					size='sm'
+					variant='primary'
+					onClick={() =>
+						updateSearchParams(
+							{ create: true, edit: null, parent: null },
+							{ history: 'push' },
+						)
+					}
+				>
 					<Plus className='mr-1 h-4 w-4' /> Добавить
 				</Button>
 			</div>
@@ -124,9 +111,17 @@ function CategoriesGrid({ onSelect }: { onSelect: (id: string) => void }) {
 				<CategoryFormModal
 					editId={null}
 					parentId={null}
-					onClose={() => setShowForm(false)}
+					onClose={() =>
+						updateSearchParams(
+							{ create: null, edit: null, parent: null },
+							{ history: 'replace' },
+						)
+					}
 					onSuccess={() => {
-						setShowForm(false)
+						updateSearchParams(
+							{ create: null, edit: null, parent: null },
+							{ history: 'replace' },
+						)
 						refetch()
 					}}
 				/>
@@ -297,6 +292,7 @@ function CategoryDetailView({
 	categoryId: string
 	onBack: () => void
 }) {
+	const { searchParams, updateSearchParams } = useAdminSearchParams()
 	const { data: tree, refetch: refetchTree } =
 		trpc.categories.getTree.useQuery()
 	const deleteMut = trpc.categories.delete.useMutation({
@@ -308,14 +304,23 @@ function CategoryDetailView({
 	const removeImageMut = trpc.categories.removeImage.useMutation({
 		onSuccess: () => refetchTree(),
 	})
-
-	const [showEditModal, setShowEditModal] = useState(false)
-	const [showAddChild, setShowAddChild] = useState(false)
-	const [editChildId, setEditChildId] = useState<string | null>(null)
+	const editId = readStringParam(searchParams.get('edit')) || null
+	const createChild =
+		readBooleanParam(searchParams.get('create'), false) === true
+	const parentId = readStringParam(searchParams.get('parent')) || null
 
 	const category = tree ? findNodeInTree(tree, categoryId) : null
 	const children = category?.children ?? []
 	const productCount = category?._count?.products ?? 0
+	const showEditModal = editId === categoryId
+	const editChildId =
+		editId &&
+		editId !== categoryId &&
+		children.some(child => child.id === editId)
+			? editId
+			: null
+	const showAddChild =
+		(createChild && parentId === categoryId) || Boolean(editChildId)
 
 	if (!category) {
 		return (
@@ -418,7 +423,12 @@ function CategoryDetailView({
 							<Button
 								size='sm'
 								variant='ghost'
-								onClick={() => setShowEditModal(true)}
+								onClick={() =>
+									updateSearchParams(
+										{ edit: categoryId, create: null, parent: null },
+										{ history: 'push' },
+									)
+								}
 							>
 								<Pencil className='mr-1.5 h-3.5 w-3.5' />
 								Редактировать
@@ -451,8 +461,10 @@ function CategoryDetailView({
 					<Button
 						size='sm'
 						onClick={() => {
-							setEditChildId(null)
-							setShowAddChild(true)
+							updateSearchParams(
+								{ create: true, parent: categoryId, edit: null },
+								{ history: 'push' },
+							)
 						}}
 					>
 						<Plus className='mr-1 h-4 w-4' /> Добавить
@@ -466,8 +478,10 @@ function CategoryDetailView({
 								key={child.id}
 								category={child}
 								onEdit={() => {
-									setEditChildId(child.id)
-									setShowAddChild(true)
+									updateSearchParams(
+										{ edit: child.id, create: null, parent: null },
+										{ history: 'push' },
+									)
 								}}
 								onDelete={() => {
 									if (confirm('Удалить подкатегорию?')) {
@@ -489,10 +503,18 @@ function CategoryDetailView({
 				<CategoryFormModal
 					editId={categoryId}
 					parentId={null}
-					onClose={() => setShowEditModal(false)}
-					onSuccess={() => {
-						setShowEditModal(false)
-					}}
+					onClose={() =>
+						updateSearchParams(
+							{ edit: null, create: null, parent: null },
+							{ history: 'replace' },
+						)
+					}
+					onSuccess={() =>
+						updateSearchParams(
+							{ edit: null, create: null, parent: null },
+							{ history: 'replace' },
+						)
+					}
 				/>
 			)}
 
@@ -500,425 +522,20 @@ function CategoryDetailView({
 				<CategoryFormModal
 					editId={editChildId}
 					parentId={editChildId ? null : categoryId}
-					onClose={() => setShowAddChild(false)}
-					onSuccess={() => {
-						setShowAddChild(false)
-					}}
+					onClose={() =>
+						updateSearchParams(
+							{ edit: null, create: null, parent: null },
+							{ history: 'replace' },
+						)
+					}
+					onSuccess={() =>
+						updateSearchParams(
+							{ edit: null, create: null, parent: null },
+							{ history: 'replace' },
+						)
+					}
 				/>
 			)}
 		</div>
-	)
-}
-
-/* ============ Category Form Modal ============ */
-
-function CategoryFormModal({
-	editId,
-	parentId,
-	onClose,
-	onSuccess,
-}: {
-	editId: string | null
-	parentId: string | null
-	onClose: () => void
-	onSuccess: () => void
-}) {
-	const utils = trpc.useUtils()
-	const { data: tree } = trpc.categories.getTree.useQuery()
-	const invalidateCategoryQueries = async () => {
-		await Promise.all([
-			utils.categories.getTree.invalidate(),
-			utils.categories.getAll.invalidate(),
-			utils.categories.getNav.invalidate(),
-			utils.categories.getHeaderTree.invalidate(),
-		])
-	}
-	const createMut = trpc.categories.create.useMutation({
-		onSuccess: async () => {
-			await invalidateCategoryQueries()
-			onSuccess()
-		},
-	})
-	const updateMut = trpc.categories.update.useMutation({
-		onSuccess: async () => {
-			await invalidateCategoryQueries()
-			onSuccess()
-		},
-	})
-	const updateImageMut = trpc.categories.updateImagePath.useMutation({
-		onSuccess: invalidateCategoryQueries,
-	})
-	const removeImageMut = trpc.categories.removeImage.useMutation({
-		onSuccess: invalidateCategoryQueries,
-	})
-
-	const editCat = editId && tree ? findNodeInTree(tree, editId) : null
-	const { data: properties } = trpc.properties.getAll.useQuery()
-
-	return (
-		<CategoryFormModalContent
-			key={`${editId ?? 'new'}:${editCat?.id ?? 'blank'}`}
-			editId={editId}
-			parentId={parentId}
-			onClose={onClose}
-			onSuccess={onSuccess}
-			createMut={createMut}
-			updateMut={updateMut}
-			updateImageMut={updateImageMut}
-			removeImageMut={removeImageMut}
-			editCat={editCat}
-			properties={properties ?? []}
-		/>
-	)
-}
-
-function CategoryFormModalContent({
-	editId,
-	parentId,
-	onClose,
-	onSuccess,
-	createMut,
-	updateMut,
-	updateImageMut,
-	removeImageMut,
-	editCat,
-	properties,
-}: {
-	editId: string | null
-	parentId: string | null
-	onClose: () => void
-	onSuccess: () => void
-	createMut: ReturnType<typeof trpc.categories.create.useMutation>
-	updateMut: ReturnType<typeof trpc.categories.update.useMutation>
-	updateImageMut: ReturnType<typeof trpc.categories.updateImagePath.useMutation>
-	removeImageMut: ReturnType<typeof trpc.categories.removeImage.useMutation>
-	editCat: CategoryNodeData | null
-	properties: RouterOutputs['properties']['getAll']
-}) {
-	const [form, setForm] = useState<CategoryFormState>(() =>
-		getCategoryFormState(editCat),
-	)
-	const selectedFilterPropertyId =
-		form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
-			? form.filterPropertyId
-			: ''
-
-	const { data: selectedProperty } = trpc.properties.getById.useQuery(
-		selectedFilterPropertyId,
-		{ enabled: Boolean(selectedFilterPropertyId) },
-	)
-
-	const availableValues = useMemo(
-		() => selectedProperty?.values ?? [],
-		[selectedProperty],
-	)
-
-	const inputCls =
-		'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-	const formId = 'category-form-modal'
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		const data = {
-			name: form.name,
-			slug: form.slug || generateSlug(form.name),
-			description: form.description || undefined,
-			parentId: parentId || undefined,
-			categoryMode: form.categoryMode,
-			filterKind: form.categoryMode === 'FILTER' ? form.filterKind : null,
-			filterPropertyId:
-				form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
-					? form.filterPropertyId || null
-					: null,
-			filterPropertyValueId:
-				form.categoryMode === 'FILTER' && form.filterKind === 'PROPERTY_VALUE'
-					? form.filterPropertyValueId || null
-					: null,
-			showInHeader: form.showInHeader,
-		}
-
-		if (editId) {
-			updateMut.mutate({ id: editId, ...data })
-			return
-		}
-
-		createMut.mutate(data, {
-			onSuccess: created => {
-				if (form.pendingImage?.key) {
-					updateImageMut.mutate({
-						categoryId: created.id,
-						imagePath: form.pendingImage.key,
-						imageOriginalName: form.pendingImage.originalName,
-					})
-				}
-				onSuccess()
-			},
-		})
-	}
-
-	return (
-		<AdminModal
-			isOpen
-			onClose={onClose}
-			title={editId ? 'Редактировать категорию' : 'Новая категория'}
-			size='md'
-			footer={[
-				<button
-					key='cancel'
-					type='button'
-					onClick={onClose}
-					className='rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-				>
-					Отмена
-				</button>,
-				<button
-					key='submit'
-					type='submit'
-					form={formId}
-					disabled={createMut.isPending || updateMut.isPending}
-					className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50'
-				>
-					{createMut.isPending || updateMut.isPending
-						? 'Сохранение...'
-						: 'Сохранить'}
-				</button>,
-			]}
-		>
-			<form id={formId} onSubmit={handleSubmit} className='space-y-4 p-6'>
-					<div>
-						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-							Название <span className='text-destructive'>*</span>
-						</label>
-						<input
-							required
-							value={form.name}
-							onChange={e => {
-								const val = e.target.value
-								setForm(prev => ({
-									...prev,
-									name: val,
-									slug: prev.slugTouched ? prev.slug : generateSlug(val),
-								}))
-							}}
-							className={inputCls}
-							placeholder='Название категории'
-						/>
-					</div>
-					<div>
-						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-							Slug <span className='text-destructive'>*</span>
-						</label>
-						<input
-							required
-							value={form.slug}
-							onChange={e => {
-								setForm(prev => ({
-									...prev,
-									slugTouched: true,
-									slug: e.target.value,
-								}))
-							}}
-							onBlur={() => {
-								setForm(prev => ({
-									...prev,
-									slug: prev.slug ? generateSlug(prev.slug) : prev.slug,
-								}))
-							}}
-							className={inputCls}
-							placeholder='category-slug'
-						/>
-					</div>
-					<div>
-						<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-							Описание
-						</label>
-						<textarea
-							value={form.description}
-							onChange={e =>
-								setForm(prev => ({ ...prev, description: e.target.value }))
-							}
-							rows={3}
-							className='flex w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-							placeholder='Описание категории'
-						/>
-					</div>
-
-					<div className='grid gap-4 rounded-xl border border-border/70 bg-muted/10 p-4 sm:grid-cols-2'>
-						<div>
-							<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-								Тип категории
-							</label>
-							<select
-								value={form.categoryMode}
-								onChange={e => {
-									const nextMode = e.target.value as CategoryMode
-									setForm(prev => ({
-										...prev,
-										categoryMode: nextMode,
-										filterKind:
-											nextMode === 'MANUAL' ? 'PROPERTY_VALUE' : prev.filterKind,
-										filterPropertyId:
-											nextMode === 'MANUAL' ? '' : prev.filterPropertyId,
-										filterPropertyValueId:
-											nextMode === 'MANUAL' ? '' : prev.filterPropertyValueId,
-									}))
-								}}
-								className={inputCls}
-							>
-								<option value='MANUAL'>Обычная категория</option>
-								<option value='FILTER'>Фильтрующая категория</option>
-							</select>
-						</div>
-
-						<div className='text-xs leading-5 text-muted-foreground'>
-							{form.categoryMode === 'FILTER'
-								? 'Такая категория не требует ручной привязки товаров — витрина сама покажет товары по сохранённому правилу.'
-								: 'Обычная категория работает как раньше: товары привязываются к ней напрямую.'}
-						</div>
-
-						<label className='col-span-full flex items-start gap-3 rounded-xl border border-border/70 bg-background/70 px-4 py-3'>
-							<input
-								type='checkbox'
-								checked={form.showInHeader}
-								onChange={e =>
-									setForm(prev => ({ ...prev, showInHeader: e.target.checked }))
-								}
-								className='mt-0.5 h-4 w-4 rounded border-border accent-primary'
-							/>
-							<span className='space-y-1'>
-								<span className='block text-sm font-medium text-foreground'>
-									Показывать категорию в хедере
-								</span>
-								<span className='block text-xs leading-5 text-muted-foreground'>
-									Если выключить, категория останется в каталоге и админке, но
-									исчезнет из меню хедера и мобильного каталога.
-								</span>
-							</span>
-						</label>
-
-						{form.categoryMode === 'FILTER' && (
-							<>
-								<div>
-									<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-										Правило фильтрации
-									</label>
-									<select
-										value={form.filterKind}
-										onChange={e => {
-											const nextKind = e.target.value as CategoryFilterKind
-											setForm(prev => ({
-												...prev,
-												filterKind: nextKind,
-												filterPropertyId:
-													nextKind === 'PROPERTY_VALUE' ? prev.filterPropertyId : '',
-												filterPropertyValueId:
-													nextKind === 'PROPERTY_VALUE'
-														? prev.filterPropertyValueId
-														: '',
-											}))
-										}}
-										className={inputCls}
-									>
-										<option value='PROPERTY_VALUE'>По значению свойства</option>
-										<option value='SALE'>Товары со скидкой</option>
-									</select>
-								</div>
-
-								{form.filterKind === 'PROPERTY_VALUE' && (
-									<>
-										<div>
-											<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-												Свойство
-											</label>
-											<select
-												value={form.filterPropertyId}
-												onChange={e => {
-													setForm(prev => ({
-														...prev,
-														filterPropertyId: e.target.value,
-														filterPropertyValueId: '',
-													}))
-												}}
-												className={inputCls}
-												required={
-													form.categoryMode === 'FILTER' &&
-													form.filterKind === 'PROPERTY_VALUE'
-												}
-											>
-												<option value=''>Выберите свойство</option>
-												{(properties ?? []).map(property => (
-													<option key={property.id} value={property.id}>
-														{property.name}
-													</option>
-												))}
-											</select>
-										</div>
-
-										<div>
-											<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-												Значение
-											</label>
-											<select
-												value={form.filterPropertyValueId}
-												onChange={e =>
-													setForm(prev => ({
-														...prev,
-														filterPropertyValueId: e.target.value,
-													}))
-												}
-												className={inputCls}
-												disabled={!form.filterPropertyId}
-												required={
-													form.categoryMode === 'FILTER' &&
-													form.filterKind === 'PROPERTY_VALUE'
-												}
-											>
-												<option value=''>
-													{!form.filterPropertyId
-														? 'Сначала выберите свойство'
-														: availableValues.length > 0
-															? 'Выберите значение'
-															: 'У свойства пока нет значений'}
-												</option>
-												{availableValues.map(value => (
-													<option key={value.id} value={value.id}>
-														{value.value}
-													</option>
-												))}
-											</select>
-										</div>
-									</>
-								)}
-							</>
-						)}
-					</div>
-
-					<FileUploader
-						currentImage={editCat?.imagePath ?? form.pendingImage?.key ?? null}
-						onUploaded={(key, originalName) => {
-							if (editId) {
-								updateImageMut.mutate({
-									categoryId: editId,
-									imagePath: key,
-									imageOriginalName: originalName,
-								})
-							} else {
-								setForm(prev => ({
-									...prev,
-									pendingImage: { key, originalName },
-								}))
-							}
-						}}
-						onRemove={() => {
-							if (editId) removeImageMut.mutate(editId)
-							else setForm(prev => ({ ...prev, pendingImage: null }))
-						}}
-						isLoading={updateImageMut.isPending || removeImageMut.isPending}
-						label='Изображение'
-						aspectRatio='square'
-					/>
-
-			</form>
-		</AdminModal>
 	)
 }

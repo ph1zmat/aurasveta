@@ -1,10 +1,4 @@
-import {
-	Ban,
-	CheckCircle2,
-	CircleDot,
-	CreditCard,
-	Truck,
-} from 'lucide-react'
+import { Ban, CheckCircle2, CircleDot, CreditCard, Truck } from 'lucide-react'
 
 export type AdminOrderStatus =
 	| 'PENDING'
@@ -62,7 +56,11 @@ export const ORDER_STATUS_CONFIG: Record<
 
 export const ORDER_TRANSITIONS: Record<
 	AdminOrderStatus,
-	{ next: AdminOrderStatus; label: string; icon: React.ComponentType<{ className?: string }> }[]
+	{
+		next: AdminOrderStatus
+		label: string
+		icon: React.ComponentType<{ className?: string }>
+	}[]
 > = {
 	PENDING: [
 		{ next: 'PAID', label: 'Оплачен', icon: CreditCard },

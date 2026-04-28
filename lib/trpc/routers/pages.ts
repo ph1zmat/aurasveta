@@ -4,6 +4,60 @@ import { deleteFile } from '@/lib/storage'
 import { withResolvedImageAsset } from '@/lib/storage-image-assets'
 
 export const pagesRouter = createTRPCRouter({
+	getAdminList: editorProcedure
+		.input(
+			z.object({
+				page: z.number().int().min(1).default(1),
+				pageSize: z.number().int().min(1).max(100).default(10),
+				search: z.string().trim().default(''),
+				sortBy: z
+					.enum(['title', 'slug', 'createdAt', 'updatedAt', 'isPublished'])
+					.default('updatedAt'),
+				sortDir: z.enum(['asc', 'desc']).default('desc'),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const where = input.search
+				? {
+						OR: [
+							{
+								title: { contains: input.search, mode: 'insensitive' as const },
+							},
+							{
+								slug: { contains: input.search, mode: 'insensitive' as const },
+							},
+						],
+					}
+				: undefined
+
+			const [total, pages] = await Promise.all([
+				ctx.prisma.page.count({ where }),
+				ctx.prisma.page.findMany({
+					where,
+					include: {
+						author: { select: { name: true, email: true } },
+						_count: { select: { versions: true } },
+					},
+					orderBy: { [input.sortBy]: input.sortDir },
+					skip: (input.page - 1) * input.pageSize,
+					take: input.pageSize,
+				}),
+			])
+
+			const cache = new Map()
+			const items = await Promise.all(
+				pages.map(page => withResolvedImageAsset(page, { cache })),
+			)
+
+			return {
+				items,
+				total,
+				page: input.page,
+				pageSize: input.pageSize,
+				pageCount: Math.max(1, Math.ceil(total / input.pageSize)),
+			}
+		}),
+
 	getPublished: baseProcedure.query(async ({ ctx }) => {
 		const pages = await ctx.prisma.page.findMany({
 			where: { isPublished: true },
@@ -11,7 +65,9 @@ export const pagesRouter = createTRPCRouter({
 		})
 
 		const cache = new Map()
-		return Promise.all(pages.map(page => withResolvedImageAsset(page, { cache })))
+		return Promise.all(
+			pages.map(page => withResolvedImageAsset(page, { cache })),
+		)
 	}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
@@ -32,7 +88,9 @@ export const pagesRouter = createTRPCRouter({
 		})
 
 		const cache = new Map()
-		return Promise.all(pages.map(page => withResolvedImageAsset(page, { cache })))
+		return Promise.all(
+			pages.map(page => withResolvedImageAsset(page, { cache })),
+		)
 	}),
 
 	getById: editorProcedure.input(z.string()).query(async ({ ctx, input }) => {
