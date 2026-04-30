@@ -93,7 +93,7 @@ function KanbanCard({ order, onClick, isDragging }: KanbanCardProps) {
 	)
 }
 
-interface OrderKanbanBoardProps {
+export interface OrderKanbanBoardProps {
 	ordersByStatus: Record<string, Order[]>
 	onOrderClick: (orderId: string) => void
 	onStatusChange: (orderId: string, newStatus: string) => void

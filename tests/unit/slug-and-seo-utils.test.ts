@@ -56,7 +56,9 @@ describe('seoToMetadata', () => {
 
 		expect(metadata.title).toBe('Каталог')
 		expect(metadata.openGraph?.title).toBe('OG Каталог')
-		expect(metadata.openGraph?.images).toEqual(['https://example.com/og.jpg'])
+		expect(metadata.openGraph?.images).toEqual([
+			{ url: 'https://example.com/og.jpg', width: 1200, height: 630, alt: 'OG Каталог' },
+		])
 		expect(metadata.alternates?.canonical).toBe('https://example.com/catalog')
 		expect(metadata.robots).toEqual({ index: false, follow: false })
 	})

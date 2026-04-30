@@ -21,11 +21,24 @@ import {
 import { toast } from 'sonner'
 import { MediaPicker } from '@/packages/shared-admin/src/ui/admin/MediaPicker'
 
+type CategoryFormValue = {
+	id: string
+	name?: string | null
+	slug?: string | null
+	description?: string | null
+	parentId?: string | null
+	categoryMode?: 'MANUAL' | 'FILTER' | null
+	filterPropertyId?: string | null
+	filterPropertyValueId?: string | null
+	showInHeader?: boolean | null
+	imagePath?: string | null
+}
+
 interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	category?: any
+	category?: CategoryFormValue
 }
 
 export default function CategoryFormModal({ open, onOpenChange, onSuccess, category }: Props) {
@@ -46,6 +59,19 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 
 	const selectedProperty = properties?.find((property) => property.id === filterPropertyId)
 	const selectedPropertyValues = selectedProperty?.values ?? []
+
+	const reset = () => {
+		setName('')
+		setSlug('')
+		setDescription('')
+		setParentId('')
+		setCategoryMode('MANUAL')
+		setFilterPropertyId('')
+		setFilterPropertyValueId('')
+		setShowInHeader(true)
+		setImagePath(null)
+	}
+
 	const { mutate: create } = trpc.categories.create.useMutation({
 		onSuccess: () => {
 			toast.success('Категория создана')
@@ -62,6 +88,7 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 		},
 	})
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (category) {
 			setName(category.name ?? '')
@@ -77,18 +104,7 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 			reset()
 		}
 	}, [category, open])
-
-	const reset = () => {
-		setName('')
-		setSlug('')
-		setDescription('')
-		setParentId('')
-		setCategoryMode('MANUAL')
-		setFilterPropertyId('')
-		setFilterPropertyValueId('')
-		setShowInHeader(true)
-		setImagePath(null)
-	}
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const handleSave = () => {
 		if (categoryMode === 'FILTER' && (!filterPropertyId || !filterPropertyValueId)) {

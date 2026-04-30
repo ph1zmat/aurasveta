@@ -9,8 +9,11 @@ import BrandCarouselByPropertySection from './BrandCarouselByPropertySection'
 import CategoryCarouselSection from './CategoryCarouselSection'
 import Advantages from './Advantages'
 import AboutSection from './AboutSection'
-import RecentlyViewed from './RecentlyViewed'
+import dynamic from 'next/dynamic'
 import RoomsSection from './RoomsSection'
+
+// RecentlyViewed читает localStorage — не имеет смысла на сервере
+const RecentlyViewed = dynamic(() => import('./RecentlyViewed'))
 
 type HomeSectionRecord = Prisma.HomeSectionGetPayload<{ include: { sectionType: true } }>
 

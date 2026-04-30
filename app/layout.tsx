@@ -8,8 +8,21 @@ import Toaster from '@/shared/ui/Toaster'
 import RootThemeProvider from '@/shared/ui/RootThemeProvider'
 
 export const metadata: Metadata = {
-	title: 'Интернет-магазин люстр и светильников в Мозыре - Аура света',
+	metadataBase: new URL('https://aurasveta.by'),
+	title: {
+		default: 'Интернет-магазин люстр и светильников в Мозыре — Аура Света',
+		template: '%s | Аура Света',
+	},
 	description: 'Аура Света — интернет-магазин светильников и декора',
+	openGraph: {
+		siteName: 'Аура Света',
+		locale: 'ru_RU',
+		type: 'website',
+	},
+	twitter: {
+		card: 'summary_large_image',
+		site: '@aurasveta',
+	},
 }
 
 export default async function RootLayout({

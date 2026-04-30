@@ -7,10 +7,17 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Search, LayoutGrid, List } from 'lucide-react'
-import { OrderKanbanBoard } from './components/OrderKanbanBoard'
+import dynamic from 'next/dynamic'
 import { OrderDetailPanel } from './components/OrderDetailPanel'
 import { RefundModal } from './components/RefundModal'
 import { MessageModal } from './components/MessageModal'
+
+import type { OrderKanbanBoardProps } from './components/OrderKanbanBoard'
+// dnd-kit требует window — ssr: false
+const OrderKanbanBoard = dynamic(
+	() => import('./components/OrderKanbanBoard').then(m => m.OrderKanbanBoard),
+	{ ssr: false },
+)
 import { OrderEditorModal } from '@/features/admin/order-editor'
 import { KanbanSkeleton, TableSkeleton } from '../components/AdminSkeleton'
 import { statusLabels, statusColors } from '@/shared/admin/order-status'
@@ -122,7 +129,7 @@ export default function OrdersClient() {
 						<KanbanSkeleton />
 					) : view === 'kanban' && filteredKanbanData ? (
 						<OrderKanbanBoard
-							ordersByStatus={filteredKanbanData as Record<string, Parameters<typeof OrderKanbanBoard>[0]['ordersByStatus'][string]>}
+							ordersByStatus={filteredKanbanData as OrderKanbanBoardProps['ordersByStatus']}
 							onOrderClick={handleOrderClick}
 							onStatusChange={handleStatusChange}
 						/>

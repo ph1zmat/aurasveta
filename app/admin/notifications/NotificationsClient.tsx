@@ -78,7 +78,7 @@ export default function NotificationsClient() {
 		})) ?? []
 
 	/** Подключение SSE с exponential backoff и reconnect при возврате на вкладку */
-	const connectSSE = useCallback(() => {
+	const connectSSE = useCallback(function connectSSEInner() {
 		if (typeof window === 'undefined') return
 		if (eventSourceRef.current) {
 			eventSourceRef.current.close()
@@ -93,12 +93,16 @@ export default function NotificationsClient() {
 				createFromEvent({
 					type: 'order',
 					title: 'Новый заказ',
-					desc: `Заказ #${data.orderId?.slice(-6) ?? '??????'}` + (data.total ? ` на ₽${data.total}` : ''),
+					desc:
+						`Заказ #${data.orderId?.slice(-6) ?? '??????'}` +
+						(data.total ? ` на ₽${data.total}` : ''),
 					meta: data,
 				})
 				toast.success('Новый заказ')
 				reconnectAttempts.current = 0
-			} catch { /* ignore */ }
+			} catch {
+				// ignore
+			}
 		})
 
 		source.onerror = () => {
@@ -107,7 +111,7 @@ export default function NotificationsClient() {
 			if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
 				reconnectAttempts.current++
 				const delay = RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current - 1)
-				setTimeout(connectSSE, delay)
+				setTimeout(connectSSEInner, delay)
 			} else {
 				toast.error('Потеряно соединение с сервером уведомлений')
 			}

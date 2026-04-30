@@ -45,6 +45,7 @@ export default function PropertyValueFormModal({
 	const [slug, setSlug] = useState('')
 	const [photo, setPhoto] = useState<string | null>(null)
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (open) {
 			if (value) {
@@ -58,6 +59,7 @@ export default function PropertyValueFormModal({
 			}
 		}
 	}, [value, open])
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const { mutate: create, isPending: creating } = trpc.properties.createValue.useMutation({
 		onSuccess: () => {

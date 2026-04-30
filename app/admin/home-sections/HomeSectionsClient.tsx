@@ -35,7 +35,9 @@ import {
 	Smartphone,
 	Save,
 } from 'lucide-react'
-import SectionFormModal from './SectionFormModal'
+import dynamic from 'next/dynamic'
+
+const SectionFormModal = dynamic(() => import('./SectionFormModal'))
 
 type Section = {
 	id: string
@@ -174,6 +176,7 @@ export default function HomeSectionsClient() {
 		setActiveId(String(event.active.id))
 	}, [])
 
+	/* eslint-disable react-hooks/preserve-manual-memoization */
 	const handleDragEnd = useCallback(
 		(event: DragEndEvent) => {
 			const { active, over } = event
@@ -188,6 +191,7 @@ export default function HomeSectionsClient() {
 		},
 		[displayIds],
 	)
+	/* eslint-enable react-hooks/preserve-manual-memoization */
 
 	const handlePublish = () => {
 		const ids = localOrder ?? sorted.map((s) => s.id)

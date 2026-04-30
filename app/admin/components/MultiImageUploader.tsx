@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useCallback } from 'react'
 import { ImagePlus, Trash2, ArrowUp, ArrowDown, Star, Loader2, AlertCircle } from 'lucide-react'
@@ -179,7 +179,7 @@ export default function MultiImageUploader({ images, onChange, disabled }: Multi
         onDragLeave={handleDragLeave}
         onClick={() => !disabled && inputRef.current?.click()}
         className={cn(
-          'border-2 border-dashed rounded-[var(--radius-lg)] p-8 text-center transition-colors cursor-pointer',
+          'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
           dragOver
             ? 'border-accent bg-accent/5'
             : 'border-border hover:border-accent hover:bg-accent/5',
@@ -218,10 +218,11 @@ export default function MultiImageUploader({ images, onChange, disabled }: Multi
             <div
               key={`${img.key}-${index}`}
               className={cn(
-                'relative h-24 w-24 rounded-[var(--radius-md)] border overflow-hidden group',
+                'relative h-24 w-24 rounded-md border overflow-hidden group',
                 img.isMain ? 'border-accent ring-1 ring-accent' : 'border-border'
               )}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={getImageUrl(img)}
                 alt={img.originalName || 'Изображение'}

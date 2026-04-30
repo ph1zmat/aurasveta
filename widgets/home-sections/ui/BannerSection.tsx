@@ -136,7 +136,7 @@ export default function BannerSection({ config }: BannerSectionProps) {
 											{src992 && <source media='(min-width: 992px)' srcSet={src992} />}
 											{src768 && <source media='(min-width: 768px)' srcSet={src768} />}
 											{src375 && <source media='(min-width: 375px)' srcSet={src375} />}
-											{/* eslint-disable-next-line @next/next/no-img-element */}
+
 											<img
 												src={primarySrc}
 												alt={slide.title ?? 'Баннер'}

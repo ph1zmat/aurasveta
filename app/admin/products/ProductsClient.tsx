@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { trpc } from '@/lib/trpc/client'
+import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +29,9 @@ import {
 	Plus as PlusIcon,
 } from 'lucide-react'
 import { useSelection } from '../hooks/useSelection'
-import ProductFormModal from './components/ProductFormModal'
+import dynamic from 'next/dynamic'
+
+const ProductFormModal = dynamic(() => import('./components/ProductFormModal'))
 import { TableSkeleton } from '../components/AdminSkeleton'
 import AdminPagination from '../components/AdminPagination'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -66,7 +68,9 @@ export default function ProductsClient() {
 	const [page, setPage] = useState(1)
 	const [limit, setLimit] = useState(20)
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingProduct, setEditingProduct] = useState<any>(null)
+	type ProductItem = RouterOutputs['products']['getMany']['items'][number]
+
+	const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 	const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 	const [rootCategoryFilter, setRootCategoryFilter] = useState('')
@@ -119,7 +123,7 @@ export default function ProductsClient() {
 	const allIds = useMemo(() => products.map((p) => p.id), [products])
 
 	/** Optimistic update для остатка: меняем локально до ответа сервера */
-	const adjustStock = useCallback((product: any, delta: number) => {
+	const adjustStock = useCallback((product: ProductItem, delta: number) => {
 		const newStock = Math.max(0, (product.stock || 0) + delta)
 		// Оптимистичное обновление кэша
 		utils.products.getMany.setData(
@@ -158,6 +162,7 @@ export default function ProductsClient() {
 			isActive: product.isActive ?? true,
 			images: product.images ?? [],
 			properties: product.properties ?? [],
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			seo: (product as any).seo ?? { title: '', description: '', keywords: '' },
 		})
 	}, [utils, page, limit, search, rootCategoryFilter, subcategoryFilter, brandFilter, inStockFilter, updateProduct])
@@ -284,7 +289,7 @@ export default function ProductsClient() {
 
 			{/* Bulk bar */}
 			{selected.size > 0 && (
-				<div className='flex items-center gap-2 rounded-[var(--radius-lg)] border border-accent/20 bg-accent/5 px-4 py-2'>
+				<div className='flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 px-4 py-2'>
 					<span className='text-sm font-semibold text-accent mr-auto'>
 						Выбрано {selected.size} товаров
 					</span>
@@ -311,6 +316,7 @@ export default function ProductsClient() {
 										isActive: !prod.isActive,
 										images: prod.images ?? [],
 										properties: prod.properties ?? [],
+										// eslint-disable-next-line @typescript-eslint/no-explicit-any
 										seo: (prod as any).seo ?? { title: '', description: '', keywords: '' },
 									})
 								}
@@ -380,13 +386,14 @@ export default function ProductsClient() {
 									<TableCell>
 										<div className='flex items-center gap-3'>
 											{Array.isArray(p.images) && p.images.length > 0 ? (
+												// eslint-disable-next-line @next/next/no-img-element
 												<img
 													src={p.images[0].url || `/api/storage/file?key=${encodeURIComponent(p.images[0].key)}`}
 													alt=''
-													className='h-12 w-12 rounded-[var(--radius-md)] object-cover border border-border'
+													className='h-12 w-12 rounded-md object-cover border border-border'
 												/>
 											) : (
-												<div className='h-12 w-12 rounded-[var(--radius-md)] bg-secondary border border-border flex items-center justify-center text-muted-foreground text-xs'>
+												<div className='h-12 w-12 rounded-md bg-secondary border border-border flex items-center justify-center text-muted-foreground text-xs'>
 													—
 												</div>
 											)}
@@ -474,7 +481,8 @@ export default function ProductsClient() {
 													brand: p.brand ?? '',
 													brandCountry: p.brandCountry ?? '',
 													isActive: p.isActive ?? true,
-													images: (p.images ?? []).map((img: any) => ({
+													// eslint-disable-next-line @typescript-eslint/no-explicit-any
+											images: (p.images ?? []).map((img: any) => ({
 														key: img.key,
 														url: img.url,
 														originalName: img.originalName,
@@ -483,7 +491,9 @@ export default function ProductsClient() {
 														order: img.order,
 														isMain: img.isMain,
 													})),
-													properties: (p as any).properties ?? [],
+											// eslint-disable-next-line @typescript-eslint/no-explicit-any
+											properties: (p as any).properties ?? [],
+											// eslint-disable-next-line @typescript-eslint/no-explicit-any
 													seo: (p as any).seo ?? { title: '', description: '', keywords: '' },
 												})
 											}}
@@ -560,3 +570,4 @@ export default function ProductsClient() {
 		</div>
 	)
 }
+

@@ -9,8 +9,23 @@ import { trpc, HydrateClient } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
 import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getMetadata'
 import { CategoryContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import { prisma } from '@/lib/prisma'
+import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600 // 1 час ISR
+export const dynamicParams = true
+
+export async function generateStaticParams() {
+	try {
+		const categories = await prisma.category.findMany({
+			select: { slug: true },
+		})
+		return categories.map(c => ({ slug: c.slug }))
+	} catch (error) {
+		console.warn('[catalog] generateStaticParams: database unavailable', error)
+		return []
+	}
+}
 
 const PROPERTY_PARAM_PREFIX = 'prop.'
 
@@ -68,6 +83,9 @@ export default async function CategoryPage({
 	}
 	const hasProperties = Object.keys(properties).length > 0
 
+	// Получаем имя категории для BreadcrumbList (React cache deduplicates)
+	const category = await trpc.categories.getBySlug(slug)
+
 	// Prefetch category, tree, filters, and products with actual URL params
 	void trpc.categories.getBySlug.prefetch(slug)
 	void trpc.categories.getTree.prefetch()
@@ -92,6 +110,15 @@ export default async function CategoryPage({
 
 	return (
 		<HydrateClient>
+			{category && (
+				<BreadcrumbStructuredData
+					items={[
+						{ name: 'Главная', href: '/' },
+						{ name: 'Каталог', href: '/catalog' },
+						{ name: category.name },
+					]}
+				/>
+			)}
 			<div className='flex flex-col bg-background'>
 				<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
 					<TopBar />

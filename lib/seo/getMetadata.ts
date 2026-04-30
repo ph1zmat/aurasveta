@@ -184,13 +184,27 @@ export async function getMetadataForStaticPage(
 }
 
 export function seoToMetadata(seo: SeoResult): Metadata {
+	const ogTitle = seo.ogTitle ?? seo.title
+	const ogDescription = seo.ogDescription ?? seo.description ?? undefined
+	const ogImages = seo.ogImage
+		? [{ url: seo.ogImage, width: 1200, height: 630, alt: ogTitle }]
+		: undefined
+
 	return {
 		title: seo.title,
 		description: seo.description ?? undefined,
 		keywords: seo.keywords ?? undefined,
 		openGraph: {
-			title: seo.ogTitle ?? seo.title,
-			description: seo.ogDescription ?? seo.description ?? undefined,
+			type: 'website',
+			title: ogTitle,
+			description: ogDescription,
+			url: seo.canonicalUrl ?? undefined,
+			images: ogImages,
+		},
+		twitter: {
+			card: 'summary_large_image',
+			title: ogTitle,
+			description: ogDescription,
 			images: seo.ogImage ? [seo.ogImage] : undefined,
 		},
 		alternates: seo.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,

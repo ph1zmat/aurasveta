@@ -270,58 +270,56 @@ export const productsRouter = createTRPCRouter({
 		const where: Prisma.ProductWhereInput = { isActive: true }
 		const andConditions: Prisma.ProductWhereInput[] = []
 
-		if (categorySlug) {
-			const category = await ctx.prisma.category.findUnique({
-				where: { slug: categorySlug },
-				select: {
-					id: true,
-					parentId: true,
-					categoryMode: true,
-					filterKind: true,
-					filterPropertyId: true,
-					filterPropertyValueId: true,
-					children: { select: { id: true } },
-				},
-			})
+		// Параллельные lookups категорий — вместо последовательных await
+		const [category, rootCategory, subcategory] = await Promise.all([
+			categorySlug
+				? ctx.prisma.category.findUnique({
+						where: { slug: categorySlug },
+						select: {
+							id: true,
+							parentId: true,
+							categoryMode: true,
+							filterKind: true,
+							filterPropertyId: true,
+							filterPropertyValueId: true,
+							children: { select: { id: true } },
+						},
+					})
+				: null,
+			rootCategorySlug
+				? ctx.prisma.category.findUnique({
+						where: { slug: rootCategorySlug },
+						select: { id: true },
+					})
+				: null,
+			subcategorySlug
+				? ctx.prisma.category.findUnique({
+						where: { slug: subcategorySlug },
+						select: { id: true },
+					})
+				: null,
+		])
 
-			if (category) {
-				Object.assign(
-					where,
-					buildCategoryProductWhere(category, { includeChildren }),
-				)
-			}
+		if (category) {
+			Object.assign(where, buildCategoryProductWhere(category, { includeChildren }))
 		}
 
-		if (rootCategorySlug) {
-			const rootCategory = await ctx.prisma.category.findUnique({
-				where: { slug: rootCategorySlug },
-				select: { id: true },
+		if (rootCategory) {
+			andConditions.push({
+				OR: [
+					{ rootCategoryId: rootCategory.id },
+					{ categoryId: rootCategory.id },
+				],
 			})
-
-			if (rootCategory) {
-				andConditions.push({
-					OR: [
-						{ rootCategoryId: rootCategory.id },
-						{ categoryId: rootCategory.id },
-					],
-				})
-			}
 		}
 
-		if (subcategorySlug) {
-			const subcategory = await ctx.prisma.category.findUnique({
-				where: { slug: subcategorySlug },
-				select: { id: true },
+		if (subcategory) {
+			andConditions.push({
+				OR: [
+					{ subcategoryId: subcategory.id },
+					{ categoryId: subcategory.id },
+				],
 			})
-
-			if (subcategory) {
-				andConditions.push({
-					OR: [
-						{ subcategoryId: subcategory.id },
-						{ categoryId: subcategory.id },
-					],
-				})
-			}
 		}
 
 		if (search) {

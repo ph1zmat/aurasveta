@@ -13,11 +13,18 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
+type PropertyFormValue = {
+	id: string
+	name?: string | null
+	slug?: string | null
+	hasPhoto?: boolean | null
+}
+
 interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	property?: any
+	property?: PropertyFormValue
 }
 
 export default function PropertyFormModal({ open, onOpenChange, onSuccess, property }: Props) {
@@ -25,6 +32,12 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 	const [name, setName] = useState('')
 	const [slug, setSlug] = useState('')
 	const [hasPhoto, setHasPhoto] = useState(false)
+
+	const reset = () => {
+		setName('')
+		setSlug('')
+		setHasPhoto(false)
+	}
 
 	const { mutate: create } = trpc.properties.create.useMutation({
 		onSuccess: () => {
@@ -43,6 +56,7 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 		},
 	})
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (property) {
 			setName(property.name ?? '')
@@ -52,12 +66,7 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 			reset()
 		}
 	}, [property, open])
-
-	const reset = () => {
-		setName('')
-		setSlug('')
-		setHasPhoto(false)
-	}
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const handleSave = () => {
 		const generatedSlug = slug.trim() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')

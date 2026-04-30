@@ -33,6 +33,7 @@ export default function SettingsClient() {
 	const [maintenance, setMaintenance] = useState(false)
 	const [hasChanges, setHasChanges] = useState(false)
 
+	/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 	useEffect(() => {
 		if (settings) {
 			setShopName(getValue('shopName', ''))
@@ -42,6 +43,7 @@ export default function SettingsClient() {
 			setHasChanges(false)
 		}
 	}, [settings])
+	/* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
 	const handleSave = () => {
 		bulkUpsert([

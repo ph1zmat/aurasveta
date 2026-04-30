@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest'
 
+type SessionLike = {
+	user?: {
+		role?: string
+	}
+} | null
+
 // Replicate the helper logic from lib/trpc/init.ts to verify it works
-function getUserRole(session: any): string | undefined {
-	return (session?.user as Record<string, unknown>)?.role as string | undefined
+function getUserRole(session: SessionLike): string | undefined {
+	return session?.user?.role
 }
 
 describe('tRPC auth helpers', () => {

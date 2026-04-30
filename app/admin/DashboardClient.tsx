@@ -101,6 +101,7 @@ export default function DashboardClient() {
 	// Обновляем время при получении новых данных
 	useEffect(() => {
 		if (stats || recentOrders) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setLastUpdated(new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
 		}
 	}, [stats, recentOrders])

@@ -1,7 +1,13 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback } from 'react'
-import MobileFilterDrawer from '@/features/catalog-filter/ui/MobileFilterDrawer'
+import dynamic from 'next/dynamic'
+
+// Drawer открывается только по нажатию, нет SSR-HTML
+const MobileFilterDrawer = dynamic(
+	() => import('@/features/catalog-filter/ui/MobileFilterDrawer'),
+	{ ssr: false },
+)
 import type { CategoryTreeItem } from '@/entities/category/ui/CategoryTree'
 import type {
 	SidebarPropertyFilterItem,
