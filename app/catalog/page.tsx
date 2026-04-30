@@ -8,6 +8,8 @@ import { Suspense } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import { CatalogContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
+export const revalidate = 300 // 5 мин ISR
+
 export const metadata = {
 	title: 'Каталог — Аура Света',
 	description:

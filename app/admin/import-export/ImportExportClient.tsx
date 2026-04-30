@@ -231,7 +231,7 @@ export default function ImportExportClient() {
 								<div className='max-h-40 overflow-y-auto space-y-1'>
 									{validationErrors.map((err, i) => (
 										<div key={i} className='text-xs text-destructive'>
-											Строка {err.row}, поле "{err.field}": {err.message}
+											Строка {err.row}, поле &quot;{err.field}&quot;: {err.message}
 										</div>
 									))}
 								</div>
@@ -253,7 +253,7 @@ export default function ImportExportClient() {
 										<tbody>
 											{importPreview.map((row, i) => (
 												<tr key={i} className='border-b border-border last:border-0'>
-													{Object.values(row).map((v: any, j) => (
+													{Object.values(row).map((v: unknown, j) => (
 														<td key={j} className='p-2 text-muted-foreground'>{String(v).slice(0, 50)}</td>
 													))}
 												</tr>

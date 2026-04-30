@@ -11,16 +11,36 @@ import PropertyFormModal from './components/PropertyFormModal'
 import PropertyValueFormModal from './components/PropertyValueFormModal'
 import ConfirmDialog from '../components/ConfirmDialog'
 
+type PropertyRow = {
+	id: string
+	name: string
+	slug: string
+	hasPhoto: boolean
+	values?: PropertyValueRow[]
+}
+
+type PropertyValueRow = {
+	id: string
+	value: string
+	slug: string
+	photo?: string | null
+	order?: number
+}
+
 export default function PropertiesClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingProperty, setEditingProperty] = useState<any>(null)
+	const [editingProperty, setEditingProperty] = useState<PropertyRow | undefined>(
+		undefined,
+	)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 	const [confirmDeleteProperty, setConfirmDeleteProperty] = useState<string | null>(null)
 	const [confirmDeleteValue, setConfirmDeleteValue] = useState<string | null>(null)
 
 	// Стейт для модалки редактирования/создания значения
 	const [valueModalOpen, setValueModalOpen] = useState(false)
-	const [editingValue, setEditingValue] = useState<any>(null)
+	const [editingValue, setEditingValue] = useState<PropertyValueRow | undefined>(
+		undefined,
+	)
 	const [valueModalPropertyId, setValueModalPropertyId] = useState<string>('')
 	const [valueModalHasPhoto, setValueModalHasPhoto] = useState(false)
 
@@ -36,13 +56,16 @@ export default function PropertiesClient() {
 	})
 
 	const openNewValue = (prop: { id: string; hasPhoto: boolean }) => {
-		setEditingValue(null)
+		setEditingValue(undefined)
 		setValueModalPropertyId(prop.id)
 		setValueModalHasPhoto(prop.hasPhoto)
 		setValueModalOpen(true)
 	}
 
-	const openEditValue = (prop: { id: string; hasPhoto: boolean }, val: any) => {
+	const openEditValue = (
+		prop: { id: string; hasPhoto: boolean },
+		val: PropertyValueRow,
+	) => {
 		setEditingValue(val)
 		setValueModalPropertyId(prop.id)
 		setValueModalHasPhoto(prop.hasPhoto)
@@ -66,7 +89,13 @@ export default function PropertiesClient() {
 					<h1 className='text-xl font-bold'>Свойства</h1>
 					<p className='text-sm text-muted-foreground'>Управление характеристиками товаров</p>
 				</div>
-				<Button size='sm' onClick={() => { setEditingProperty(null); setModalOpen(true) }}>
+				<Button
+					size='sm'
+					onClick={() => {
+						setEditingProperty(undefined)
+						setModalOpen(true)
+					}}
+				>
 					<Plus className='h-4 w-4 mr-1' />
 					Новое свойство
 				</Button>
@@ -112,7 +141,7 @@ export default function PropertiesClient() {
 								<CardContent className='pt-0'>
 									<div className='space-y-2'>
 										{values.map((val: { id: string; value: string; slug: string; photo?: string | null }, index: number) => (
-											<div key={val.id} className='flex items-center gap-2 py-2 px-3 rounded-(--radius-md) bg-secondary/30'>
+											<div key={val.id} className='flex items-center gap-2 py-2 px-3 rounded-md bg-secondary/30'>
 												<span className='text-sm flex-1'>{val.value}</span>
 												{val.photo && (
 													<Badge className='bg-accent/15 text-accent text-[10px]'>Фото ✓</Badge>

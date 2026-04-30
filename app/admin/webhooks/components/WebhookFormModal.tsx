@@ -21,17 +21,28 @@ const EVENT_OPTIONS = [
 	'product.stock_low',
 ]
 
+type WebhookFormValue = {
+	id: string
+	url?: string | null
+	events?: string[] | null
+}
+
 interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	webhook?: any
+	webhook?: WebhookFormValue
 }
 
 export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhook }: Props) {
 	const isEdit = !!webhook
 	const [url, setUrl] = useState('')
 	const [events, setEvents] = useState<string[]>([])
+
+	const reset = () => {
+		setUrl('')
+		setEvents([])
+	}
 
 	const { mutate: create } = trpc.webhooks.create.useMutation({
 		onSuccess: () => {
@@ -50,6 +61,7 @@ export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhoo
 		},
 	})
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (webhook) {
 			setUrl(webhook.url ?? '')
@@ -58,11 +70,7 @@ export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhoo
 			reset()
 		}
 	}, [webhook, open])
-
-	const reset = () => {
-		setUrl('')
-		setEvents([])
-	}
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const toggleEvent = (evt: string) => {
 		setEvents((prev) =>

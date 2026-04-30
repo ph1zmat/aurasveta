@@ -14,8 +14,8 @@ const mockNext = vi.fn(() => mockResponse)
 
 vi.mock('next/server', () => ({
 	NextResponse: {
-		redirect: (url: any) => mockRedirect(url),
-		json: (body: any, init?: any) => mockJson(body, init),
+		redirect: (url: unknown) => mockRedirect(url),
+		json: (body: unknown, init?: { status?: number }) => mockJson(body, init),
 		next: () => mockNext(),
 	},
 }))
@@ -31,18 +31,34 @@ describe('proxy (middleware)', () => {
 		mockHeaders.clear()
 	})
 
-	function createRequest(pathname: string, cookies: Record<string, string> = {}, headers: Record<string, string> = {}) {
+	type RequestLike = {
+		nextUrl: { pathname: string }
+		url: string
+		cookies: {
+			has: (name: string) => boolean
+			get: (name: string) => { value: string } | undefined
+		}
+		headers: {
+			get: (name: string) => string | null
+		}
+	}
+
+	function createRequest(
+		pathname: string,
+		cookies: Record<string, string> = {},
+		headers: Record<string, string> = {},
+	): RequestLike {
 		return {
 			nextUrl: { pathname },
 			url: `http://localhost:3000${pathname}`,
 			cookies: {
 				has: (name: string) => name in cookies,
-				get: (name: string) => cookies[name] ? { value: cookies[name] } : undefined,
+				get: (name: string) => (cookies[name] ? { value: cookies[name] } : undefined),
 			},
 			headers: {
 				get: (name: string) => headers[name] ?? null,
 			},
-		} as any
+		}
 	}
 
 	it('redirects anonymous users from /admin to /login', () => {

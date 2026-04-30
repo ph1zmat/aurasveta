@@ -6,7 +6,15 @@ describe('getAllByStatuses optimization', () => {
 			{ id: '1', status: 'PENDING', total: 100, user: { name: 'Test' }, items: [] },
 			{ id: '2', status: 'PAID', total: 200, user: { name: 'Test2' }, items: [] },
 		])
-		const prisma = { order: { findMany } } as any
+		const prisma = {
+			order: {
+				findMany,
+			},
+		} as {
+			order: {
+				findMany: typeof findMany
+			}
+		}
 
 		const statuses = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const
 		const orders = await prisma.order.findMany({

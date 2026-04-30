@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/Header'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
@@ -11,17 +12,26 @@ import QuickSpecs from '@/features/product-details/ui/QuickSpecs'
 import DesignProjectBanner from '@/features/product-details/ui/DesignProjectBanner'
 import InterestCounter from '@/features/product-details/ui/InterestCounter'
 import DeliveryAdvantages from '@/features/product-details/ui/DeliveryAdvantages'
-import ProductTabs from '@/features/product-details/ui/ProductTabs'
-import ProductCarousel from '@/widgets/product-carousel/ui/ProductCarousel'
-import StickyHeaderWithTrigger from '@/features/product-details/ui/StickyHeaderWithTrigger'
-import TrackRecentlyViewed from '@/features/product-details/ui/TrackRecentlyViewed'
+// Ниже fold — загружаются после LCP
+const ProductTabs = dynamic(() => import('@/features/product-details/ui/ProductTabs'))
+const ProductCarousel = dynamic(() => import('@/widgets/product-carousel/ui/ProductCarousel'))
+// Только при скролле / нет SSR-HTML
+const StickyHeaderWithTrigger = dynamic(
+	() => import('@/features/product-details/ui/StickyHeaderWithTrigger'),
+)
+// Чисто client-side аналитика, нет HTML
+const TrackRecentlyViewed = dynamic(
+	() => import('@/features/product-details/ui/TrackRecentlyViewed'),
+)
 import ProductStructuredData from '@/shared/ui/ProductStructuredData'
+import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
 import BackToListLink from '@/shared/ui/BackToListLink'
 import ProductBreadcrumbs from '@/features/product-details/ui/ProductBreadcrumbs'
 import {
 	CompareButton,
 	AddToCartButton,
 } from '@/features/product-details/ui/ProductActions'
+import { prisma } from '@/lib/prisma'
 import {
 	getProductBySlug,
 	getQuickSpecs,
@@ -43,7 +53,23 @@ import { ProductCarouselSkeleton } from '@/shared/ui/storefront-skeletons'
 
 /* ── Page ── */
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 1800 // 30 мин ISR
+export const dynamicParams = true
+
+export async function generateStaticParams() {
+	try {
+		const products = await prisma.product.findMany({
+			where: { isActive: true },
+			orderBy: { createdAt: 'desc' },
+			take: 500,
+			select: { slug: true },
+		})
+		return products.map(p => ({ slug: p.slug }))
+	} catch (error) {
+		console.warn('[product] generateStaticParams: database unavailable', error)
+		return []
+	}
+}
 
 export async function generateMetadata({
 	params,
@@ -76,10 +102,16 @@ export default async function ProductPage({
 	const product = await getProductBySlug(slug)
 	if (!product) notFound()
 
-	const quickSpecs = await getQuickSpecs(product.id)
-	const specGroups = await getProductSpecGroups(product.id)
-
 	const productId = String(product.id)
+
+	// Прогреваем рекомендации параллельно с основными данными (React cache dedupe)
+	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
+	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
+
+	const [quickSpecs, specGroups] = await Promise.all([
+		getQuickSpecs(product.id),
+		getProductSpecGroups(product.id),
+	])
 
 	const allImages = normalizeProductImages(product.images).map(
 		image => image.url,
@@ -99,6 +131,16 @@ export default async function ProductPage({
 				rating={product.rating}
 				reviewsCount={product.reviewsCount}
 				url={`https://aurasveta.by/product/${product.slug}`}
+			/>
+			<BreadcrumbStructuredData
+				items={[
+					{ name: 'Главная', href: '/' },
+					{ name: 'Каталог', href: '/catalog' },
+					...(product.category && product.categorySlug
+						? [{ name: product.category, href: `/catalog/${product.categorySlug}` }]
+						: []),
+					{ name: product.name },
+				]}
 			/>
 			{/* Sticky header on scroll */}
 			<StickyHeaderWithTrigger

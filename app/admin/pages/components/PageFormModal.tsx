@@ -56,6 +56,15 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 	const [metaDesc, setMetaDesc] = useState('')
 	const [blocks, setBlocks] = useState<PageBlockDraft[]>([])
 
+	const reset = () => {
+		setTitle('')
+		setSlug('')
+		setIsPublished(false)
+		setMetaTitle('')
+		setMetaDesc('')
+		setBlocks([])
+	}
+
 	// Загружаем полные данные страницы (включая блоки) при редактировании
 	const { data: fullPage } = trpc.pages.getById.useQuery(page?.id ?? '', {
 		enabled: isEdit && open && !!page?.id,
@@ -84,6 +93,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		},
 	})
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (page && open) {
 			setTitle(page.title ?? '')
@@ -105,15 +115,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 			setBlocks(drafts)
 		}
 	}, [fullPage, open])
-
-	const reset = () => {
-		setTitle('')
-		setSlug('')
-		setIsPublished(false)
-		setMetaTitle('')
-		setMetaDesc('')
-		setBlocks([])
-	}
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const handleSave = () => {
 		const finalSlug = slug.trim() || generateSlug(title)

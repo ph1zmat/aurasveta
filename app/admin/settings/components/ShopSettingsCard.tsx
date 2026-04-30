@@ -145,6 +145,7 @@ export default function ShopSettingsCard() {
 	}
 
 	const removeWorkingHoursRow = (key: string) => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { [key]: _, ...rest } = form.workingHours
 		setField('workingHours', rest)
 	}

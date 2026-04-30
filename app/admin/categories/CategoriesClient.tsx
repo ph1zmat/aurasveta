@@ -21,12 +21,30 @@ import {
 	Save,
 	Image as ImageIcon,
 } from 'lucide-react'
-import CategoryFormModal from './components/CategoryFormModal'
+import dynamic from 'next/dynamic'
+
+const CategoryFormModal = dynamic(() => import('./components/CategoryFormModal'))
 import { MediaPicker } from '@/packages/shared-admin/src/ui/admin/MediaPicker'
+
+type CategoryEditorValue = {
+	id: string
+	name?: string | null
+	slug?: string | null
+	description?: string | null
+	showInHeader?: boolean | null
+	imagePath?: string | null
+	imageOriginalName?: string | null
+	parentId?: string | null
+	categoryMode?: 'MANUAL' | 'FILTER' | null
+	filterPropertyId?: string | null
+	filterPropertyValueId?: string | null
+}
 
 export default function CategoriesClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingCategory, setEditingCategory] = useState<any>(null)
+	const [editingCategory, setEditingCategory] = useState<
+		CategoryEditorValue | undefined
+	>(undefined)
 	const [selectedId, setSelectedId] = useState<string | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 	const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -69,6 +87,7 @@ export default function CategoriesClient() {
 	const [editMetaTitle, setEditMetaTitle] = useState('')
 	const [editMetaDesc, setEditMetaDesc] = useState('')
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (selected) {
 			setEditName(selected.name ?? '')
@@ -79,13 +98,16 @@ export default function CategoriesClient() {
 			setEditImageOriginalName(selected.imageOriginalName ?? null)
 		}
 	}, [selected])
+	/* eslint-enable react-hooks/set-state-in-effect */
 
+	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (seoData) {
 			setEditMetaTitle(seoData.title ?? '')
 			setEditMetaDesc(seoData.description ?? '')
 		}
 	}, [seoData])
+	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const handleSaveDetail = () => {
 		if (!selected) return
@@ -117,7 +139,11 @@ export default function CategoriesClient() {
 		e.stopPropagation()
 		setExpanded(prev => {
 			const next = new Set(prev)
-			next.has(id) ? next.delete(id) : next.add(id)
+			if (next.has(id)) {
+				next.delete(id)
+			} else {
+				next.add(id)
+			}
 			return next
 		})
 	}
@@ -209,7 +235,7 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 				<Button
 					size='sm'
 					onClick={() => {
-						setEditingCategory(null)
+						setEditingCategory(undefined)
 						setModalOpen(true)
 					}}
 				>
@@ -416,6 +442,7 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 												>
 													<div className='h-10 w-10 rounded-md border border-border bg-secondary overflow-hidden shrink-0'>
 														{p.images?.[0]?.url ? (
+															// eslint-disable-next-line @next/next/no-img-element
 															<img
 																src={p.images[0].url}
 																alt={p.name}

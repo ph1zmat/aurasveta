@@ -7,12 +7,22 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Play, Pencil, Plus, Trash2 } from 'lucide-react'
-import WebhookFormModal from './components/WebhookFormModal'
+import dynamic from 'next/dynamic'
+
+const WebhookFormModal = dynamic(() => import('./components/WebhookFormModal'))
 import ConfirmDialog from '../components/ConfirmDialog'
+
+type WebhookRow = {
+	id: string
+	url?: string | null
+	events?: string[] | null
+}
 
 export default function WebhooksClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingWebhook, setEditingWebhook] = useState<any>(null)
+	const [editingWebhook, setEditingWebhook] = useState<WebhookRow | undefined>(
+		undefined,
+	)
 	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 	const [testResult, setTestResult] = useState<{ id: string; success: boolean; error?: string } | null>(null)
 
@@ -42,7 +52,13 @@ export default function WebhooksClient() {
 					<h1 className='text-xl font-bold'>Вебхуки</h1>
 					<p className='text-sm text-muted-foreground'>Интеграции и события</p>
 				</div>
-				<Button size='sm' onClick={() => { setEditingWebhook(null); setModalOpen(true) }}>
+				<Button
+					size='sm'
+					onClick={() => {
+						setEditingWebhook(undefined)
+						setModalOpen(true)
+					}}
+				>
 					<Plus className='h-4 w-4 mr-1' />
 					Новый вебхук
 				</Button>

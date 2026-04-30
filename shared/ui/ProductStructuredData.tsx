@@ -39,6 +39,8 @@ export default function ProductStructuredData({
 					availability: inStock
 						? 'https://schema.org/InStock'
 						: 'https://schema.org/OutOfStock',
+					itemCondition: 'https://schema.org/NewCondition',
+					seller: { '@type': 'Organization', name: 'Аура Света' },
 					url,
 				}
 			: undefined,

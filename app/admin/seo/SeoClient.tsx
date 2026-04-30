@@ -10,10 +10,48 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronUp, Save } from 'lucide-react'
 
+const SEO_FILTERS = [
+	'all',
+	'missing-title',
+	'missing-desc',
+	'noindex',
+] as const
+
+type SeoFilter = (typeof SEO_FILTERS)[number]
+
+type SeoTargetType = 'product' | 'category' | 'page'
+
+type SeoEditFields = {
+	title?: string | null
+	description?: string | null
+	keywords?: string | null
+	ogTitle?: string | null
+	ogDescription?: string | null
+	ogImage?: string | null
+	canonicalUrl?: string | null
+	noIndex?: boolean
+}
+
+type SeoEditState = Record<string, SeoEditFields>
+
+type SeoListItem = {
+	id: string
+	targetType: SeoTargetType
+	targetId: string
+	title?: string | null
+	description?: string | null
+	keywords?: string | null
+	ogTitle?: string | null
+	ogDescription?: string | null
+	ogImage?: string | null
+	canonicalUrl?: string | null
+	noIndex?: boolean
+}
+
 export default function SeoClient() {
-	const [filter, setFilter] = useState('all')
+	const [filter, setFilter] = useState<SeoFilter>('all')
 	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [editing, setEditing] = useState<Record<string, any>>({})
+	const [editing, setEditing] = useState<SeoEditState>({})
 
 	const { data: seoList, refetch } = trpc.seo.listAll.useQuery()
 	const { mutate: updateSeo } = trpc.seo.update.useMutation({
@@ -23,22 +61,26 @@ export default function SeoClient() {
 		},
 	})
 
-	const filtered = (seoList ?? []).filter((item) => {
+	const filtered = ((seoList ?? []) as SeoListItem[]).filter((item) => {
 		if (filter === 'missing-title') return !item.title
 		if (filter === 'missing-desc') return !item.description
 		if (filter === 'noindex') return item.noIndex
 		return true
 	})
 
-	const handleEdit = (id: string, field: string, value: string | boolean) => {
+	const handleEdit = <K extends keyof SeoEditFields>(
+		id: string,
+		field: K,
+		value: SeoEditFields[K],
+	) => {
 		setEditing((prev) => ({
 			...prev,
-			[id]: { ...prev[id], [field]: value },
+			[id]: { ...(prev[id] ?? {}), [field]: value },
 		}))
 	}
 
-	const handleSave = (item: any) => {
-		const changes = editing[item.id] ?? {}
+	const handleSave = (item: SeoListItem) => {
+		const changes: SeoEditFields = editing[item.id] ?? {}
 		updateSeo({
 			targetType: item.targetType,
 			targetId: item.targetId,
@@ -64,7 +106,7 @@ export default function SeoClient() {
 			</div>
 
 			<div className='flex gap-2 flex-wrap'>
-				{['all', 'missing-title', 'missing-desc', 'noindex'].map((f) => (
+				{SEO_FILTERS.map((f) => (
 					<Button
 						key={f}
 						variant={filter === f ? 'default' : 'outline'}

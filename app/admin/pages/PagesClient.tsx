@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Plus, Trash2, Pencil } from 'lucide-react'
-import PageFormModal from './components/PageFormModal'
+import dynamic from 'next/dynamic'
+
+const PageFormModal = dynamic(() => import('./components/PageFormModal'))
 import ConfirmDialog from '../components/ConfirmDialog'
 import { ListSkeleton } from '../components/AdminSkeleton'
 
@@ -23,7 +25,7 @@ type EditablePage = {
 
 export default function PagesClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingPage, setEditingPage] = useState<EditablePage | null>(null)
+	const [editingPage, setEditingPage] = useState<EditablePage | undefined>(undefined)
 	const [selectedId, setSelectedId] = useState<string | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -48,7 +50,13 @@ export default function PagesClient() {
 						Управление контентными страницами
 					</p>
 				</div>
-				<Button size='sm' onClick={() => { setEditingPage(null); setModalOpen(true) }}>
+				<Button
+					size='sm'
+					onClick={() => {
+						setEditingPage(undefined)
+						setModalOpen(true)
+					}}
+				>
 					<Plus className='h-4 w-4 mr-1' />
 					Новая страница
 				</Button>
