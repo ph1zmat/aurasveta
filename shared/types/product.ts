@@ -21,12 +21,18 @@ export interface Product {
 	slug: string
 	name: string
 	description: string
+	metaTitle?: string
+	metaDesc?: string
 	price: number
 	oldPrice?: number
 	discountPercent?: number
 	bonusAmount?: number
 	category: string
 	categorySlug?: string
+	rootCategory?: string
+	rootCategorySlug?: string
+	subcategory?: string
+	subcategorySlug?: string
 	brand?: string
 	brandCountry?: string
 	images: ProductImage[]

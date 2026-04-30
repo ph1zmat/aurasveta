@@ -1,103 +1,94 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-	Download,
-	FileText,
-	FolderTree,
-	LayoutDashboard,
-	LayoutGrid,
+	BarChart3,
 	Package,
-	Search,
-	Settings,
 	ShoppingCart,
+	FolderOpen,
+	FileText,
+	Search,
+	Palette,
+	Zap,
+	Upload,
+	Settings,
+	Bell,
 	SlidersHorizontal,
-	Webhook,
 } from 'lucide-react'
 
 export interface AdminNavItem {
 	href: string
 	label: string
 	icon: LucideIcon
-	keywords?: string[]
+	badge?: string | number
+	badgeColor?: string
 }
 
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+export interface AdminNavGroup {
+	label: string
+	items: AdminNavItem[]
+}
+
+export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 	{
-		href: '/admin',
-		label: 'Дашборд',
-		icon: LayoutDashboard,
-		keywords: ['dashboard', 'home', 'главная', 'сводка'],
+		label: 'Главное',
+		items: [
+			{ href: '/admin', label: 'Дашборд', icon: BarChart3 },
+			{ href: '/admin/products', label: 'Товары', icon: Package },
+			{ href: '/admin/categories', label: 'Категории', icon: FolderOpen },
+			{
+				href: '/admin/orders',
+				label: 'Заказы',
+				icon: ShoppingCart,
+				badgeColor: 'bg-destructive text-white',
+			},
+			{ href: '/admin/properties', label: 'Свойства', icon: SlidersHorizontal },
+		],
 	},
 	{
-		href: '/admin/home-sections',
-		label: 'Секции',
-		icon: LayoutGrid,
-		keywords: ['главная', 'home', 'sections', 'блоки'],
+		label: 'Маркетинг',
+		items: [
+			{ href: '/admin/pages', label: 'CMS Страницы', icon: FileText },
+			{ href: '/admin/seo', label: 'SEO', icon: Search },
+			{
+				href: '/admin/home-sections',
+				label: 'Главная страница',
+				icon: Palette,
+			},
+			{ href: '/admin/import-export', label: 'Импорт / Экспорт', icon: Upload },
+		],
 	},
 	{
-		href: '/admin/products',
-		label: 'Товары',
-		icon: Package,
-		keywords: ['products', 'catalog', 'каталог'],
-	},
-	{
-		href: '/admin/categories',
-		label: 'Категории',
-		icon: FolderTree,
-		keywords: ['categories', 'дерево', 'taxonomy'],
-	},
-	{
-		href: '/admin/properties',
-		label: 'Свойства',
-		icon: SlidersHorizontal,
-		keywords: ['properties', 'filters', 'характеристики'],
-	},
-	{
-		href: '/admin/pages',
-		label: 'Страницы',
-		icon: FileText,
-		keywords: ['pages', 'cms', 'контент'],
-	},
-	{
-		href: '/admin/orders',
-		label: 'Заказы',
-		icon: ShoppingCart,
-		keywords: ['orders', 'sales', 'покупки'],
-	},
-	{
-		href: '/admin/import-export',
-		label: 'Импорт/Экспорт',
-		icon: Download,
-		keywords: ['import', 'export', 'csv'],
-	},
-	{
-		href: '/admin/webhooks',
-		label: 'Вебхуки',
-		icon: Webhook,
-		keywords: ['webhooks', 'integrations', 'api'],
-	},
-	{
-		href: '/admin/seo',
-		label: 'SEO',
-		icon: Search,
-		keywords: ['meta', 'optimization', 'поиск'],
-	},
-	{
-		href: '/admin/settings',
-		label: 'Настройки',
-		icon: Settings,
-		keywords: ['settings', 'config', 'конфиг'],
+		label: 'Система',
+		items: [
+			{ href: '/admin/settings', label: 'Настройки', icon: Settings },
+			{
+				href: '/admin/notifications',
+				label: 'Уведомления',
+				icon: Bell,
+				badgeColor: 'bg-accent text-accent-foreground',
+			},
+		],
 	},
 ]
 
-export const EDITOR_NAV_ITEMS: AdminNavItem[] = [
+export const EDITOR_NAV_GROUPS: AdminNavGroup[] = [
 	{
-		href: '/admin/pages',
-		label: 'Страницы',
-		icon: FileText,
-		keywords: ['pages', 'cms', 'контент'],
+		label: 'Редактор',
+		items: [{ href: '/admin/pages', label: 'Страницы', icon: FileText }],
 	},
 ]
 
-export function getAdminNavItems(userRole: string) {
+/** Flat list used by header breadcrumbs */
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV_GROUPS.flatMap(
+	g => g.items,
+)
+export const EDITOR_NAV_ITEMS: AdminNavItem[] = EDITOR_NAV_GROUPS.flatMap(
+	g => g.items,
+)
+
+export function getAdminNavGroups(userRole: string): AdminNavGroup[] {
+	return userRole === 'ADMIN' ? ADMIN_NAV_GROUPS : EDITOR_NAV_GROUPS
+}
+
+export function getAdminNavItems(userRole: string): AdminNavItem[] {
 	return userRole === 'ADMIN' ? ADMIN_NAV_ITEMS : EDITOR_NAV_ITEMS
 }

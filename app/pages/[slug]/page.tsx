@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { trpc } from '@/lib/trpc/server'
 import { prisma } from '@/lib/prisma'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/Header'
@@ -9,8 +8,12 @@ import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+import { getMetadataForPage, seoToMetadata } from '@/lib/seo/getMetadata'
 import DeferredImage from '@/shared/ui/DeferredImage'
 import PageRenderer from '@/widgets/page-renderer/PageRenderer'
+import PublicSectionRenderer from '@/entities/section/ui/PublicSectionRenderer'
+import PublicPageBlocksRenderer from '@/entities/page-block/ui/PublicPageBlocksRenderer'
+import { getPublishedPageRenderDataBySlug } from '@/lib/sections/public-page-data'
 
 export const revalidate = 3600
 
@@ -36,25 +39,20 @@ export async function generateMetadata({
 	params: Promise<{ slug: string }>
 }): Promise<Metadata> {
 	const { slug } = await params
-	const page = await trpc.pages.getBySlug(slug)
+	const data = await getPublishedPageRenderDataBySlug(slug)
+	const page = data?.page
 
 	if (!page) return { title: 'Страница не найдена' }
-	const resolvedImage =
-		page.imageUrl ?? resolveStorageFileUrl(page.imagePath ?? page.image)
-	const seo = (page.seo ?? {}) as Record<string, unknown>
-	const seoTitle = typeof seo.title === 'string' ? seo.title : undefined
-	const seoDesc =
-		typeof seo.description === 'string' ? seo.description : undefined
-
-	return {
-		title: seoTitle || page.metaTitle || page.title,
-		description: seoDesc || page.metaDesc || undefined,
-		openGraph: {
-			title: seoTitle || page.metaTitle || page.title,
-			description: seoDesc || page.metaDesc || undefined,
-			images: resolvedImage ? [resolvedImage] : undefined,
-		},
-	}
+	const seo = await getMetadataForPage({
+		id: page.id,
+		title: page.title,
+		content: page.content,
+		metaTitle: page.metaTitle,
+		metaDesc: page.metaDesc,
+		imagePath: page.imagePath,
+		image: page.image,
+	})
+	return seoToMetadata(seo)
 }
 
 export default async function ContentPage({
@@ -63,11 +61,23 @@ export default async function ContentPage({
 	params: Promise<{ slug: string }>
 }) {
 	const { slug } = await params
-	const page = await trpc.pages.getBySlug(slug)
+	const data = await getPublishedPageRenderDataBySlug(slug)
+	const page = data?.page
+	const unifiedSections = data?.sections ?? []
+
+	// Загружаем блоки страницы
+	const pageBlocks = page
+		? await prisma.pageBlock.findMany({
+				where: { pageId: page.id, isActive: true },
+				orderBy: { order: 'asc' },
+		  })
+		: []
 
 	if (!page) notFound()
 	const resolvedImage =
 		page.imageUrl ?? resolveStorageFileUrl(page.imagePath ?? page.image)
+	const hasPageBlocks = pageBlocks.length > 0
+	const hasUnifiedSections = unifiedSections.length > 0
 	const hasContentBlocks =
 		Array.isArray(page.contentBlocks) && page.contentBlocks.length > 0
 
@@ -82,25 +92,38 @@ export default async function ContentPage({
 					items={[{ label: 'Главная', href: '/' }, { label: page.title }]}
 				/>
 
-				<article className='prose prose-neutral dark:prose-invert mx-auto max-w-3xl py-8'>
-					{resolvedImage && (
-						<DeferredImage
-							src={resolvedImage}
-							alt={page.title}
-							width={800}
-							height={400}
-							className='mb-8 w-full rounded-lg'
-							imageClassName='w-full rounded-lg object-cover'
-							fallbackClassName='rounded-lg'
-						/>
-					)}
-					<h1>{page.title}</h1>
-					{hasContentBlocks ? (
-						<PageRenderer content={page.contentBlocks} />
-					) : (
-						<div dangerouslySetInnerHTML={{ __html: page.content ?? '' }} />
-					)}
-				</article>
+				{hasUnifiedSections ? (
+					<div className='py-6 md:py-8'>
+						{unifiedSections.map(section => (
+							<PublicSectionRenderer key={section.id} section={section} />
+						))}
+					</div>
+				) : hasPageBlocks ? (
+					<article className='mx-auto max-w-3xl py-8'>
+						<h1 className='mb-6 text-3xl font-bold tracking-tight'>{page.title}</h1>
+						<PublicPageBlocksRenderer blocks={pageBlocks} />
+					</article>
+				) : (
+					<article className='prose prose-neutral dark:prose-invert mx-auto max-w-3xl py-8'>
+						{resolvedImage && (
+							<DeferredImage
+								src={resolvedImage}
+								alt={page.title}
+								width={800}
+								height={400}
+								className='mb-8 w-full rounded-lg'
+								imageClassName='w-full rounded-lg object-cover'
+								fallbackClassName='rounded-lg'
+							/>
+						)}
+						<h1>{page.title}</h1>
+						{hasContentBlocks ? (
+							<PageRenderer content={page.contentBlocks} />
+						) : (
+							<div dangerouslySetInnerHTML={{ __html: page.content ?? '' }} />
+						)}
+					</article>
+				)}
 			</main>
 
 			<Footer />

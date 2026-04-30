@@ -4,14 +4,27 @@ import { useState, useCallback } from 'react'
 import { Menu, Search, X, Phone } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import MobileCatalogMenu from '@/widgets/navigation/ui/MobileCatalogMenu'
 
 export default function MobileHeader() {
+	const router = useRouter()
 	const [menuOpen, setMenuOpen] = useState(false)
+	const [searchTerm, setSearchTerm] = useState('')
 	const toggleMenu = useCallback(() => setMenuOpen(prev => !prev), [])
 	const closeMenu = useCallback(() => setMenuOpen(false), [])
+
+	const handleSearchSubmit = useCallback(
+		(event: React.FormEvent<HTMLFormElement>) => {
+			event.preventDefault()
+			const query = searchTerm.trim()
+			if (!query) return
+			router.push(`/search?q=${encodeURIComponent(query)}`)
+		},
+		[searchTerm, router],
+	)
 
 	return (
 		<>
@@ -53,10 +66,17 @@ export default function MobileHeader() {
 								<Menu className='h-5 w-5' strokeWidth={1.5} />
 							)}
 						</Button>
-						<div className='relative flex-1'>
+						<form className='relative flex-1' onSubmit={handleSearchSubmit} role='search'>
 							<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-							<Input variant='search' placeholder='Найти' className='h-10 rounded-lg' />
-						</div>
+							<Input
+								variant='search'
+								placeholder='Найти товар...'
+								className='h-10 rounded-lg'
+								value={searchTerm}
+								onChange={event => setSearchTerm(event.target.value)}
+								aria-label='Поиск товаров'
+							/>
+						</form>
 					</div>
 				</div>
 			</header>

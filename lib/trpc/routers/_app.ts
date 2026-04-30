@@ -19,7 +19,10 @@ import { sectionTypeRouter } from './sectionType'
 import { homeSectionRouter } from './homeSection'
 import { settingRouter } from './setting'
 import { cmsRouter } from './cms'
-import { homeRouter } from './home'
+import { shopSettingsRouter } from './shopSettings'
+import { settingsBusinessRouter } from './admin/settings.business'
+import { notificationsRouter } from './notifications'
+import { importOperationsRouter } from './importOperations'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -42,7 +45,10 @@ export const appRouter = createTRPCRouter({
 	homeSection: homeSectionRouter,
 	setting: settingRouter,
 	cms: cmsRouter,
-	home: homeRouter,
+	shopSettings: shopSettingsRouter,
+	settingsBusiness: settingsBusinessRouter,
+	notifications: notificationsRouter,
+	importOperations: importOperationsRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -12,6 +12,14 @@ export const homeSectionRouter = createTRPCRouter({
 		})
 	}),
 
+	listActive: baseProcedure.query(async ({ ctx }) => {
+		return ctx.prisma.homeSection.findMany({
+			where: { isActive: true },
+			orderBy: { order: 'asc' },
+			include: { sectionType: true },
+		})
+	}),
+
 	getAll: adminProcedure.query(async ({ ctx }) => {
 		return ctx.prisma.homeSection.findMany({
 			orderBy: { order: 'asc' },

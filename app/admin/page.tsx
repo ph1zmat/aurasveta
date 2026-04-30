@@ -1,7 +1,7 @@
-import AdminDashboard from './AdminDashboard'
 import { requireAdmin } from '@/lib/auth/auth-utils'
+import DashboardClient from './DashboardClient'
 
 export default async function AdminPage() {
 	await requireAdmin()
-	return <AdminDashboard />
+	return <DashboardClient />
 }

@@ -21,24 +21,25 @@ interface SearchInput {
 function buildSearchQuery(input: SearchInput) {
 	const { query, categorySlug, limit, cursor, sortBy, filters } = input
 	const offset = cursor ?? 0
+	const likeQuery = `%${query}%`
 
 	let orderClause: string
 	switch (sortBy) {
 		case 'price_asc':
-			orderClause = `p."price" ASC NULLS LAST`
+				orderClause = `p."price" ASC NULLS LAST, rank DESC, p."id" ASC`
 			break
 		case 'price_desc':
-			orderClause = `p."price" DESC NULLS LAST`
+				orderClause = `p."price" DESC NULLS LAST, rank DESC, p."id" ASC`
 			break
 		case 'newest':
-			orderClause = `p."created_at" DESC`
+				orderClause = `p."created_at" DESC, rank DESC, p."id" ASC`
 			break
 		default:
-			orderClause = `rank DESC`
+				orderClause = `rank DESC, p."created_at" DESC, p."id" ASC`
 	}
 
-	const params: unknown[] = [query]
-	let paramIndex = 2
+	const params: unknown[] = [query, likeQuery]
+	let paramIndex = 3
 
 	let filterClause = ''
 	if (categorySlug) {
@@ -78,11 +79,12 @@ describe('search – query building', () => {
 		})
 
 		expect(result.params[0]).toBe('люстра')
+		expect(result.params[1]).toBe('%люстра%')
 		expect(result.filterClause).toBe('')
-		expect(result.orderClause).toBe('rank DESC')
-		expect(result.params).toHaveLength(3) // query, limit+1, offset
-		expect(result.params[1]).toBe(13) // limit + 1 for hasMore check
-		expect(result.params[2]).toBe(0) // default offset
+		expect(result.orderClause).toBe('rank DESC, p."created_at" DESC, p."id" ASC')
+		expect(result.params).toHaveLength(4) // query, likeQuery, limit+1, offset
+		expect(result.params[2]).toBe(13) // limit + 1 for hasMore check
+		expect(result.params[3]).toBe(0) // default offset
 	})
 
 	it('adds category filter with parameterized index', () => {
@@ -93,9 +95,9 @@ describe('search – query building', () => {
 			sortBy: 'relevance',
 		})
 
-		expect(result.filterClause).toContain('$2')
-		expect(result.params[1]).toBe('nastennye-svetilniki')
-		expect(result.params).toHaveLength(4)
+		expect(result.filterClause).toContain('$3')
+		expect(result.params[2]).toBe('nastennye-svetilniki')
+		expect(result.params).toHaveLength(5)
 	})
 
 	it('adds price range filters', () => {
@@ -110,7 +112,7 @@ describe('search – query building', () => {
 		expect(result.filterClause).toContain('p."price" <=')
 		expect(result.params).toContain(1000)
 		expect(result.params).toContain(5000)
-		expect(result.orderClause).toBe('p."price" ASC NULLS LAST')
+		expect(result.orderClause).toBe('p."price" ASC NULLS LAST, rank DESC, p."id" ASC')
 	})
 
 	it('adds inStock filter without param', () => {
@@ -122,8 +124,8 @@ describe('search – query building', () => {
 		})
 
 		expect(result.filterClause).toContain('p."stock" > 0')
-		// inStock doesn't add a param
-		expect(result.params).toHaveLength(3)
+		// inStock doesn't add a filter param beyond query + likeQuery + pagination
+		expect(result.params).toHaveLength(4)
 	})
 
 	it('handles all filters combined', () => {
@@ -141,7 +143,7 @@ describe('search – query building', () => {
 		expect(result.filterClause).toContain('p."price" >=')
 		expect(result.filterClause).toContain('p."price" <=')
 		expect(result.filterClause).toContain('p."stock" > 0')
-		expect(result.orderClause).toBe('p."price" DESC NULLS LAST')
+		expect(result.orderClause).toBe('p."price" DESC NULLS LAST, rank DESC, p."id" ASC')
 		// Last param should be offset=24
 		expect(result.params[result.params.length - 1]).toBe(24)
 	})
@@ -153,7 +155,7 @@ describe('search – query building', () => {
 			sortBy: 'newest',
 		})
 
-		expect(result.orderClause).toBe('p."created_at" DESC')
+		expect(result.orderClause).toBe('p."created_at" DESC, rank DESC, p."id" ASC')
 	})
 
 	it('handles Russian text in query', () => {
@@ -183,10 +185,20 @@ describe('search – query building', () => {
 			filters: { minPrice: 100, maxPrice: 200 },
 		})
 
-		// $1=query, $2=categorySlug, $3=minPrice, $4=maxPrice, $5=limit+1, $6=offset
-		expect(result.params).toEqual(['test', 'cat', 100, 200, 11, 0])
-		expect(result.limitParam).toBe(5)
-		expect(result.offsetParam).toBe(6)
+		// $1=query, $2=likeQuery, $3=categorySlug, $4=minPrice, $5=maxPrice, $6=limit+1, $7=offset
+		expect(result.params).toEqual(['test', '%test%', 'cat', 100, 200, 11, 0])
+		expect(result.limitParam).toBe(6)
+		expect(result.offsetParam).toBe(7)
+	})
+
+	it('adds ILIKE fallback param for category and substring matches', () => {
+		const result = buildSearchQuery({
+			query: 'Бра',
+			limit: 12,
+			sortBy: 'relevance',
+		})
+
+		expect(result.params[1]).toBe('%Бра%')
 	})
 })
 

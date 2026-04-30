@@ -5,6 +5,7 @@ import MobileBottomNav from '@/widgets/navigation/ui/MobileBottomNav'
 import { TRPCProvider } from '@/lib/trpc/client'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import Toaster from '@/shared/ui/Toaster'
+import RootThemeProvider from '@/shared/ui/RootThemeProvider'
 
 export const metadata: Metadata = {
 	title: 'Интернет-магазин люстр и светильников в Мозыре - Аура света',
@@ -21,7 +22,7 @@ export default async function RootLayout({
 	void trpc.categories.getHeaderTree.prefetch()
 
 	return (
-		<html lang='ru'>
+		<html lang='ru' suppressHydrationWarning>
 			<head>
 				<link
 					rel='icon'
@@ -40,14 +41,16 @@ export default async function RootLayout({
 				<link rel='manifest' href='/site.webmanifest' />
 			</head>
 			<body className='font-sans antialiased'>
-				<TRPCProvider>
-					<HydrateClient>
-						<Toaster />
-						<MobileHeader />
-						<div className='mobile-content-offset'>{children}</div>
-						<MobileBottomNav />
-					</HydrateClient>
-				</TRPCProvider>
+				<RootThemeProvider>
+					<TRPCProvider>
+						<HydrateClient>
+							<Toaster />
+							<MobileHeader />
+							<div className='mobile-content-offset'>{children}</div>
+							<MobileBottomNav />
+						</HydrateClient>
+					</TRPCProvider>
+				</RootThemeProvider>
 			</body>
 		</html>
 	)

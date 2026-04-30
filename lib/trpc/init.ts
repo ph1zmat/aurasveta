@@ -64,6 +64,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	})
 })
 
+type SessionShape = Awaited<ReturnType<typeof auth.api.getSession>>
+
+function getUserRole(session: SessionShape): string | undefined {
+	// better-auth additionalFields injects role into session.user
+	return (session?.user as Record<string, unknown>)?.role as string | undefined
+}
+
 export const adminProcedure = t.procedure.use(async ({ ctx, next }) => {
 	if (!ctx.session?.user) {
 		throw new TRPCError({
@@ -71,11 +78,8 @@ export const adminProcedure = t.procedure.use(async ({ ctx, next }) => {
 			message: 'Необходима авторизация',
 		})
 	}
-	const user = await ctx.prisma.user.findUnique({
-		where: { id: ctx.session.user.id },
-		select: { role: true },
-	})
-	if (user?.role !== 'ADMIN') {
+	const role = getUserRole(ctx.session)
+	if (role !== 'ADMIN') {
 		throw new TRPCError({ code: 'FORBIDDEN', message: 'Недостаточно прав' })
 	}
 	return next({
@@ -94,11 +98,8 @@ export const editorProcedure = t.procedure.use(async ({ ctx, next }) => {
 			message: 'Необходима авторизация',
 		})
 	}
-	const user = await ctx.prisma.user.findUnique({
-		where: { id: ctx.session.user.id },
-		select: { role: true },
-	})
-	if (user?.role !== 'ADMIN' && user?.role !== 'EDITOR') {
+	const role = getUserRole(ctx.session)
+	if (role !== 'ADMIN' && role !== 'EDITOR') {
 		throw new TRPCError({ code: 'FORBIDDEN', message: 'Недостаточно прав' })
 	}
 	return next({

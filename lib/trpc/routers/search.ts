@@ -36,9 +36,15 @@ interface SearchProductRow {
 	badges: Prisma.JsonValue
 	is_active: boolean
 	category_id: string | null
+	root_category_id: string | null
+	subcategory_id: string | null
 	created_at: Date
 	category_name: string | null
 	category_slug: string | null
+	root_category_name: string | null
+	root_category_slug: string | null
+	subcategory_name: string | null
+	subcategory_slug: string | null
 	rank: number
 }
 
@@ -50,30 +56,31 @@ export const searchRouter = createTRPCRouter({
 	search: baseProcedure.input(searchInput).query(async ({ ctx, input }) => {
 		const { query, categorySlug, limit, cursor, sortBy, filters } = input
 		const offset = cursor ?? 0
+		const escapedLikeQuery = `%${query.replace(/[\\%_]/g, match => `\\${match}`)}%`
 
 		// Build ORDER BY (safe — no user input interpolation)
 		let orderClause: string
 		switch (sortBy) {
 			case 'price_asc':
-				orderClause = `p."price" ASC NULLS LAST`
+				orderClause = `p."price" ASC NULLS LAST, rank DESC, p."id" ASC`
 				break
 			case 'price_desc':
-				orderClause = `p."price" DESC NULLS LAST`
+				orderClause = `p."price" DESC NULLS LAST, rank DESC, p."id" ASC`
 				break
 			case 'newest':
-				orderClause = `p."created_at" DESC`
+				orderClause = `p."created_at" DESC, rank DESC, p."id" ASC`
 				break
 			default:
-				orderClause = `rank DESC`
+				orderClause = `rank DESC, p."created_at" DESC, p."id" ASC`
 		}
 
 		// Build parameterized query dynamically
-		const params: unknown[] = [query] // $1 = query
-		let paramIndex = 2
+		const params: unknown[] = [query, escapedLikeQuery] // $1 = tsquery, $2 = ILIKE fallback
+		let paramIndex = 3
 
 		let filterClause = ''
 		if (categorySlug) {
-			filterClause += ` AND c."slug" = $${paramIndex}`
+			filterClause += ` AND (COALESCE(sc."slug", c."slug") = $${paramIndex} OR COALESCE(rc."slug", c."slug") = $${paramIndex})`
 			params.push(categorySlug)
 			paramIndex++
 		}
@@ -105,11 +112,26 @@ export const searchRouter = createTRPCRouter({
 				pi."url" as main_image_url,
 				p."brand", p."brand_country",
 				p."rating", p."reviews_count", p."badges", p."is_active",
-				p."category_id", p."created_at",
-				c."name" as category_name, c."slug" as category_slug,
-				ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)) as rank
+				p."category_id", p."root_category_id", p."subcategory_id", p."created_at",
+				COALESCE(sc."name", c."name", rc."name") as category_name,
+				COALESCE(sc."slug", c."slug", rc."slug") as category_slug,
+				rc."name" as root_category_name, rc."slug" as root_category_slug,
+				sc."name" as subcategory_name, sc."slug" as subcategory_slug,
+				GREATEST(
+					ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)),
+					CASE
+						WHEN COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\' THEN 0.95
+						WHEN COALESCE(rc."name", c."name", '') ILIKE $2 ESCAPE '\\' THEN 0.9
+						WHEN p."name" ILIKE $2 ESCAPE '\\' THEN 0.85
+						WHEN COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\' THEN 0.45
+						WHEN COALESCE(p."description", '') ILIKE $2 ESCAPE '\\' THEN 0.25
+						ELSE 0
+					END
+				) as rank
 			FROM "products" p
 			LEFT JOIN "categories" c ON p."category_id" = c."id"
+			LEFT JOIN "categories" rc ON p."root_category_id" = rc."id"
+			LEFT JOIN "categories" sc ON p."subcategory_id" = sc."id"
 			LEFT JOIN LATERAL (
 				SELECT pi."url"
 				FROM "product_images" pi
@@ -118,7 +140,14 @@ export const searchRouter = createTRPCRouter({
 				LIMIT 1
 			) pi ON true
 			WHERE p."is_active" = true
-				AND p."search_vector" @@ websearch_to_tsquery('russian', $1)
+				AND (
+					p."search_vector" @@ websearch_to_tsquery('russian', $1)
+					OR p."name" ILIKE $2 ESCAPE '\\'
+					OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'
+				)
 				${filterClause}
 			ORDER BY ${orderClause}
 			LIMIT $${limitParam}
@@ -137,8 +166,17 @@ export const searchRouter = createTRPCRouter({
 			SELECT COUNT(*)::bigint as count
 			FROM "products" p
 			LEFT JOIN "categories" c ON p."category_id" = c."id"
+			LEFT JOIN "categories" rc ON p."root_category_id" = rc."id"
+			LEFT JOIN "categories" sc ON p."subcategory_id" = sc."id"
 			WHERE p."is_active" = true
-				AND p."search_vector" @@ websearch_to_tsquery('russian', $1)
+				AND (
+					p."search_vector" @@ websearch_to_tsquery('russian', $1)
+					OR p."name" ILIKE $2 ESCAPE '\\'
+					OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
+					OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'
+				)
 				${filterClause}
 			`,
 			...countParams,
@@ -164,9 +202,17 @@ export const searchRouter = createTRPCRouter({
 				badges: row.badges,
 				isActive: row.is_active,
 				categoryId: row.category_id,
+				rootCategoryId: row.root_category_id,
+				subcategoryId: row.subcategory_id,
 				createdAt: row.created_at,
 				category: row.category_name
 					? { name: row.category_name, slug: row.category_slug! }
+					: null,
+				rootCategory: row.root_category_name
+					? { name: row.root_category_name, slug: row.root_category_slug! }
+					: null,
+				subcategory: row.subcategory_name
+					? { name: row.subcategory_name, slug: row.subcategory_slug! }
 					: null,
 				rank: row.rank,
 			})),
@@ -184,6 +230,7 @@ export const searchRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const { query, limit } = input
+			const escapedLikeQuery = `%${query.replace(/[\\%_]/g, match => `\\${match}`)}%`
 
 			const items = await ctx.prisma.$queryRawUnsafe<
 				{
@@ -201,10 +248,22 @@ export const searchRouter = createTRPCRouter({
 				SELECT
 					p."id", p."name", p."slug", p."price",
 					pi."url" as image_url,
-					c."name" as category_name, c."slug" as category_slug,
-					ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)) as rank
+					COALESCE(sc."name", c."name", rc."name") as category_name,
+					COALESCE(sc."slug", c."slug", rc."slug") as category_slug,
+					GREATEST(
+						ts_rank(p."search_vector", websearch_to_tsquery('russian', $1)),
+						CASE
+							WHEN COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\' THEN 0.95
+							WHEN COALESCE(rc."name", c."name", '') ILIKE $2 ESCAPE '\\' THEN 0.9
+							WHEN p."name" ILIKE $2 ESCAPE '\\' THEN 0.85
+							WHEN COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\' THEN 0.45
+							ELSE 0
+						END
+					) as rank
 				FROM "products" p
 				LEFT JOIN "categories" c ON p."category_id" = c."id"
+				LEFT JOIN "categories" rc ON p."root_category_id" = rc."id"
+				LEFT JOIN "categories" sc ON p."subcategory_id" = sc."id"
 				LEFT JOIN LATERAL (
 					SELECT pi."url"
 					FROM "product_images" pi
@@ -213,11 +272,21 @@ export const searchRouter = createTRPCRouter({
 					LIMIT 1
 				) pi ON true
 				WHERE p."is_active" = true
-					AND p."search_vector" @@ websearch_to_tsquery('russian', $1)
-				ORDER BY rank DESC
-				LIMIT $2
+					AND (
+						p."search_vector" @@ websearch_to_tsquery('russian', $1)
+						OR p."name" ILIKE $2 ESCAPE '\\'
+						OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+						OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
+						OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
+						OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'
+						OR COALESCE(rc."name", '') ILIKE $2 ESCAPE '\\'
+						OR COALESCE(rc."slug", '') ILIKE $2 ESCAPE '\\'
+					)
+				ORDER BY rank DESC, p."created_at" DESC, p."id" ASC
+				LIMIT $3
 				`,
 				query,
+				escapedLikeQuery,
 				limit,
 			)
 

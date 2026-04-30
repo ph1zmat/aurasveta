@@ -1,9 +1,11 @@
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
+import { upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { deleteFile } from '@/lib/storage'
+import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
 	buildCategoryProductWhere,
 	getCategoryFilterSummary,
@@ -65,6 +67,53 @@ type CategoryWithFilterMeta = CategoryFilterAware & {
 	filterSummary?: string | null
 }
 
+async function ensureValidParentAssignment(
+	ctx: { prisma: PrismaClient },
+	args: {
+		parentId?: string | null
+		currentCategoryId?: string | null
+	},
+) {
+	const { parentId, currentCategoryId } = args
+
+	if (!parentId) {
+		return
+	}
+
+	if (currentCategoryId && parentId === currentCategoryId) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: 'Категория не может быть родительской сама для себя.',
+		})
+	}
+
+	let cursor: string | null = parentId
+
+	while (cursor) {
+		if (currentCategoryId && cursor === currentCategoryId) {
+			throw new TRPCError({
+				code: 'BAD_REQUEST',
+				message: 'Нельзя перенести категорию внутрь собственной ветки.',
+			})
+		}
+
+		const category: { id: string; parentId: string | null } | null =
+			await ctx.prisma.category.findUnique({
+			where: { id: cursor },
+			select: { id: true, parentId: true },
+			})
+
+		if (!category) {
+			throw new TRPCError({
+				code: 'BAD_REQUEST',
+				message: 'Выбранная родительская категория не существует.',
+			})
+		}
+
+		cursor = category.parentId
+	}
+}
+
 async function resolveCategoryFilterData(
 	ctx: { prisma: PrismaClient },
 	input: z.infer<typeof categoryFilterInputSchema>,
@@ -121,20 +170,104 @@ async function resolveCategoryFilterData(
 	}
 }
 
-async function resolveCategoryProductCount(
-	ctx: { prisma: PrismaClient },
-	category: CategoryWithFilterMeta,
-) {
-	if (!isFilteringCategory(category)) {
-		return category._count?.products ?? 0
+/** Рекурсивно собирает все узлы категорий в плоский массив */
+function flattenCategoryNodes(
+	categories: CategoryWithFilterMeta[],
+	result: CategoryWithFilterMeta[] = [],
+): CategoryWithFilterMeta[] {
+	for (const c of categories) {
+		result.push(c)
+		if (c.children) flattenCategoryNodes(c.children, result)
+		if (c.parent) result.push(c.parent)
 	}
+	return result
+}
 
-	return ctx.prisma.product.count({
+/** Batch-загрузка fallback-изображений для всех категорий одним запросом */
+async function batchResolveCategoryFallbackImages(
+	ctx: { prisma: PrismaClient },
+	categoryIds: string[],
+	cache: Map<string, Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']>,
+) {
+	if (categoryIds.length === 0) return new Map<string, { imageUrl: string | null; imageAsset: Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset'] }>()
+
+	const products = await ctx.prisma.product.findMany({
 		where: {
 			isActive: true,
-			...buildCategoryProductWhere(category, { includeChildren: true }),
+			images: { some: {} },
+			OR: [
+				{ rootCategoryId: { in: categoryIds } },
+				{ subcategoryId: { in: categoryIds } },
+				{ categoryId: { in: categoryIds } },
+				{ subcategory: { parentId: { in: categoryIds } } },
+				{ category: { parentId: { in: categoryIds } } },
+			],
+		},
+		orderBy: { createdAt: 'desc' },
+		select: {
+			categoryId: true,
+			rootCategoryId: true,
+			subcategoryId: true,
+			category: { select: { parentId: true } },
+			subcategory: { select: { parentId: true } },
+			images: {
+				orderBy: [{ isMain: 'desc' }, { order: 'asc' }],
+				select: productImageSelect,
+			},
 		},
 	})
+
+	const byCategoryId = new Map<string, typeof products[number]>()
+	const byParentId = new Map<string, typeof products[number]>()
+
+	for (const product of products) {
+		const directCategoryId = product.subcategoryId ?? product.categoryId ?? product.rootCategoryId
+		const parentCategoryId = product.rootCategoryId ?? product.category?.parentId
+
+		if (directCategoryId && !byCategoryId.has(directCategoryId)) {
+			byCategoryId.set(directCategoryId, product)
+		}
+		if (parentCategoryId && !byParentId.has(parentCategoryId)) {
+			byParentId.set(parentCategoryId, product)
+		}
+	}
+
+	const resolved = new Map<string, { imageUrl: string | null; imageAsset: Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset'] }>()
+
+	for (const [catId, product] of byCategoryId) {
+		const r = await withResolvedProductImages(product, { cache })
+		if (r.imageUrl) resolved.set(catId, { imageUrl: r.imageUrl, imageAsset: r.imageAsset })
+	}
+	for (const [parentId, product] of byParentId) {
+		if (resolved.has(parentId)) continue
+		const r = await withResolvedProductImages(product, { cache })
+		if (r.imageUrl) resolved.set(parentId, { imageUrl: r.imageUrl, imageAsset: r.imageAsset })
+	}
+
+	return resolved
+}
+
+/** Batch-вычисление counts для filtering-категорий (параллельно) */
+async function batchResolveCategoryProductCounts(
+	ctx: { prisma: PrismaClient },
+	categories: CategoryWithFilterMeta[],
+) {
+	const counts = new Map<string, number>()
+	const filtering = categories.filter(isFilteringCategory)
+
+	await Promise.all(
+		filtering.map(async (cat) => {
+			const count = await ctx.prisma.product.count({
+				where: {
+					isActive: true,
+					...buildCategoryProductWhere(cat, { includeChildren: true }),
+				},
+			})
+			counts.set(cat.id, count)
+		}),
+	)
+
+	return counts
 }
 
 async function enrichCategoryNode(
@@ -144,87 +277,73 @@ async function enrichCategoryNode(
 		string,
 		Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']
 	>,
+	fallbackImages: Map<string, { imageUrl: string | null; imageAsset: Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset'] }>,
+	productCounts: Map<string, number>,
 ): Promise<CategoryWithFilterMeta> {
-	const resolvedCategory = await withResolvedCategoryImage(ctx, category, {
-		cache,
-	})
+	// Резолвим собственное изображение категории
+	const resolvedCategory = await withResolvedImageAsset(category, { cache })
+	const fallback = fallbackImages.get(category.id)
+	const finalCategory = fallback && !resolvedCategory.imageUrl
+		? { ...resolvedCategory, imageUrl: fallback.imageUrl, imageAsset: fallback.imageAsset }
+		: resolvedCategory
+
 	const children = category.children
 		? await Promise.all(
-				category.children.map(child => enrichCategoryNode(ctx, child, cache)),
+				category.children.map(child => enrichCategoryNode(ctx, child, cache, fallbackImages, productCounts)),
 			)
 		: undefined
+
 	const parent = category.parent
-		? await withResolvedCategoryImage(ctx, category.parent, { cache })
+		? await enrichCategoryNode(ctx, category.parent, cache, fallbackImages, productCounts)
 		: undefined
 
 	return {
-		...resolvedCategory,
+		...finalCategory,
 		...(parent !== undefined ? { parent } : {}),
 		...(children ? { children } : {}),
 		_count: {
-			products: await resolveCategoryProductCount(ctx, category),
+			products: productCounts.get(category.id) ?? category._count?.products ?? 0,
 		},
 		filterSummary: getCategoryFilterSummary(category),
 	}
 }
 
-async function withResolvedCategoryImage<
-	T extends {
-		id: string
-		image?: string | null
-		imagePath?: string | null
-	},
->(
+/** Batch-обогащение массива категорий (1 запрос на fallback-изображения + параллельные counts) */
+async function enrichCategories(
 	ctx: { prisma: PrismaClient },
-	category: T,
-	options?: {
-		cache?: Map<
-			string,
-			Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']
-		>
-		preferProxy?: boolean
-	},
+	categories: CategoryWithFilterMeta[],
 ) {
-	const resolvedCategory = await withResolvedImageAsset(category, options)
-	if (resolvedCategory.imageUrl) {
-		return resolvedCategory
-	}
+	const cache = new Map<string, Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']>()
+	const allNodes = flattenCategoryNodes(categories)
+	const categoryIds = [...new Set(allNodes.map((c) => c.id))]
 
-	const fallbackProduct = await ctx.prisma.product.findFirst({
-		where: {
-			isActive: true,
-			images: { some: {} },
-			OR: [
-				{ categoryId: category.id },
-				{ category: { parentId: category.id } },
-			],
-		},
-		orderBy: { createdAt: 'desc' },
-		select: {
-			images: {
-				orderBy: [{ isMain: 'desc' }, { order: 'asc' }],
-				select: productImageSelect,
-			},
-		},
-	})
+	const [fallbackImages, productCounts] = await Promise.all([
+		batchResolveCategoryFallbackImages(ctx, categoryIds, cache),
+		batchResolveCategoryProductCounts(ctx, allNodes),
+	])
 
-	if (!fallbackProduct) {
-		return resolvedCategory
-	}
-
-	const resolvedProduct = await withResolvedProductImages(
-		fallbackProduct,
-		options,
+	return Promise.all(
+		categories.map((category) =>
+			enrichCategoryNode(ctx, category, cache, fallbackImages, productCounts),
+		),
 	)
-	if (!resolvedProduct.imageUrl) {
-		return resolvedCategory
-	}
+}
 
-	return {
-		...resolvedCategory,
-		imageUrl: resolvedProduct.imageUrl,
-		imageAsset: resolvedProduct.imageAsset,
-	}
+/** Batch-обогащение единичной категории */
+async function enrichSingleCategory(
+	ctx: { prisma: PrismaClient },
+	category: CategoryWithFilterMeta,
+) {
+	const cache = new Map<string, Awaited<ReturnType<typeof withResolvedImageAsset>>['imageAsset']>()
+	const allNodes = flattenCategoryNodes([category])
+	const categoryIds = [...new Set(allNodes.map((c) => c.id))]
+
+	const [fallbackImages, productCounts] = await Promise.all([
+		batchResolveCategoryFallbackImages(ctx, categoryIds, cache),
+		batchResolveCategoryProductCounts(ctx, allNodes),
+	])
+
+	return enrichCategoryNode(ctx, category, cache, fallbackImages, productCounts)
 }
 
 export const categoriesRouter = createTRPCRouter({
@@ -243,10 +362,7 @@ export const categoriesRouter = createTRPCRouter({
 			orderBy: { name: 'asc' },
 		})
 
-		const cache = new Map()
-		return Promise.all(
-			categories.map(category => enrichCategoryNode(ctx, category, cache)),
-		)
+		return enrichCategories(ctx, categories)
 	}),
 
 	getTree: baseProcedure.query(async ({ ctx }) => {
@@ -271,10 +387,7 @@ export const categoriesRouter = createTRPCRouter({
 			orderBy: { name: 'asc' },
 		})
 
-		const cache = new Map()
-		return Promise.all(
-			categories.map(category => enrichCategoryNode(ctx, category, cache)),
-		)
+		return enrichCategories(ctx, categories)
 	}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
@@ -300,8 +413,7 @@ export const categoriesRouter = createTRPCRouter({
 
 		if (!category) return null
 
-		const cache = new Map()
-		return enrichCategoryNode(ctx, category, cache)
+		return enrichSingleCategory(ctx, category)
 	}),
 
 	getNav: baseProcedure.query(async ({ ctx }) => {
@@ -336,10 +448,7 @@ export const categoriesRouter = createTRPCRouter({
 			orderBy: { name: 'asc' },
 		})
 
-		const cache = new Map()
-		return Promise.all(
-			categories.map(category => enrichCategoryNode(ctx, category, cache)),
-		)
+		return enrichCategories(ctx, categories)
 	}),
 
 	getProductsByCategorySlug: baseProcedure
@@ -362,6 +471,7 @@ export const categoriesRouter = createTRPCRouter({
 				select: {
 					id: true,
 					name: true,
+					parentId: true,
 					categoryMode: true,
 					filterKind: true,
 					filterPropertyId: true,
@@ -421,8 +531,12 @@ export const categoriesRouter = createTRPCRouter({
 						badges: true,
 						isActive: true,
 						categoryId: true,
+						rootCategoryId: true,
+						subcategoryId: true,
 						createdAt: true,
 						category: { select: { name: true, slug: true } },
+						rootCategory: { select: { name: true, slug: true, parentId: true } },
+						subcategory: { select: { name: true, slug: true, parentId: true } },
 					},
 				}),
 				ctx.prisma.product.count({ where }),
@@ -450,7 +564,10 @@ export const categoriesRouter = createTRPCRouter({
 					slug: z.string().optional(),
 					description: z.string().optional(),
 					image: z.string().optional(),
+					imagePath: z.string().optional(),
+					imageOriginalName: z.string().nullable().optional(),
 					parentId: z.string().optional(),
+					seo: SeoFieldsInputSchema.optional(),
 				})
 				.merge(categoryHeaderVisibilityInputSchema)
 				.merge(categoryFilterInputSchema),
@@ -462,6 +579,10 @@ export const categoriesRouter = createTRPCRouter({
 				filterPropertyId,
 				filterPropertyValueId,
 				showInHeader,
+				seo,
+				image,
+				imagePath,
+				imageOriginalName,
 				...rest
 			} = input
 			let slug = input.slug?.trim() || generateSlug(input.name)
@@ -476,13 +597,32 @@ export const categoriesRouter = createTRPCRouter({
 				filterPropertyId,
 				filterPropertyValueId,
 			})
-			return ctx.prisma.category.create({
-				data: {
-					...rest,
-					slug,
-					showInHeader,
-					...filterData,
-				},
+
+			await ensureValidParentAssignment(ctx, {
+				parentId: rest.parentId,
+			})
+
+			return ctx.prisma.$transaction(async tx => {
+				const category = await tx.category.create({
+					data: {
+						...rest,
+						slug,
+						showInHeader,
+						imagePath: imagePath ?? image,
+						imageOriginalName: imageOriginalName ?? null,
+						...filterData,
+					},
+				})
+
+				if (seo !== undefined) {
+					await upsertSeoMetadata(tx, {
+						targetType: 'category',
+						targetId: category.id,
+						fields: seo,
+					})
+				}
+
+				return category
 			})
 		}),
 
@@ -495,7 +635,10 @@ export const categoriesRouter = createTRPCRouter({
 					slug: z.string().optional(),
 					description: z.string().optional(),
 					image: z.string().optional(),
+					imagePath: z.string().optional(),
+					imageOriginalName: z.string().nullable().optional(),
 					parentId: z.string().nullable().optional(),
+					seo: SeoFieldsInputSchema.optional(),
 				})
 				.merge(categoryHeaderVisibilityInputSchema.partial())
 				.merge(categoryFilterInputSchema.partial()),
@@ -507,8 +650,22 @@ export const categoriesRouter = createTRPCRouter({
 				filterKind,
 				filterPropertyId,
 				filterPropertyValueId,
+				seo,
+				image,
+				imagePath,
+				imageOriginalName,
 				...data
 			} = input
+
+			const updateData: Prisma.CategoryUncheckedUpdateInput = { ...data }
+
+			if (image !== undefined || imagePath !== undefined) {
+				updateData.imagePath = imagePath ?? image ?? null
+			}
+
+			if (imageOriginalName !== undefined) {
+				updateData.imageOriginalName = imageOriginalName
+			}
 			if (data.name && !data.slug) {
 				let slug = generateSlug(data.name)
 				let suffix = 0
@@ -559,12 +716,29 @@ export const categoriesRouter = createTRPCRouter({
 						: filterPropertyValueId,
 			})
 
-			return ctx.prisma.category.update({
-				where: { id },
-				data: {
-					...data,
-					...filterData,
-				},
+			await ensureValidParentAssignment(ctx, {
+				parentId: data.parentId,
+				currentCategoryId: id,
+			})
+
+			return ctx.prisma.$transaction(async tx => {
+				const category = await tx.category.update({
+					where: { id },
+					data: {
+						...updateData,
+						...filterData,
+					},
+				})
+
+				if (seo !== undefined) {
+					await upsertSeoMetadata(tx, {
+						targetType: 'category',
+						targetId: id,
+						fields: seo,
+					})
+				}
+
+				return category
 			})
 		}),
 

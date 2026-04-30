@@ -195,3 +195,34 @@ Phase 6 завершена как закрытие оставшихся legacy m
 ## Что пока осознанно не трогали
 
 - DnD-ядро `HomeSectionsClient` и визуальный `SectionConfigEditor` оставлены в текущей архитектуре; на Phase 4 менялся route-driven orchestration layer, а не внутренняя модель конфиг-редактора.
+
+## Итог Phase 7
+
+Phase 7 завершена как унификация admin order flow вокруг feature-driven editor и общего status contract:
+
+1. Для админки добавлен отдельный detail query `orders.getAdminById`, чтобы order modal больше не зависел от текущей страницы списка и мог безопасно открываться по route-driven `order` id.
+2. Добавлена мутация `orders.updateAdminOrder`, которая позволяет редактировать контактные поля заказа (`phone`, `address`, `comment`) и менять статус через единый серверный контракт.
+3. Order UI перенесён из legacy `shared/admin/orders/*` в `features/admin/order-editor/*`, а `OrdersClient` и `AdminDashboard` теперь используют общий feature-driven editor/modal.
+4. Order modal стал полноценным editor'ом: показывает таймлайн, позиции заказа, текущий статус, доступные переходы и сохраняет контактные данные через `TanStack Form`.
+
+### Что именно добавлено на Phase 7
+
+- `shared/types/order.ts`
+- `features/admin/order-editor/model/orderStatus.tsx`
+- `features/admin/order-editor/ui/OrderCard.tsx`
+- `features/admin/order-editor/ui/OrderEditorModal.tsx`
+- `features/admin/order-editor/index.ts`
+
+## Итог Phase 8
+
+Phase 8 завершена как финальная зачистка legacy admin-слоёв и недостающих reusable primitives:
+
+1. Legacy Prisma модель `Seo` удалена из `schema.prisma`, а совместимый backfill в `seoMetadata` сохранён через raw-SQL скрипт `scripts/backfill-seo-metadata.ts`.
+2. Публичный storefront и admin SEO flow окончательно сведены к `seoMetadata` как runtime source of truth.
+3. В `shared-admin` добавлен универсальный `SortableList`, чтобы новые drag-and-drop editor'ы не тащили локальные ad-hoc реализации.
+4. Web admin больше не использует legacy order UI из `shared/admin/orders/*`; order flow централизован в feature-слое.
+
+## Следующие шаги после Phase 8
+
+1. Можно постепенно убирать remaining compatibility fallbacks (`Page.seo`, legacy page snapshots), но только после подтверждённого backfill на рабочей базе.
+2. При желании вынести desktop/mobile order UIs на тот же shared contract, но это уже cross-client enhancement, а не blocker web admin migration.

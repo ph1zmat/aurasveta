@@ -1,24 +1,12 @@
 import { z } from 'zod'
 import { createTRPCRouter, adminProcedure, editorProcedure } from '../init'
-
-const seoInput = z.object({
-	targetType: z.enum(['product', 'category', 'page']),
-	targetId: z.string(),
-	title: z.string().nullable().optional(),
-	description: z.string().nullable().optional(),
-	keywords: z.string().nullable().optional(),
-	ogTitle: z.string().nullable().optional(),
-	ogDescription: z.string().nullable().optional(),
-	ogImage: z.string().nullable().optional(),
-	canonicalUrl: z.string().nullable().optional(),
-	noIndex: z.boolean().optional(),
-})
+import { SeoMetadataInputSchema, SeoTargetTypeSchema } from '@/shared/types/seo'
 
 export const seoRouter = createTRPCRouter({
 	getByTarget: editorProcedure
 		.input(
 			z.object({
-				targetType: z.string(),
+				targetType: SeoTargetTypeSchema,
 				targetId: z.string(),
 			}),
 		)
@@ -33,7 +21,9 @@ export const seoRouter = createTRPCRouter({
 			})
 		}),
 
-	update: editorProcedure.input(seoInput).mutation(async ({ ctx, input }) => {
+	update: editorProcedure
+		.input(SeoMetadataInputSchema)
+		.mutation(async ({ ctx, input }) => {
 		const { targetType, targetId, ...data } = input
 
 		return ctx.prisma.seoMetadata.upsert({
@@ -63,7 +53,7 @@ export const seoRouter = createTRPCRouter({
 				noIndex: data.noIndex ?? false,
 			},
 		})
-	}),
+		}),
 
 	listAll: adminProcedure
 		.input(

@@ -1,8 +1,5 @@
-import { requireAdmin } from '@/lib/auth/auth-utils'
 import CategoriesClient from './CategoriesClient'
 
-export default async function AdminCategoriesPage() {
-	await requireAdmin()
+export default function CategoriesPage() {
 	return <CategoriesClient />
 }
-

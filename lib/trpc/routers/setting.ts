@@ -76,4 +76,32 @@ export const settingRouter = createTRPCRouter({
 		revalidatePath('/', 'layout')
 		return result
 	}),
+
+	bulkUpsert: adminProcedure
+		.input(
+			z.array(
+				z.object({
+					key: z.string().min(1),
+					value: z.unknown(),
+					type: z.string().optional(),
+					isPublic: z.boolean().optional(),
+					group: z.string().optional(),
+					description: z.string().optional(),
+				}),
+			),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const results = await ctx.prisma.$transaction(
+				input.map((item) => {
+					const { key, value, ...rest } = item
+					return ctx.prisma.setting.upsert({
+						where: { key },
+						create: { key, value: value as never, ...rest },
+						update: { value: value as never, ...rest },
+					})
+				}),
+			)
+			revalidatePath('/', 'layout')
+			return results
+		}),
 })

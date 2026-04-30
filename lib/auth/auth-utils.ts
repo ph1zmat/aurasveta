@@ -4,6 +4,10 @@ import { redirect } from 'next/navigation'
 
 type UserRole = 'USER' | 'EDITOR' | 'ADMIN'
 
+function getRoleFromSession(session: Awaited<ReturnType<typeof auth.api.getSession>>): UserRole {
+	return ((session?.user as Record<string, unknown>)?.role as UserRole) ?? 'USER'
+}
+
 export async function getSession() {
 	const session = await auth.api.getSession({
 		headers: await headers(),
@@ -28,12 +32,8 @@ export async function requireUnauth() {
 
 export async function requireAdmin() {
 	const session = await requireAuth()
-	const { prisma } = await import('@/lib/prisma')
-	const user = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { role: true },
-	})
-	if (user?.role !== 'ADMIN') {
+	const role = getRoleFromSession(session)
+	if (role !== 'ADMIN') {
 		redirect('/forbidden')
 	}
 	return session
@@ -41,12 +41,7 @@ export async function requireAdmin() {
 
 export async function requireEditor() {
 	const session = await requireAuth()
-	const { prisma } = await import('@/lib/prisma')
-	const user = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { role: true },
-	})
-	const role = (user?.role ?? 'USER') as UserRole
+	const role = getRoleFromSession(session)
 	if (role !== 'ADMIN' && role !== 'EDITOR') {
 		redirect('/forbidden')
 	}
@@ -58,12 +53,7 @@ export async function requireCmsAccess(): Promise<{
 	role: UserRole
 }> {
 	const session = await requireAuth()
-	const { prisma } = await import('@/lib/prisma')
-	const user = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { role: true },
-	})
-	const role = (user?.role ?? 'USER') as UserRole
+	const role = getRoleFromSession(session)
 	if (role !== 'ADMIN' && role !== 'EDITOR') {
 		redirect('/forbidden')
 	}

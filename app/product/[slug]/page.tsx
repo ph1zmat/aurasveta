@@ -58,6 +58,8 @@ export async function generateMetadata({
 		id: String(product.id),
 		name: product.name,
 		description: product.description,
+		metaTitle: product.metaTitle,
+		metaDesc: product.metaDesc,
 		price: product.price,
 		images: product.images,
 		brand: product.brand,

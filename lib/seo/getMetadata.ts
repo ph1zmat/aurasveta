@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import {
+	mergeSeoFields,
+	pageLegacySeoToFields,
+} from '@/lib/seo/metadata-persistence'
+import {
 	generateProductSeo,
 	generateCategorySeo,
 	generatePageSeo,
@@ -69,13 +73,35 @@ export async function getMetadataForProduct(product: {
 	id: string
 	name: string
 	description?: string | null
+	metaTitle?: string | null
+	metaDesc?: string | null
 	price?: number | null
 	images?: Array<{ url?: string | null } | string>
 	brand?: string | null
 }): Promise<SeoResult> {
 	const auto = generateProductSeo(product)
 	const override = await getSeoOverride('product', product.id)
-	return merge(auto, override)
+	const merged = mergeSeoFields(
+		{
+			title: product.metaTitle ?? auto.title,
+			description: product.metaDesc ?? auto.description,
+			ogTitle: auto.ogTitle,
+			ogDescription: auto.ogDescription,
+			ogImage: auto.ogImage,
+		},
+		override,
+	)
+
+	return {
+		title: merged.title ?? auto.title,
+		description: merged.description,
+		ogTitle: merged.ogTitle,
+		ogDescription: merged.ogDescription,
+		ogImage: merged.ogImage,
+		canonicalUrl: merged.canonicalUrl,
+		noIndex: merged.noIndex,
+		keywords: merged.keywords,
+	}
 }
 
 export async function getMetadataForCategory(category: {
@@ -99,7 +125,34 @@ export async function getMetadataForPage(page: {
 }): Promise<SeoResult> {
 	const auto = generatePageSeo(page)
 	const override = await getSeoOverride('page', page.id)
-	return merge(auto, override)
+	const legacy = pageLegacySeoToFields({
+		metaTitle: page.metaTitle,
+		metaDesc: page.metaDesc,
+	})
+	const merged = mergeSeoFields(
+		mergeSeoFields(
+			{
+				title: auto.title,
+				description: auto.description,
+				ogTitle: auto.ogTitle,
+				ogDescription: auto.ogDescription,
+				ogImage: auto.ogImage,
+			},
+			legacy,
+		),
+		override,
+	)
+
+	return {
+		title: merged.title ?? auto.title,
+		description: merged.description,
+		ogTitle: merged.ogTitle,
+		ogDescription: merged.ogDescription,
+		ogImage: merged.ogImage,
+		canonicalUrl: merged.canonicalUrl,
+		noIndex: merged.noIndex,
+		keywords: merged.keywords,
+	}
 }
 
 export async function getMetadataForStaticPage(
@@ -107,14 +160,27 @@ export async function getMetadataForStaticPage(
 	fallbackTitle: string,
 ): Promise<SeoResult> {
 	const override = await getSeoOverride('page', pageId)
-	const auto = {
-		title: fallbackTitle,
-		description: null,
-		ogTitle: fallbackTitle,
-		ogDescription: null,
-		ogImage: null,
+	const merged = mergeSeoFields(
+		{
+			title: fallbackTitle,
+			description: null,
+			ogTitle: fallbackTitle,
+			ogDescription: null,
+			ogImage: null,
+		},
+		override,
+	)
+
+	return {
+		title: merged.title ?? fallbackTitle,
+		description: merged.description,
+		ogTitle: merged.ogTitle,
+		ogDescription: merged.ogDescription,
+		ogImage: merged.ogImage,
+		canonicalUrl: merged.canonicalUrl,
+		noIndex: merged.noIndex,
+		keywords: merged.keywords,
 	}
-	return merge(auto, override)
 }
 
 export function seoToMetadata(seo: SeoResult): Metadata {

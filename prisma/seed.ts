@@ -240,6 +240,22 @@ async function seedCategories() {
 	return categoryIds
 }
 
+function buildCategoryParentMap(
+	categoryIds: Map<string, string>,
+): Map<string, string> {
+	// Returns Map<childId, parentId>
+	const parentMap = new Map<string, string>()
+	for (const category of CATEGORY_DEFINITIONS) {
+		const parentId = categoryIds.get(category.slug)
+		if (!parentId) continue
+		for (const child of category.children ?? []) {
+			const childId = categoryIds.get(child.slug)
+			if (childId) parentMap.set(childId, parentId)
+		}
+	}
+	return parentMap
+}
+
 async function seedProperties() {
 	// Returns Map<propertySlug, { propertyId, valueMap: Map<stringifiedValue, propertyValueId> }>
 	const result = new Map<string, { propertyId: string; valueMap: Map<string, string> }>()
@@ -279,6 +295,7 @@ async function seedProducts(params: {
 	adminId: string
 	categoryIds: Map<string, string>
 	propertyData: Map<string, { propertyId: string; valueMap: Map<string, string> }>
+	parentMap: Map<string, string>
 }) {
 	const catalogProducts = createCatalogProducts()
 	const productRows: Prisma.ProductCreateManyInput[] = []
@@ -300,6 +317,8 @@ async function seedProducts(params: {
 			sku: product.sku,
 			categoryId,
 			isActive: true,
+			rootCategoryId: params.parentMap.get(categoryId) ?? null,
+			subcategoryId: params.parentMap.has(categoryId) ? categoryId : null,
 			brand: product.brand,
 			brandCountry: product.brandCountry,
 			rating: product.rating,
@@ -564,6 +583,27 @@ async function seedSectionTypes() {
 		{ name: 'Наши преимущества', component: 'Advantages', configSchema: {} },
 		{ name: 'О нас', component: 'AboutText', configSchema: {} },
 		{ name: 'Вы смотрели', component: 'SeenProducts', configSchema: {} },
+		{
+			name: 'Товары по расположению',
+			component: 'Rooms',
+			configSchema: {
+				type: 'object',
+				properties: {
+					items: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								label: { type: 'string' },
+								link: { type: 'string' },
+								icon_image: { type: 'string' },
+							},
+						},
+					},
+					columns: { type: 'number', enum: [3, 4, 6], default: 4 },
+				},
+			},
+		},
 	]
 
 	const typeIds = new Map<string, string>()
@@ -829,9 +869,11 @@ async function main() {
 	const propertyData = await seedProperties()
 	console.log(`✅ Properties created: ${propertyData.size}`)
 
+	const parentMap = buildCategoryParentMap(categoryIds)
 	const products = await seedProducts({
 		adminId: admin.id,
 		categoryIds,
+		parentMap,
 		propertyData,
 	})
 	console.log(`✅ Products created: ${products.length}`)
