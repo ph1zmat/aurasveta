@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2, SlidersHorizontal, Home, RotateCcw, LogOut } from 'lucide-react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
@@ -24,23 +24,12 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 export default function SearchContent() {
 	const searchParams = useSearchParams()
 	const router = useRouter()
-	const initialQuery = searchParams.get('q') ?? ''
-
-	const [searchTerm] = useState(initialQuery)
+	const searchTerm = searchParams.get('q') ?? ''
 	const [sortBy, setSortBy] = useState<SortOption>('relevance')
 	const [inStock, setInStock] = useState(false)
 	const debouncedSearch = useDebounce(searchTerm, 400)
 
 	const observerRef = useRef<HTMLDivElement>(null)
-
-	// Sync URL when search changes
-	useEffect(() => {
-		if (debouncedSearch && debouncedSearch !== searchParams.get('q')) {
-			router.replace(`/search?q=${encodeURIComponent(debouncedSearch)}`, {
-				scroll: false,
-			})
-		}
-	}, [debouncedSearch, router, searchParams])
 
 	// Log search query for "Popular searches" feature
 	const logSearch = trpc.recommendations.logSearchQuery.useMutation()
@@ -92,39 +81,54 @@ export default function SearchContent() {
 		return () => observer.disconnect()
 	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-	const allItems =
-		data?.pages.flatMap(page =>
-			page.items.map((item: SearchItem) => {
-				const price = item.price ? Number(item.price) : 0
-				const oldPrice = item.compareAtPrice
-					? Number(item.compareAtPrice)
-					: undefined
+	const allItems = useMemo(() => {
+		const seenProductIds = new Set<string>()
 
-				return {
-					productId: item.id,
-					name: item.name,
-					href: `/product/${item.slug}`,
-					image: item.imageUrl ?? '/bulb.svg',
-					brand: item.brandCountry
-						? `${item.brand} (${item.brandCountry})`
-						: (item.brand ?? undefined),
-					price,
-					oldPrice,
-					discountPercent:
-						price && oldPrice
-							? Math.round((1 - price / oldPrice) * 100)
-							: undefined,
-					bonusAmount: price ? Math.round(price * 0.06) : undefined,
-					badges: Array.isArray(item.badges)
-						? item.badges.filter(
-								(badge: unknown): badge is string => typeof badge === 'string',
-							)
-						: [],
-					inStock: item.stock > 0 ? `В наличии ${item.stock} шт.` : undefined,
-					buttonLabel: item.stock > 0 ? 'В КОРЗИНУ' : 'УТОЧНИТЬ',
-				}
-			}),
-		) ?? []
+		return (
+			data?.pages.flatMap(page =>
+				page.items.flatMap((item: SearchItem) => {
+					if (seenProductIds.has(item.id)) {
+						return []
+					}
+
+					seenProductIds.add(item.id)
+
+					const price = item.price ? Number(item.price) : 0
+					const oldPrice = item.compareAtPrice
+						? Number(item.compareAtPrice)
+						: undefined
+
+					return [
+						{
+							productId: item.id,
+							name: item.name,
+							href: `/product/${item.slug}`,
+							image: item.imageUrl ?? '/bulb.svg',
+							brand: item.brandCountry
+								? `${item.brand} (${item.brandCountry})`
+								: (item.brand ?? undefined),
+							price,
+							oldPrice,
+							discountPercent:
+								price && oldPrice
+									? Math.round((1 - price / oldPrice) * 100)
+									: undefined,
+							bonusAmount: price ? Math.round(price * 0.06) : undefined,
+							badges: Array.isArray(item.badges)
+								? item.badges.filter(
+										(badge: unknown): badge is string =>
+											typeof badge === 'string',
+									)
+								: [],
+							inStock:
+								item.stock > 0 ? `В наличии ${item.stock} шт.` : undefined,
+							buttonLabel: item.stock > 0 ? 'В КОРЗИНУ' : 'УТОЧНИТЬ',
+						},
+					]
+				}),
+			) ?? []
+		)
+	}, [data?.pages])
 
 	const total = data?.pages[0]?.total ?? 0
 
@@ -280,8 +284,11 @@ export default function SearchContent() {
 			{/* Results grid */}
 			{allItems.length > 0 && (
 				<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
-					{allItems.map(card => (
-						<InteractiveCatalogCard key={card.productId} {...card} />
+					{allItems.map((card, index) => (
+						<InteractiveCatalogCard
+							key={`${card.productId}-${index}`}
+							{...card}
+						/>
 					))}
 				</div>
 			)}

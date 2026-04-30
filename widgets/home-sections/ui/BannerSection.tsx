@@ -15,6 +15,11 @@ export interface BannerSlide {
 	imageKey?: string
 	/** External or absolute image URL */
 	imageUrl?: string
+	/** Responsive image storage keys */
+	src_1300?: string
+	src_992?: string
+	src_768?: string
+	src_375?: string
 	/** Tailwind gradient class suffix, e.g. "from-primary/80 to-primary/60" */
 	bg?: string
 }
@@ -89,10 +94,28 @@ export default function BannerSection({ config }: BannerSectionProps) {
 				)}
 			>
 				{slides.map((slide, idx) => {
-					const imgSrc =
+					// Responsive image sources — prefer explicit breakpoint keys, fall back to legacy
+					const src1300 = slide.src_1300
+						? resolveStorageFileUrl(slide.src_1300)
+						: null
+					const src992 = slide.src_992
+						? resolveStorageFileUrl(slide.src_992)
+						: null
+					const src768 = slide.src_768
+						? resolveStorageFileUrl(slide.src_768)
+						: null
+					const src375 = slide.src_375
+						? resolveStorageFileUrl(slide.src_375)
+						: null
+					// Legacy single image
+					const legacySrc =
 						resolveStorageFileUrl(slide.imageKey) ??
 						resolveStorageFileUrl(slide.imageUrl) ??
 						null
+
+					// Primary image (largest available)
+					const primarySrc = src1300 ?? src992 ?? src768 ?? src375 ?? legacySrc
+					const hasResponsive = !!(src1300 || src992 || src768 || src375)
 
 					return (
 						<div
@@ -100,21 +123,38 @@ export default function BannerSection({ config }: BannerSectionProps) {
 							style={{ minHeight: minH }}
 							className={cn(
 								'relative flex items-center overflow-hidden rounded-xl',
-								imgSrc
+								primarySrc
 									? 'bg-foreground/40'
 									: `bg-linear-to-r ${slide.bg ?? 'from-foreground/80 to-foreground/60'}`,
 							)}
 						>
-							{imgSrc && (
+							{primarySrc && (
 								<div className='absolute inset-0 z-0'>
-									{/* eslint-disable-next-line @next/next/no-img-element */}
-									<img
-										src={imgSrc}
-										alt={slide.title ?? 'Баннер'}
-										className='h-full w-full object-cover'
-										loading={idx === 0 ? 'eager' : 'lazy'}
-										decoding='async'
-									/>
+									{hasResponsive ? (
+										<picture>
+											{src1300 && <source media='(min-width: 1300px)' srcSet={src1300} />}
+											{src992 && <source media='(min-width: 992px)' srcSet={src992} />}
+											{src768 && <source media='(min-width: 768px)' srcSet={src768} />}
+											{src375 && <source media='(min-width: 375px)' srcSet={src375} />}
+											{/* eslint-disable-next-line @next/next/no-img-element */}
+											<img
+												src={primarySrc}
+												alt={slide.title ?? 'Баннер'}
+												className='h-full w-full object-cover'
+												loading={idx === 0 ? 'eager' : 'lazy'}
+												decoding='async'
+											/>
+										</picture>
+									) : (
+										/* eslint-disable-next-line @next/next/no-img-element */
+										<img
+											src={primarySrc}
+											alt={slide.title ?? 'Баннер'}
+											className='h-full w-full object-cover'
+											loading={idx === 0 ? 'eager' : 'lazy'}
+											decoding='async'
+										/>
+									)}
 									<div className='absolute inset-0 bg-black/20' />
 								</div>
 							)}

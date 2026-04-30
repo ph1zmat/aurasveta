@@ -17,3 +17,25 @@ export type {
 	CompareSpecRow,
 	CompareSpecSection,
 } from '@/shared/types/specs'
+export type {
+	SectionType,
+	SectionBackground,
+	LinkTarget,
+	CharacteristicFilter,
+	ProductSource,
+	HeroSectionConfig,
+	ProductGridSectionConfig,
+	FeaturedCategoriesSectionConfig,
+	RichTextSectionConfig,
+	GallerySectionConfig,
+	BenefitsSectionConfig,
+	FaqSectionConfig,
+	CtaBannerSectionConfig,
+	SectionConfig,
+	SectionRecord,
+} from '@/shared/types/sections'
+export type {
+	SeoTargetType,
+	SeoMetadataInput,
+	SeoFormValues,
+} from '@/shared/types/seo'

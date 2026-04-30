@@ -249,7 +249,8 @@ function ProductFormModal({
 			compareAtPrice: '',
 			stock: '0',
 			sku: '',
-			categoryId: '',
+			rootCategoryId: '',
+			subcategoryId: '',
 			brand: '',
 			brandCountry: '',
 			isActive: true,
@@ -282,7 +283,8 @@ function ProductFormModal({
 						: '',
 				stock: editProduct.stock != null ? String(editProduct.stock) : '0',
 				sku: editProduct.sku ?? '',
-				categoryId: editProduct.categoryId ?? '',
+				rootCategoryId: (editProduct as any).rootCategoryId ?? '',
+				subcategoryId: (editProduct as any).subcategoryId ?? '',
 				brand: editProduct.brand ?? '',
 				brandCountry: editProduct.brandCountry ?? '',
 				isActive: !!editProduct.isActive,
@@ -308,7 +310,8 @@ function ProductFormModal({
 				: undefined,
 			stock: parseInt(form.stock) || 0,
 			sku: form.sku || undefined,
-			categoryId: form.categoryId || undefined,
+			rootCategoryId: form.rootCategoryId || undefined,
+			subcategoryId: form.subcategoryId || undefined,
 			brand: form.brand || undefined,
 			brandCountry: form.brandCountry || undefined,
 			isActive: form.isActive,
@@ -526,20 +529,39 @@ function ProductFormModal({
 									Категория
 								</label>
 								<select
-									value={form.categoryId}
-									onChange={e =>
-										setForm(f => ({ ...f, categoryId: e.target.value }))
-									}
+									value={form.rootCategoryId}
+									onChange={e => {
+										setForm(f => ({ ...f, rootCategoryId: e.target.value, subcategoryId: '' }))
+									}}
 									className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 								>
 									<option value=''>Без категории</option>
 									{categories?.map((c: any) => (
+										!c.parentId && <option key={c.id} value={c.id}>
+											{c.name}
+										</option>
+									))}
+								</select>
+							</div>
+							{form.rootCategoryId && (
+							<div>
+								<label className='mb-1 block text-xs font-medium text-muted-foreground'>
+									Подкатегория
+								</label>
+								<select
+									value={form.subcategoryId}
+									onChange={e => setForm(f => ({ ...f, subcategoryId: e.target.value }))}
+									className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+								>
+									<option value=''>Без подкатегории</option>
+									{categories?.filter((c: any) => c.parentId === form.rootCategoryId).map((c: any) => (
 										<option key={c.id} value={c.id}>
 											{c.name}
 										</option>
 									))}
 								</select>
 							</div>
+							)}
 							<Field
 								label='Бренд'
 								value={form.brand}

@@ -28,7 +28,7 @@ export function TRPCProvider(props: Readonly<{ children: React.ReactNode }>) {
 		trpc.createClient({
 			links: createTrpcLinks({
 				url: resolveWebTrpcUrl(),
-				mode: 'stream',
+				mode: 'batch',
 			}),
 		}),
 	)

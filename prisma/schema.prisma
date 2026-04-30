@@ -12,6 +12,18 @@ enum UserRole {
   ADMIN
 }
 
+enum PageKind {
+  REGULAR
+  HOME
+  SYSTEM
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -110,8 +122,11 @@ model Category {
   parent                Category?           @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
   children              Category[]          @relation("CategoryToCategory")
   products              Product[]
+  productsAsRoot        Product[]           @relation("ProductRootCategory")
+  productsAsSubcategory Product[]           @relation("ProductSubcategory")
   filterProperty        Property?           @relation("CategoryFilterProperty", fields: [filterPropertyId], references: [id], onDelete: SetNull)
   filterPropertyValue   PropertyValue?      @relation("CategoryFilterPropertyValue", fields: [filterPropertyValueId], references: [id], onDelete: SetNull)
+  sectionCategories     SectionCategory[]
   createdAt             DateTime            @default(now()) @map("created_at")
   updatedAt             DateTime            @updatedAt @map("updated_at")
 
@@ -218,6 +233,110 @@ model HomeSection {
   @@map("home_sections")
 }
 
+model MediaAsset {
+  id            String             @id @default(cuid())
+  storageKey    String             @unique @map("storage_key")
+  originalName  String?            @map("original_name")
+  mimeType      String?            @map("mime_type")
+  size          Int?
+  width         Int?
+  height        Int?
+  alt           String?
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  sectionItems  SectionMediaItem[]
+
+  @@map("media_assets")
+}
+
+model Section {
+  id          String                 @id @default(cuid())
+  pageId      String                 @map("page_id")
+  page        Page                   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type        String
+  order       Int                    @default(0)
+  isActive    Boolean                @default(true) @map("is_active")
+  title       String?
+  subtitle    String?
+  anchor      String?
+  background  Json?
+  config      Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  products    SectionProduct[]
+  categories  SectionCategory[]
+  pages       SectionPageReference[]
+  mediaItems  SectionMediaItem[]
+
+  @@index([pageId, order])
+  @@index([type])
+  @@index([isActive])
+  @@map("sections")
+}
+
+model SectionProduct {
+  sectionId   String   @map("section_id")
+  productId   String   @map("product_id")
+  order       Int      @default(0)
+  role        String?
+
+  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, productId])
+  @@index([sectionId, order])
+  @@index([productId])
+  @@map("section_products")
+}
+
+model SectionCategory {
+  sectionId   String    @map("section_id")
+  categoryId  String    @map("category_id")
+  order       Int       @default(0)
+  role        String?
+
+  section     Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, categoryId])
+  @@index([sectionId, order])
+  @@index([categoryId])
+  @@map("section_categories")
+}
+
+model SectionPageReference {
+  sectionId     String   @map("section_id")
+  targetPageId  String   @map("target_page_id")
+  order         Int      @default(0)
+  role          String?
+
+  section       Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  targetPage    Page     @relation("SectionTargetPage", fields: [targetPageId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, targetPageId])
+  @@index([sectionId, order])
+  @@index([targetPageId])
+  @@map("section_page_references")
+}
+
+model SectionMediaItem {
+  sectionId     String      @map("section_id")
+  mediaAssetId  String      @map("media_asset_id")
+  order         Int         @default(0)
+  role          String?
+  altOverride   String?     @map("alt_override")
+
+  section       Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  mediaAsset    MediaAsset  @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, mediaAssetId])
+  @@index([sectionId, order])
+  @@index([mediaAssetId])
+  @@map("section_media_items")
+}
+
 // ---------- CMS: Settings ----------
 
 model Setting {
@@ -234,6 +353,26 @@ model Setting {
   @@map("settings")
 }
 
+model StoreSettings {
+  id              Int      @id @default(1)
+  phone           String
+  additionalPhone String?  @map("additional_phone")
+  email           String
+  supportEmail    String?  @map("support_email")
+  address         String
+  city            String?
+  postalCode      String?  @map("postal_code")
+  workingHours    Json     @default("{}") @map("working_hours")
+  socialLinks     Json     @default("[]") @map("social_links")
+  aboutUs         String?  @map("about_us")
+  legalInfo       Json?    @map("legal_info")
+  logoUrl         String?  @map("logo_url")
+  faviconUrl      String?  @map("favicon_url")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("store_settings")
+}
+
 model Product {
   id             String                   @id @default(cuid())
   name           String
@@ -245,6 +384,10 @@ model Product {
   sku            String?                  @unique
   categoryId     String?                  @map("category_id")
   category       Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  rootCategoryId String?                  @map("root_category_id")
+  rootCategory   Category?                @relation("ProductRootCategory", fields: [rootCategoryId], references: [id], onDelete: SetNull)
+  subcategoryId  String?                  @map("subcategory_id")
+  subcategory    Category?                @relation("ProductSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
   isActive       Boolean                  @default(true) @map("is_active")
   brand          String?
   brandCountry   String?                  @map("brand_country")
@@ -259,14 +402,17 @@ model Product {
   userId         String?                  @map("user_id")
   user           User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  images       ProductImage[]
-  properties   ProductPropertyValue[]
-  orderItems   OrderItem[]
-  favorites    Favorite[]
-  compareItems CompareItem[]
-  productViews ProductView[]
+  images          ProductImage[]
+  properties      ProductPropertyValue[]
+  orderItems      OrderItem[]
+  favorites       Favorite[]
+  compareItems    CompareItem[]
+  productViews    ProductView[]
+  sectionProducts SectionProduct[]
 
   @@index([categoryId])
+  @@index([rootCategoryId])
+  @@index([subcategoryId])
   @@index([isActive, createdAt(sort: Desc)])
   @@index([brand])
   @@index([searchVector], type: Gin)
@@ -296,9 +442,10 @@ model Page {
   id                String        @id @default(cuid())
   title             String
   slug              String        @unique
+  kind              PageKind      @default(REGULAR)
+  status            PageStatus    @default(DRAFT)
   content           String?
   contentBlocks     Json?         @map("content_blocks")
-  seo               Json?
   showAsBanner      Boolean       @default(false) @map("show_as_banner")
   bannerImage       String?       @map("banner_image")
   bannerLink        String?       @map("banner_link")
@@ -314,9 +461,29 @@ model Page {
   updatedAt         DateTime      @updatedAt @map("updated_at")
   authorId          String?       @map("author_id")
   author            User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  sections          Section[]
+  blocks            PageBlock[]
+  referencedBySections SectionPageReference[] @relation("SectionTargetPage")
   versions          PageVersion[]
 
+  @@index([kind])
+  @@index([status, publishedAt])
   @@map("pages")
+}
+
+model PageBlock {
+  id        String   @id @default(cuid())
+  pageId    String   @map("page_id")
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type      String
+  order     Int
+  isActive  Boolean  @default(true) @map("is_active")
+  config    Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([pageId, order])
+  @@map("page_blocks")
 }
 
 model PageVersion {
@@ -328,6 +495,11 @@ model PageVersion {
   image     String?
   metaTitle String?  @map("meta_title")
   metaDesc  String?  @map("meta_description")
+  slugSnapshot String? @map("slug_snapshot")
+  statusSnapshot String? @map("status_snapshot")
+  sectionsSnapshot Json? @map("sections_snapshot")
+  blocksSnapshot Json? @map("blocks_snapshot")
+  seoSnapshot Json? @map("seo_snapshot")
   version   Int
   createdAt DateTime @default(now()) @map("created_at")
   createdBy String?  @map("created_by")
@@ -377,6 +549,7 @@ model Order {
   userId    String      @map("user_id")
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   status    OrderStatus @default(PENDING)
+  contactMethod ContactMethod @default(PHONE) @map("contact_method")
   total     Float
   address   String?
   phone     String?
@@ -407,6 +580,11 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum ContactMethod {
+  PHONE
+  VIBER
 }
 
 model CompareItem {
@@ -504,4 +682,32 @@ model PushDevice {
   @@index([userId])
   @@index([platform])
   @@map("push_devices")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  desc      String
+  meta      Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@index([isRead, createdAt])
+  @@map("notifications")
+}
+
+model ImportOperation {
+  id        String   @id @default(cuid())
+  type      String
+  count     Int      @default(0)
+  status    String   @default("COMPLETED")
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type, createdAt])
+  @@map("import_operations")
 }

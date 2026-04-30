@@ -1,142 +1,145 @@
 'use client'
 
 import { useState } from 'react'
-import { readBooleanParam } from '@aurasveta/shared-admin'
-import { trpc, type RouterOutputs } from '@/lib/trpc/client'
-import { Plus, Trash2, Send, Webhook, Globe } from 'lucide-react'
-import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
-import WebhookFormModal from './WebhookFormModal'
-import { EVENT_COLORS } from './webhook-config'
-
-type WebhookItem = RouterOutputs['webhooks']['getAll'][number]
+import { trpc } from '@/lib/trpc/client'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+import { Play, Pencil, Plus, Trash2 } from 'lucide-react'
+import WebhookFormModal from './components/WebhookFormModal'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function WebhooksClient() {
-	const { searchParams, updateSearchParams } = useAdminSearchParams()
-	const { data: webhooks, refetch } = trpc.webhooks.getAll.useQuery()
-	const deleteMut = trpc.webhooks.delete.useMutation({
-		onSuccess: () => refetch(),
-	})
-	const testMut = trpc.webhooks.test.useMutation()
+	const [modalOpen, setModalOpen] = useState(false)
+	const [editingWebhook, setEditingWebhook] = useState<any>(null)
+	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+	const [testResult, setTestResult] = useState<{ id: string; success: boolean; error?: string } | null>(null)
 
-	const showForm = readBooleanParam(searchParams.get('create'), false) === true
-	const [testResult, setTestResult] = useState<{
-		id: string
-		data: unknown
-	} | null>(null)
+	const { data: webhooks, refetch, isLoading } = trpc.webhooks.getAll.useQuery()
+	const { mutate: deleteWebhook } = trpc.webhooks.delete.useMutation({
+		onSuccess: () => {
+			toast.success('Вебхук удалён')
+			refetch()
+			setConfirmDelete(null)
+		},
+	})
+	const { mutate: testWebhook } = trpc.webhooks.test.useMutation({
+		onSuccess: (data, variables) => {
+			setTestResult({ id: variables, success: data.success, error: data.error })
+			if (data.success) {
+				toast.success('Тест успешен')
+			} else {
+				toast.error(`Тест неудачен: ${data.error || 'unknown error'}`)
+			}
+		},
+	})
 
 	return (
-		<div className='space-y-5'>
-			{/* Header */}
+		<div className='space-y-4'>
 			<div className='flex items-center justify-between'>
-				<div className='flex items-center gap-3'>
-					<div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
-						<Webhook className='h-5 w-5 text-primary' />
-					</div>
-					<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-						Вебхуки
-					</h1>
+				<div>
+					<h1 className='text-xl font-bold'>Вебхуки</h1>
+					<p className='text-sm text-muted-foreground'>Интеграции и события</p>
 				</div>
-				<button
-					onClick={() =>
-						updateSearchParams({ create: true }, { history: 'push' })
-					}
-					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
-				>
-					<Plus className='h-4 w-4' /> Добавить
-				</button>
+				<Button size='sm' onClick={() => { setEditingWebhook(null); setModalOpen(true) }}>
+					<Plus className='h-4 w-4 mr-1' />
+					Новый вебхук
+				</Button>
 			</div>
 
-			{/* Cards */}
-			{webhooks && webhooks.length > 0 ? (
-				<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
-					{webhooks.map((wh: WebhookItem) => (
-						<div
-							key={wh.id}
-							className='group flex flex-col overflow-hidden rounded-2xl border border-border bg-muted/10 transition-colors hover:bg-muted/20'
-						>
-							{/* URL */}
-							<div className='flex items-start gap-3 p-4 pb-3'>
-								<div className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10'>
-									<Globe className='h-4 w-4 text-primary' />
-								</div>
-								<p className='break-all text-sm font-medium leading-snug text-foreground'>
-									{wh.url}
-								</p>
-							</div>
-
-							{/* Events */}
-							<div className='flex flex-wrap gap-1.5 px-4 pb-3'>
-								{wh.events.map((ev: string) => {
-									const ec = EVENT_COLORS[ev] ?? {
-										color: 'text-muted-foreground',
-										bg: 'bg-muted',
-									}
-									return (
-										<span
-											key={ev}
-											className={`rounded-full ${ec.bg} px-2 py-0.5 text-[10px] font-medium ${ec.color}`}
+			<Card className='border-border'>
+				<CardContent className='p-0 overflow-x-auto'>
+					<table className='w-full text-sm'>
+						<thead>
+							<tr className='border-b border-border bg-secondary/50'>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>События</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Endpoint</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Статус</th>
+								<th className='text-right p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Действия</th>
+							</tr>
+						</thead>
+						<tbody>
+							{(webhooks ?? []).map((wh) => (
+								<tr key={wh.id} className='border-b border-border hover:bg-secondary/30'>
+									<td className='p-3'>
+										<div className='flex flex-wrap gap-1'>
+											{(wh.events ?? []).map((evt: string) => (
+												<Badge key={evt} className='bg-accent/15 text-accent font-mono text-[10px]'>
+													{evt}
+												</Badge>
+											))}
+										</div>
+									</td>
+									<td className='p-3 font-mono text-xs text-muted-foreground truncate max-w-[250px]'>
+										{wh.url}
+									</td>
+									<td className='p-3'>
+										{testResult?.id === wh.id ? (
+											<Badge className={testResult.success ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}>
+												{testResult.success ? 'Активен' : 'Ошибка'}
+											</Badge>
+										) : (
+											<Badge className='bg-success/15 text-success'>Активен</Badge>
+										)}
+									</td>
+									<td className='p-3 text-right'>
+										<Button
+											variant='ghost'
+											size='icon'
+											className='h-7 w-7'
+											onClick={() => testWebhook(wh.id)}
+											aria-label='Тестировать вебхук'
 										>
-											{ev}
-										</span>
-									)
-								})}
-							</div>
+											<Play className='h-3.5 w-3.5' />
+										</Button>
+										<Button
+											variant='ghost'
+											size='icon'
+											className='h-7 w-7'
+											onClick={() => { setEditingWebhook(wh); setModalOpen(true) }}
+											aria-label='Редактировать вебхук'
+										>
+											<Pencil className='h-3.5 w-3.5' />
+										</Button>
+										<Button
+											variant='ghost'
+											size='icon'
+											className='h-7 w-7 text-destructive'
+											onClick={() => setConfirmDelete(wh.id)}
+											aria-label='Удалить вебхук'
+										>
+											<Trash2 className='h-3.5 w-3.5' />
+										</Button>
+									</td>
+								</tr>
+							))}
+								{(webhooks ?? []).length === 0 && !isLoading && (
+									<tr>
+										<td colSpan={4} className='text-center py-12 text-muted-foreground text-sm'>
+											Нет вебхуков
+										</td>
+									</tr>
+								)}
+							</tbody>
+						</table>
+					</CardContent>
+				</Card>
 
-							{/* Test result */}
-							{testResult?.id === wh.id && (
-								<div className='mx-4 mb-3 break-all rounded-lg bg-muted/30 p-2.5 font-mono text-[11px] text-muted-foreground'>
-									{JSON.stringify(testResult.data)}
-								</div>
-							)}
-
-							{/* Actions */}
-							<div className='mt-auto flex border-t border-border'>
-								<button
-									onClick={async () => {
-										const data = await testMut.mutateAsync(wh.id)
-										setTestResult({ id: wh.id, data })
-									}}
-									disabled={testMut.isPending}
-									className='flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/5'
-								>
-									<Send className='h-3.5 w-3.5' />
-									Тест
-								</button>
-								<div className='w-px bg-border' />
-								<button
-									onClick={() => {
-										if (confirm('Удалить вебхук?')) deleteMut.mutate(wh.id)
-									}}
-									className='flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-destructive'
-								>
-									<Trash2 className='h-3.5 w-3.5' />
-									Удалить
-								</button>
-							</div>
-						</div>
-					))}
-				</div>
-			) : (
-				<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
-					<Webhook className='mb-3 h-10 w-10 text-muted-foreground/20' />
-					<p className='text-sm text-muted-foreground'>
-						Нет зарегистрированных вебхуков
-					</p>
-				</div>
-			)}
-
-			{/* Modal */}
-			{showForm && (
 				<WebhookFormModal
-					onClose={() =>
-						updateSearchParams({ create: null }, { history: 'replace' })
-					}
-					onSuccess={() => {
-						updateSearchParams({ create: null }, { history: 'replace' })
-						refetch()
-					}}
+					open={modalOpen}
+					onOpenChange={setModalOpen}
+					onSuccess={() => refetch()}
+					webhook={editingWebhook}
 				/>
-			)}
-		</div>
-	)
+
+				<ConfirmDialog
+					open={!!confirmDelete}
+					onOpenChange={() => setConfirmDelete(null)}
+					title='Подтвердите удаление'
+					description='Вебхук будет безвозвратно удалён. Это действие нельзя отменить.'
+					onConfirm={() => confirmDelete && deleteWebhook(confirmDelete)}
+				/>
+			</div>
+		)
 }

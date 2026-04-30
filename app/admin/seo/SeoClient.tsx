@@ -1,943 +1,249 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import {
-	readEnumParam,
-	readPositiveIntParam,
-	readStringParam,
-	useUnsavedChangesGuard,
-} from '@aurasveta/shared-admin'
-import { trpc, type RouterOutputs } from '@/lib/trpc/client'
-import {
-	Globe,
-	Save,
-	Search,
-	FileText,
-	FolderTree,
-	Package,
-	Home,
-	CheckCircle2,
-	AlertCircle,
-	Circle,
-	EyeOff,
-	Share2,
-	Link2,
-	Type,
-	AlignLeft,
-	Tag,
-	ImageIcon,
-	Pencil,
-	X,
-} from 'lucide-react'
-import { Button } from '@/shared/ui/Button'
-import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
-
-type TargetType = 'product' | 'category' | 'page'
-type SeoPageItem = RouterOutputs['pages']['getAll'][number]
-type SeoCategoryItem = RouterOutputs['categories']['getAll'][number]
-type SeoProductItem = RouterOutputs['products']['getMany']['items'][number]
-type SeoTargetRecord = RouterOutputs['seo']['getByTarget']
-type SeoFormState = {
-	title: string
-	description: string
-	keywords: string
-	ogTitle: string
-	ogDescription: string
-	ogImage: string
-	canonicalUrl: string
-	noIndex: boolean
-}
-
-function getSeoFormState(data: SeoTargetRecord): SeoFormState {
-	return {
-		title: data?.title ?? '',
-		description: data?.description ?? '',
-		keywords: data?.keywords ?? '',
-		ogTitle: data?.ogTitle ?? '',
-		ogDescription: data?.ogDescription ?? '',
-		ogImage: data?.ogImage ?? '',
-		canonicalUrl: data?.canonicalUrl ?? '',
-		noIndex: !!data?.noIndex,
-	}
-}
-
-/* ============ Main ============ */
+import { useState } from 'react'
+import { trpc } from '@/lib/trpc/client'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+import { ChevronDown, ChevronUp, Save } from 'lucide-react'
 
 export default function SeoClient() {
-	const { searchParams, updateSearchParams } = useAdminSearchParams()
-	const activeTab = readEnumParam(
-		searchParams.get('tab'),
-		['pages', 'categories', 'products'] as const,
-		'pages',
-	)
-	const search = readStringParam(searchParams.get('search'))
-	const editTargetType = readStringParam(searchParams.get('targetType')) as
-		| TargetType
-		| ''
-	const editTargetId = readStringParam(searchParams.get('targetId'))
-	const editTargetName = readStringParam(searchParams.get('targetName'))
-	const editTarget =
-		editTargetType && editTargetId
-			? {
-					type: editTargetType,
-					id: editTargetId,
-					name: editTargetName || editTargetId,
-				}
-			: null
+	const [filter, setFilter] = useState('all')
+	const [expandedId, setExpandedId] = useState<string | null>(null)
+	const [editing, setEditing] = useState<Record<string, any>>({})
 
-	const tabs = [
-		{ key: 'pages' as const, label: 'Страницы', icon: FileText },
-		{ key: 'categories' as const, label: 'Категории', icon: FolderTree },
-		{ key: 'products' as const, label: 'Товары', icon: Package },
-	]
-
-	return (
-		<div className='space-y-5'>
-			{/* Header */}
-			<div className='flex items-center gap-3'>
-				<div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
-					<Globe className='h-5 w-5 text-primary' />
-				</div>
-				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-					SEO
-				</h1>
-			</div>
-
-			{/* Tabs */}
-			<div className='flex gap-1 rounded-xl border border-border bg-muted/20 p-1'>
-				{tabs.map(tab => {
-					const Icon = tab.icon
-					return (
-						<button
-							key={tab.key}
-							onClick={() => {
-								updateSearchParams(
-									{ tab: tab.key, search: null, page: 1 },
-									{ history: 'replace' },
-								)
-							}}
-							className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-								activeTab === tab.key
-									? 'bg-background text-foreground shadow-sm'
-									: 'text-muted-foreground hover:text-foreground'
-							}`}
-						>
-							<Icon className='h-4 w-4' />
-							{tab.label}
-						</button>
-					)
-				})}
-			</div>
-
-			{/* Search */}
-			<div className='relative'>
-				<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-				<input
-					value={search}
-					onChange={e =>
-						updateSearchParams(
-							{ search: e.target.value, page: 1 },
-							{ history: 'replace' },
-						)
-					}
-					placeholder='Поиск...'
-					className='flex h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-				/>
-			</div>
-
-			{/* Tab content */}
-			{activeTab === 'pages' && (
-				<PagesTab
-					search={search}
-					onEdit={target =>
-						updateSearchParams(
-							{
-								targetType: target.type,
-								targetId: target.id,
-								targetName: target.name,
-							},
-							{ history: 'push' },
-						)
-					}
-				/>
-			)}
-			{activeTab === 'categories' && (
-				<CategoriesTab
-					search={search}
-					onEdit={target =>
-						updateSearchParams(
-							{
-								targetType: target.type,
-								targetId: target.id,
-								targetName: target.name,
-							},
-							{ history: 'push' },
-						)
-					}
-				/>
-			)}
-			{activeTab === 'products' && (
-				<ProductsTab
-					search={search}
-					page={readPositiveIntParam(searchParams.get('page'), 1)}
-					onPageChange={page =>
-						updateSearchParams({ page }, { history: 'replace' })
-					}
-					onEdit={target =>
-						updateSearchParams(
-							{
-								targetType: target.type,
-								targetId: target.id,
-								targetName: target.name,
-							},
-							{ history: 'push' },
-						)
-					}
-				/>
-			)}
-
-			{/* Modal */}
-			{editTarget && (
-				<SeoModal
-					targetType={editTarget.type}
-					targetId={editTarget.id}
-					name={editTarget.name}
-					onClose={() =>
-						updateSearchParams(
-							{ targetType: null, targetId: null, targetName: null },
-							{ history: 'replace' },
-						)
-					}
-				/>
-			)}
-		</div>
-	)
-}
-
-/* ============ Pages Tab ============ */
-
-type EditHandler = (t: { type: TargetType; id: string; name: string }) => void
-
-function PagesTab({ search, onEdit }: { search: string; onEdit: EditHandler }) {
-	const { data: pages } = trpc.pages.getAll.useQuery()
-
-	const staticPages = [{ id: 'home', name: 'Главная страница', slug: '/' }]
-
-	const cmsPages = useMemo(() => {
-		if (!pages) return []
-		const q = search.toLowerCase()
-		return pages.filter(
-			(page: SeoPageItem) => !q || page.title?.toLowerCase().includes(q),
-		)
-	}, [pages, search])
-
-	return (
-		<div className='space-y-5'>
-			{(!search || 'главная'.includes(search.toLowerCase())) && (
-				<div className='space-y-3'>
-					<div className='flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground'>
-						<Home className='h-3.5 w-3.5' />
-						Статические
-					</div>
-					<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-						{staticPages.map(p => (
-							<SeoCard
-								key={p.id}
-								targetType='page'
-								targetId={p.id}
-								name={p.name}
-								subtitle={p.slug}
-								onEdit={() => onEdit({ type: 'page', id: p.id, name: p.name })}
-							/>
-						))}
-					</div>
-				</div>
-			)}
-
-			{cmsPages.length > 0 && (
-				<div className='space-y-3'>
-					<div className='flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground'>
-						<FileText className='h-3.5 w-3.5' />
-						CMS страницы
-					</div>
-					<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-						{cmsPages.map(page => (
-							<SeoCard
-								key={page.id}
-								targetType='page'
-								targetId={page.id}
-								name={page.title}
-								subtitle={`/${page.slug}`}
-								onEdit={() =>
-									onEdit({ type: 'page', id: page.id, name: page.title })
-								}
-							/>
-						))}
-					</div>
-				</div>
-			)}
-
-			{!cmsPages.length && search && <EmptySearch />}
-		</div>
-	)
-}
-
-/* ============ Categories Tab ============ */
-
-function CategoriesTab({
-	search,
-	onEdit,
-}: {
-	search: string
-	onEdit: EditHandler
-}) {
-	const { data: categories } = trpc.categories.getAll.useQuery()
-
-	const filtered = useMemo(() => {
-		if (!categories) return []
-		const q = search.toLowerCase()
-		return categories.filter(
-			(category: SeoCategoryItem) =>
-				!q || category.name?.toLowerCase().includes(q),
-		)
-	}, [categories, search])
-
-	if (!filtered.length && search) return <EmptySearch />
-	if (!filtered.length) {
-		return (
-			<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
-				<FolderTree className='mb-3 h-10 w-10 text-muted-foreground/20' />
-				<p className='text-sm text-muted-foreground'>Нет категорий</p>
-			</div>
-		)
-	}
-
-	return (
-		<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-			{filtered.map(category => (
-				<SeoCard
-					key={category.id}
-					targetType='category'
-					targetId={category.id}
-					name={category.name}
-					subtitle={`/${category.slug}`}
-					image={
-						category.imagePath
-							? `/api/storage/file?key=${category.imagePath}`
-							: undefined
-					}
-					onEdit={() =>
-						onEdit({
-							type: 'category',
-							id: category.id,
-							name: category.name,
-						})
-					}
-				/>
-			))}
-		</div>
-	)
-}
-
-/* ============ Products Tab ============ */
-
-function ProductsTab({
-	search,
-	page,
-	onPageChange,
-	onEdit,
-}: {
-	search: string
-	page: number
-	onPageChange: (page: number) => void
-	onEdit: EditHandler
-}) {
-	const { data } = trpc.products.getMany.useQuery({
-		page,
-		limit: 24,
-		search: search || undefined,
+	const { data: seoList, refetch } = trpc.seo.listAll.useQuery()
+	const { mutate: updateSeo } = trpc.seo.update.useMutation({
+		onSuccess: () => {
+			toast.success('SEO сохранено')
+			refetch()
+		},
 	})
 
-	const items = (data?.items ?? []) as SeoProductItem[]
-	const total = data?.total ?? 0
-	const totalPages = Math.ceil(total / 24)
+	const filtered = (seoList ?? []).filter((item) => {
+		if (filter === 'missing-title') return !item.title
+		if (filter === 'missing-desc') return !item.description
+		if (filter === 'noindex') return item.noIndex
+		return true
+	})
 
-	if (!items.length && search) return <EmptySearch />
-	if (!items.length) {
-		return (
-			<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
-				<Package className='mb-3 h-10 w-10 text-muted-foreground/20' />
-				<p className='text-sm text-muted-foreground'>Нет товаров</p>
-			</div>
-		)
+	const handleEdit = (id: string, field: string, value: string | boolean) => {
+		setEditing((prev) => ({
+			...prev,
+			[id]: { ...prev[id], [field]: value },
+		}))
+	}
+
+	const handleSave = (item: any) => {
+		const changes = editing[item.id] ?? {}
+		updateSeo({
+			targetType: item.targetType,
+			targetId: item.targetId,
+			title: changes.title !== undefined ? changes.title : item.title,
+			description: changes.description !== undefined ? changes.description : item.description,
+			keywords: changes.keywords !== undefined ? changes.keywords : item.keywords,
+			ogTitle: changes.ogTitle !== undefined ? changes.ogTitle : item.ogTitle,
+			ogDescription: changes.ogDescription !== undefined ? changes.ogDescription : item.ogDescription,
+			ogImage: changes.ogImage !== undefined ? changes.ogImage : item.ogImage,
+			canonicalUrl: changes.canonicalUrl !== undefined ? changes.canonicalUrl : item.canonicalUrl,
+			noIndex: changes.noIndex !== undefined ? changes.noIndex : item.noIndex,
+		})
+		setExpandedId(null)
 	}
 
 	return (
 		<div className='space-y-4'>
-			<div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-				{items.map(product => (
-					<SeoCard
-						key={product.id}
-						targetType='product'
-						targetId={product.id}
-						name={product.name}
-						subtitle={`/${product.slug}`}
-						image={
-							product.images?.[0]?.imageAsset?.url ??
-							product.images?.[0]?.url ??
-							(product.images?.[0]?.key
-								? `/api/storage/file?key=${product.images[0].key}`
-								: undefined)
-						}
-						onEdit={() =>
-							onEdit({ type: 'product', id: product.id, name: product.name })
-						}
-					/>
+			<div className='flex items-center justify-between'>
+				<div>
+					<h1 className='text-xl font-bold'>SEO Массовый редактор</h1>
+					<p className='text-sm text-muted-foreground'>Редактирование мета-тегов</p>
+				</div>
+			</div>
+
+			<div className='flex gap-2 flex-wrap'>
+				{['all', 'missing-title', 'missing-desc', 'noindex'].map((f) => (
+					<Button
+						key={f}
+						variant={filter === f ? 'default' : 'outline'}
+						size='sm'
+						onClick={() => setFilter(f)}
+					>
+						{f === 'all' && 'Все'}
+						{f === 'missing-title' && 'Пропущен title'}
+						{f === 'missing-desc' && 'Пропущено description'}
+						{f === 'noindex' && 'Noindex'}
+					</Button>
 				))}
 			</div>
 
-			{totalPages > 1 && (
-				<div className='flex items-center justify-center gap-2 pt-2'>
-					<button
-						onClick={() => onPageChange(Math.max(1, page - 1))}
-						disabled={page === 1}
-						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
-					>
-						Назад
-					</button>
-					<span className='text-xs text-muted-foreground'>
-						{page} / {totalPages}
-					</span>
-					<button
-						onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-						disabled={page === totalPages}
-						className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40'
-					>
-						Далее
-					</button>
-				</div>
-			)}
-		</div>
-	)
-}
-
-/* ============ SEO Card ============ */
-
-function SeoCard({
-	targetType,
-	targetId,
-	name,
-	subtitle,
-	image,
-	onEdit,
-}: {
-	targetType: TargetType
-	targetId: string
-	name: string
-	subtitle?: string
-	image?: string
-	onEdit: () => void
-}) {
-	const { data } = trpc.seo.getByTarget.useQuery({ targetType, targetId })
-
-	const filledCount = useMemo(() => {
-		if (!data) return 0
-		let count = 0
-		if (data.title) count++
-		if (data.description) count++
-		if (data.keywords) count++
-		if (data.ogTitle) count++
-		if (data.ogDescription) count++
-		if (data.ogImage) count++
-		if (data.canonicalUrl) count++
-		return count
-	}, [data])
-
-	const status = useMemo(() => {
-		if (!data || filledCount === 0) return 'empty'
-		if (filledCount >= 3) return 'good'
-		return 'partial'
-	}, [data, filledCount])
-
-	const statusConfig = {
-		good: {
-			icon: CheckCircle2,
-			color: 'text-emerald-500',
-			bg: 'bg-emerald-500/10',
-			label: 'Настроено',
-		},
-		partial: {
-			icon: AlertCircle,
-			color: 'text-amber-500',
-			bg: 'bg-amber-500/10',
-			label: 'Частично',
-		},
-		empty: {
-			icon: Circle,
-			color: 'text-muted-foreground/40',
-			bg: 'bg-muted',
-			label: 'Пусто',
-		},
-	}
-
-	const st = statusConfig[status]
-	const StatusIcon = st.icon
-
-	return (
-		<div className='group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-muted/10 transition-colors hover:bg-muted/20'>
-			{/* Image */}
-			<div className='relative aspect-video w-full bg-muted/30'>
-				{image ? (
-					// eslint-disable-next-line @next/next/no-img-element
-					<img src={image} alt='' className='h-full w-full object-cover' />
-				) : (
-					<div className='flex h-full w-full items-center justify-center'>
-						<Globe className='h-10 w-10 text-muted-foreground/15' />
-					</div>
-				)}
-
-				{/* Status badge */}
-				<div
-					className={`absolute left-2 top-2 flex items-center gap-1 rounded-full ${st.bg} px-2 py-0.5`}
-				>
-					<StatusIcon className={`h-3 w-3 ${st.color}`} />
-					<span className={`text-[10px] font-medium ${st.color}`}>
-						{st.label}
-					</span>
-				</div>
-
-				{/* noIndex badge */}
-				{data?.noIndex && (
-					<div className='absolute right-2 top-2 flex items-center gap-1 rounded-full bg-red-500/90 px-2 py-0.5'>
-						<EyeOff className='h-3 w-3 text-white' />
-						<span className='text-[10px] font-medium text-white'>noindex</span>
-					</div>
-				)}
-
-				{/* Fill progress bar */}
-				<div className='absolute bottom-0 left-0 right-0 h-1 bg-black/10'>
-					<div
-						className={`h-full transition-all ${
-							status === 'good'
-								? 'bg-emerald-500'
-								: status === 'partial'
-									? 'bg-amber-500'
-									: 'bg-muted-foreground/20'
-						}`}
-						style={{ width: `${(filledCount / 7) * 100}%` }}
-					/>
-				</div>
-			</div>
-
-			{/* Content */}
-			<div className='flex flex-1 flex-col gap-2 p-3'>
-				<div className='min-w-0'>
-					<div className='truncate text-sm font-semibold text-foreground'>
-						{name}
-					</div>
-					{subtitle && (
-						<div className='truncate font-mono text-[11px] text-muted-foreground'>
-							{subtitle}
-						</div>
-					)}
-				</div>
-
-				{data?.title && (
-					<p className='line-clamp-1 text-[11px] leading-snug text-blue-500'>
-						{data.title}
-					</p>
-				)}
-				{data?.description && (
-					<p className='line-clamp-2 text-[10px] leading-snug text-muted-foreground'>
-						{data.description}
-					</p>
-				)}
-
-				<div className='mt-auto flex items-center gap-2 pt-1'>
-					<span className='text-[10px] tabular-nums text-muted-foreground'>
-						{filledCount}/7 полей
-					</span>
-					<div className='flex-1' />
-					<button
-						onClick={onEdit}
-						className='flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20'
-					>
-						<Pencil className='h-3 w-3' />
-						Изменить
-					</button>
-				</div>
-			</div>
-		</div>
-	)
-}
-
-/* ============ SEO Modal ============ */
-
-function SeoModal({
-	targetType,
-	targetId,
-	name,
-	onClose,
-}: {
-	targetType: TargetType
-	targetId: string
-	name: string
-	onClose: () => void
-}) {
-	const { data, isLoading } = trpc.seo.getByTarget.useQuery({
-		targetType,
-		targetId,
-	})
-
-	return (
-		<SeoModalContent
-			key={`${targetType}:${targetId}:${isLoading ? 'loading' : data ? 'filled' : 'empty'}`}
-			targetType={targetType}
-			targetId={targetId}
-			name={name}
-			onClose={onClose}
-			initialData={data ?? null}
-			isLoading={isLoading}
-		/>
-	)
-}
-
-function SeoModalContent({
-	targetType,
-	targetId,
-	name,
-	onClose,
-	initialData,
-	isLoading,
-}: {
-	targetType: TargetType
-	targetId: string
-	name: string
-	onClose: () => void
-	initialData: SeoTargetRecord
-	isLoading: boolean
-}) {
-	const utils = trpc.useUtils()
-	const updateMut = trpc.seo.update.useMutation({
-		onSuccess: () => {
-			utils.seo.getByTarget.invalidate({ targetType, targetId })
-		},
-	})
-	const [form, setForm] = useState<SeoFormState>(() =>
-		getSeoFormState(initialData),
-	)
-	const [saved, setSaved] = useState(false)
-	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-	const confirmDiscard = useUnsavedChangesGuard(hasUnsavedChanges)
-	const safeClose = () => {
-		if (confirmDiscard()) onClose()
-	}
-
-	const onSave = async () => {
-		setSaved(false)
-		await updateMut.mutateAsync({
-			targetType,
-			targetId,
-			title: form.title || null,
-			description: form.description || null,
-			keywords: form.keywords || null,
-			ogTitle: form.ogTitle || null,
-			ogDescription: form.ogDescription || null,
-			ogImage: form.ogImage || null,
-			canonicalUrl: form.canonicalUrl || null,
-			noIndex: form.noIndex,
-		})
-		setHasUnsavedChanges(false)
-		setSaved(true)
-		setTimeout(() => setSaved(false), 2500)
-	}
-
-	const previewTitle = form.title || form.ogTitle || 'Заголовок страницы'
-	const previewDesc =
-		form.description ||
-		form.ogDescription ||
-		'Описание страницы для поисковых систем...'
-
-	const typeLabels: Record<TargetType, string> = {
-		page: 'Страница',
-		category: 'Категория',
-		product: 'Товар',
-	}
-
-	return (
-		<div className='fixed inset-0 z-9999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>
-			<div className='flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-				{/* Header */}
-				<div className='flex items-center justify-between border-b border-border px-6 py-4'>
-					<div>
-						<h2 className='text-lg font-semibold text-foreground'>
-							SEO настройки
-						</h2>
-						<p className='text-xs text-muted-foreground'>
-							{typeLabels[targetType]}: {name}
-						</p>
-					</div>
-					<button
-						onClick={safeClose}
-						className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-					>
-						<X className='h-5 w-5' />
-					</button>
-				</div>
-
-				{/* Body */}
-				<div className='flex-1 space-y-6 overflow-y-auto px-6 py-5'>
-					{/* SERP preview */}
-					<div className='space-y-2'>
-						<div className='flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground'>
-							<Search className='h-3 w-3' />
-							Предпросмотр в поиске
-						</div>
-						<div className='rounded-xl border border-border bg-background p-4'>
-							<div className='truncate text-base text-blue-600'>
-								{previewTitle}
-							</div>
-							<div className='mt-0.5 truncate text-xs text-emerald-700'>
-								{form.canonicalUrl || 'https://example.com/...'}
-							</div>
-							<div className='mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground'>
-								{previewDesc}
-							</div>
-						</div>
-					</div>
-
-					{/* Basic SEO */}
-					<div className='space-y-3'>
-						<div className='flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground'>
-							<Search className='h-3 w-3' />
-							Основное SEO
-						</div>
-						<div className='grid gap-3 sm:grid-cols-2'>
-							<SeoField
-								icon={Type}
-								label='Title'
-								value={form.title}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, title: v }))
-								}}
-								placeholder='SEO заголовок'
-								maxRecommended={60}
-							/>
-							<SeoField
-								icon={AlignLeft}
-								label='Description'
-								value={form.description}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, description: v }))
-								}}
-								placeholder='SEO описание'
-								maxRecommended={160}
-								multiline
-							/>
-							<SeoField
-								icon={Tag}
-								label='Keywords'
-								value={form.keywords}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, keywords: v }))
-								}}
-								placeholder='ключевое, слово, фраза'
-							/>
-							<SeoField
-								icon={Link2}
-								label='Canonical URL'
-								value={form.canonicalUrl}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, canonicalUrl: v }))
-								}}
-								placeholder='https://...'
-							/>
-						</div>
-					</div>
-
-					{/* Open Graph */}
-					<div className='space-y-3'>
-						<div className='flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground'>
-							<Share2 className='h-3 w-3' />
-							Open Graph
-						</div>
-						<div className='grid gap-3 sm:grid-cols-2'>
-							<SeoField
-								icon={Type}
-								label='OG Title'
-								value={form.ogTitle}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, ogTitle: v }))
-								}}
-								placeholder='Заголовок для соцсетей'
-							/>
-							<SeoField
-								icon={AlignLeft}
-								label='OG Description'
-								value={form.ogDescription}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, ogDescription: v }))
-								}}
-								placeholder='Описание для соцсетей'
-								multiline
-							/>
-							<SeoField
-								icon={ImageIcon}
-								label='OG Image'
-								value={form.ogImage}
-								onChange={v => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, ogImage: v }))
-								}}
-								placeholder='https://... /image.jpg'
-							/>
-						</div>
-					</div>
-
-					{/* noIndex toggle */}
-					<div className='rounded-xl border border-border bg-muted/10 p-4'>
-						<label className='flex cursor-pointer items-center gap-3'>
-							<div
-								className={`flex h-5 w-9 items-center rounded-full transition-colors ${
-									form.noIndex ? 'bg-red-500' : 'bg-muted'
-								}`}
-							>
-								<div
-									className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-										form.noIndex ? 'translate-x-4' : 'translate-x-0.5'
-									}`}
-								/>
-							</div>
-							<input
-								type='checkbox'
-								checked={form.noIndex}
-								onChange={e => {
-									setHasUnsavedChanges(true)
-									setForm(f => ({ ...f, noIndex: e.target.checked }))
-								}}
-								className='sr-only'
-							/>
-							<div>
-								<span
-									className={`text-sm font-medium ${
-										form.noIndex ? 'text-red-500' : 'text-foreground'
-									}`}
-								>
-									noIndex
-								</span>
-								<p className='text-[11px] text-muted-foreground'>
-									{form.noIndex
-										? 'Страница скрыта от поисковых систем'
-										: 'Страница индексируется поисковыми системами'}
-								</p>
-							</div>
-						</label>
-					</div>
-				</div>
-
-				{/* Footer */}
-				<div className='flex items-center justify-between border-t border-border px-6 py-4'>
-					<div>
-						{isLoading && (
-							<span className='text-xs text-muted-foreground'>Загрузка...</span>
-						)}
-						{saved && (
-							<span className='flex items-center gap-1 text-xs text-emerald-500'>
-								<CheckCircle2 className='h-3.5 w-3.5' />
-								Сохранено
-							</span>
-						)}
-					</div>
-					<div className='flex gap-2'>
-						<Button variant='ghost' onClick={safeClose}>
-							Отмена
-						</Button>
-						<Button onClick={onSave} disabled={updateMut.isPending}>
-							<Save className='mr-1.5 h-3.5 w-3.5' />
-							Сохранить
-						</Button>
-					</div>
-				</div>
-			</div>
-		</div>
-	)
-}
-
-/* ============ SEO Field ============ */
-
-function SeoField({
-	icon: Icon,
-	label,
-	value,
-	onChange,
-	placeholder,
-	maxRecommended,
-	multiline,
-}: {
-	icon: React.ComponentType<{ className?: string }>
-	label: string
-	value: string
-	onChange: (v: string) => void
-	placeholder?: string
-	maxRecommended?: number
-	multiline?: boolean
-}) {
-	const overLimit = maxRecommended ? value.length > maxRecommended : false
-
-	return (
-		<div>
-			<div className='mb-1.5 flex items-center justify-between'>
-				<label className='flex items-center gap-1.5 text-xs font-medium text-muted-foreground'>
-					<Icon className='h-3 w-3' />
-					{label}
-				</label>
-				{maxRecommended && value.length > 0 && (
-					<span
-						className={`text-[10px] tabular-nums ${
-							overLimit ? 'text-amber-500' : 'text-muted-foreground/60'
-						}`}
-					>
-						{value.length}/{maxRecommended}
-					</span>
-				)}
-			</div>
-			{multiline ? (
-				<textarea
-					value={value}
-					onChange={e => onChange(e.target.value)}
-					placeholder={placeholder}
-					rows={2}
-					className={`flex w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-						overLimit ? 'border-amber-500/50' : 'border-border'
-					}`}
-				/>
-			) : (
-				<input
-					value={value}
-					onChange={e => onChange(e.target.value)}
-					placeholder={placeholder}
-					className={`flex h-9 w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-						overLimit ? 'border-amber-500/50' : 'border-border'
-					}`}
-				/>
-			)}
-		</div>
-	)
-}
-
-/* ============ Empty Search ============ */
-
-function EmptySearch() {
-	return (
-		<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12'>
-			<Search className='mb-2 h-8 w-8 text-muted-foreground/20' />
-			<p className='text-sm text-muted-foreground'>Ничего не найдено</p>
+			<Card className='border-border'>
+				<CardContent className='p-0'>
+					<table className='w-full text-sm'>
+						<thead>
+							<tr className='border-b border-border bg-secondary/50'>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Тип</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>ID</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Title</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Description</th>
+								<th className='text-center p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Noindex</th>
+								<th className='text-right p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'></th>
+							</tr>
+						</thead>
+						<tbody>
+							{filtered.map((item) => {
+								const isOpen = expandedId === item.id
+								const edit = editing[item.id] ?? {}
+								return (
+									<>
+										<tr key={item.id} className='border-b border-border hover:bg-secondary/30'>
+											<td className='p-3'>
+												<Badge variant='secondary' className='text-[10px]'>
+													{item.targetType}
+												</Badge>
+											</td>
+											<td className='p-3 font-mono text-xs text-muted-foreground'>
+												{item.targetId}
+											</td>
+											<td className='p-3'>
+												<div className={`text-xs ${!item.title ? 'text-destructive' : ''}`}>
+													{item.title || '—'}
+												</div>
+											</td>
+											<td className='p-3'>
+												<div className={`text-xs ${!item.description ? 'text-destructive' : ''}`}>
+													{item.description || '—'}
+												</div>
+											</td>
+											<td className='p-3 text-center'>
+												{item.noIndex ? (
+													<Badge className='bg-warning/15 text-warning text-[10px]'>No</Badge>
+												) : (
+													<Badge className='bg-success/15 text-success text-[10px]'>Yes</Badge>
+												)}
+											</td>
+											<td className='p-3 text-right'>
+												<Button
+													variant='ghost'
+													size='sm'
+													onClick={() => {
+														setExpandedId(isOpen ? null : item.id)
+														setEditing((prev) => ({
+															...prev,
+															[item.id]: {
+																	title: item.title,
+																	description: item.description,
+																	keywords: item.keywords,
+																	ogTitle: item.ogTitle,
+																	ogDescription: item.ogDescription,
+																	canonicalUrl: item.canonicalUrl,
+																	noIndex: item.noIndex,
+															},
+														}))
+													}}
+												>
+													{isOpen ? <ChevronUp className='h-4 w-4' /> : <ChevronDown className='h-4 w-4' />}
+												</Button>
+											</td>
+										</tr>
+										{isOpen && (
+											<tr className='border-b border-border bg-secondary/20'>
+												<td colSpan={6} className='p-4 space-y-3'>
+													<div className='grid grid-cols-2 gap-3'>
+														<div className='space-y-2'>
+															<label className='text-xs font-medium'>Meta Title</label>
+															<Input
+																value={edit.title ?? ''}
+																onChange={(e) => handleEdit(item.id, 'title', e.target.value)}
+																className='text-xs'
+															/>
+														</div>
+														<div className='space-y-2'>
+															<label className='text-xs font-medium'>Keywords</label>
+															<Input
+																value={edit.keywords ?? ''}
+																onChange={(e) => handleEdit(item.id, 'keywords', e.target.value)}
+																className='text-xs'
+															/>
+														</div>
+													</div>
+													<div className='space-y-2'>
+														<label className='text-xs font-medium'>Meta Description</label>
+														<textarea
+															className='w-full rounded-[var(--radius-md)] border border-input bg-background px-3 py-2 text-xs min-h-[60px]'
+															value={edit.description ?? ''}
+																onChange={(e) => handleEdit(item.id, 'description', e.target.value)}
+														/>
+													</div>
+													<div className='grid grid-cols-2 gap-3'>
+														<div className='space-y-2'>
+															<label className='text-xs font-medium'>OG Title</label>
+															<Input
+																value={edit.ogTitle ?? ''}
+																onChange={(e) => handleEdit(item.id, 'ogTitle', e.target.value)}
+																className='text-xs'
+															/>
+														</div>
+														<div className='space-y-2'>
+															<label className='text-xs font-medium'>OG Description</label>
+															<Input
+																value={edit.ogDescription ?? ''}
+																onChange={(e) => handleEdit(item.id, 'ogDescription', e.target.value)}
+																className='text-xs'
+															/>
+														</div>
+													</div>
+													<div className='space-y-2'>
+														<label className='text-xs font-medium'>Canonical URL</label>
+														<Input
+															value={edit.canonicalUrl ?? ''}
+																onChange={(e) => handleEdit(item.id, 'canonicalUrl', e.target.value)}
+																className='text-xs'
+															/>
+													</div>
+													<div className='flex items-center justify-between py-1'>
+														<span className='text-xs font-medium'>Noindex</span>
+														<Switch
+															checked={!!edit.noIndex}
+															onCheckedChange={(v) => handleEdit(item.id, 'noIndex', v)}
+														/>
+													</div>
+													<Button size='sm' onClick={() => handleSave(item)}>
+														<Save className='h-3 w-3 mr-1' />
+														Сохранить
+													</Button>
+													{/* Google Preview */}
+													<div className='rounded-lg border border-border bg-card p-4 space-y-1 mt-2'>
+														<div className='text-xs text-muted-foreground mb-2 font-medium'>Google Preview</div>
+														<div className='text-blue-600 text-sm font-medium truncate'>
+															{edit.title || item.title || 'Заголовок страницы'}
+														</div>
+														<div className='text-green-700 text-xs truncate'>
+															https://ваш-сайт.ru/{item.targetType?.toLowerCase()}/{item.targetId?.slice(0, 12)}
+														</div>
+														<div className='text-xs text-muted-foreground line-clamp-2'>
+															{edit.description || item.description || 'Описание страницы будет отображено в результатах поиска Google.'}
+														</div>
+													</div>
+												</td>
+											</tr>
+										)}
+									</>
+								)
+							})}
+							{filtered.length === 0 && (
+								<tr>
+									<td colSpan={6} className='text-center py-12 text-muted-foreground text-sm'>
+										Нет записей
+									</td>
+								</tr>
+							)}
+						</tbody>
+					</table>
+				</CardContent>
+			</Card>
 		</div>
 	)
 }

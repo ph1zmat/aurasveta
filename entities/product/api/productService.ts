@@ -11,6 +11,10 @@ import { withResolvedProductImages } from '@/lib/storage-image-assets'
 
 const productInclude = {
 	category: { select: { name: true, slug: true } },
+	rootCategory: { select: { name: true, slug: true } },
+	subcategory: { select: { name: true, slug: true } },
+	metaTitle: true,
+	metaDesc: true,
 	images: {
 		orderBy: { order: 'asc' },
 		select: productImageSelect,
@@ -23,6 +27,8 @@ const productCardSelect = {
 	slug: true,
 	name: true,
 	description: true,
+	metaTitle: true,
+	metaDesc: true,
 	price: true,
 	compareAtPrice: true,
 	stock: true,
@@ -37,9 +43,12 @@ const productCardSelect = {
 	badges: true,
 	createdAt: true,
 	categoryId: true,
+	rootCategoryId: true,
+	subcategoryId: true,
 	category: { select: { name: true, slug: true } },
+	rootCategory: { select: { name: true, slug: true } },
+	subcategory: { select: { name: true, slug: true } },
 } as const
-
 /**
  * Returns all products.
  */
@@ -97,7 +106,11 @@ export async function getProductsByCategory(
 	const dbProducts = await prisma.product.findMany({
 		where: {
 			isActive: true,
-			category: { name: category },
+			OR: [
+				{ subcategory: { name: category } },
+				{ rootCategory: { name: category } },
+				{ category: { name: category } },
+			],
 		},
 		select: productCardSelect,
 		orderBy: { createdAt: 'desc' },

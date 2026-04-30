@@ -23,7 +23,7 @@ export default function CartItem({
 	return (
 		<div className='border-b border-border py-4 md:py-6'>
 			{/* Mobile: remove button top-right */}
-			<div className='flex items-start gap-3 md:gap-4'>
+			<div className='flex items-center gap-3 md:gap-8'>
 				{/* Thumbnail */}
 				<Link
 					href={item.href}
@@ -41,7 +41,7 @@ export default function CartItem({
 				<div className='min-w-0 flex-1'>
 					<Link
 						href={item.href}
-						className='text-sm font-medium text-primary transition-colors hover:text-foreground'
+						className='text-lg font-medium text-primary transition-colors hover:text-foreground'
 					>
 						{item.name}
 					</Link>
@@ -65,7 +65,7 @@ export default function CartItem({
 								className='h-8 w-8'
 								aria-label='Уменьшить'
 							>
-								<Minus className='h-3.5 w-3.5' strokeWidth={1.5} />
+								<Minus className='h-6 w-6' strokeWidth={1.5} />
 							</Button>
 							<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
 								{item.quantity}
@@ -77,7 +77,7 @@ export default function CartItem({
 								className='h-8 w-8'
 								aria-label='Увеличить'
 							>
-								<Plus className='h-3.5 w-3.5' strokeWidth={1.5} />
+								<Plus className='h-6 w-6' strokeWidth={1.5} />
 							</Button>
 						</div>
 
@@ -95,7 +95,7 @@ export default function CartItem({
 				</div>
 
 				{/* Desktop: Quantity + Price + Remove (hidden on mobile) */}
-				<div className='hidden items-center gap-0 shrink-0 md:flex'>
+				<div className='hidden items-center gap-1 shrink-0 md:flex'>
 					<Button
 						variant='icon'
 						size='icon-sm'
@@ -105,9 +105,9 @@ export default function CartItem({
 						className='h-8 w-8'
 						aria-label='Уменьшить'
 					>
-						<Minus className='h-3.5 w-3.5' strokeWidth={1.5} />
+						<Minus className='h-6 w-6' strokeWidth={1.5} />
 					</Button>
-					<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
+					<span className='flex h-8 w-8 items-center justify-center text-lg font-medium text-foreground'>
 						{item.quantity}
 					</span>
 					<Button
@@ -117,17 +117,17 @@ export default function CartItem({
 						className='h-8 w-8'
 						aria-label='Увеличить'
 					>
-						<Plus className='h-3.5 w-3.5' strokeWidth={1.5} />
+						<Plus className='h-6 w-6' strokeWidth={1.5} />
 					</Button>
 				</div>
 
 				{/* Desktop: Price */}
 				<div className='hidden shrink-0 text-right md:block'>
-					<p className='text-sm font-semibold tracking-wide text-foreground'>
+					<p className='text-lg font-semibold tracking-wide text-foreground'>
 						{item.price.toLocaleString('ru-RU')} руб.
 					</p>
 					{item.oldPrice && (
-						<p className='text-xs tracking-wider text-muted-foreground line-through'>
+						<p className='text-lg tracking-wider text-muted-foreground line-through'>
 							{item.oldPrice.toLocaleString('ru-RU')} руб.
 						</p>
 					)}
@@ -141,7 +141,7 @@ export default function CartItem({
 					className='shrink-0'
 					aria-label='Удалить'
 				>
-					<X className='h-4 w-4' strokeWidth={1.5} />
+					<X className='h-6 w-6' strokeWidth={1.5} />
 				</Button>
 			</div>
 		</div>

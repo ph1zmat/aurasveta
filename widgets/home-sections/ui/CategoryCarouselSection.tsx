@@ -3,10 +3,15 @@ import CatalogCategoryCarousel from '@/entities/category/ui/CatalogCategoryCarou
 
 interface CategoryCarouselConfig {
 	parentId?: string
+	/** Explicit list of category IDs to display (takes priority over parentId) */
+	categories?: string[]
 	/** Maximum categories to show, default 12 */
 	limit?: number
 	/** Sort order, default 'name' */
 	orderBy?: 'name' | 'createdAt'
+	columns?: number
+	show_names?: boolean
+	use_category_images?: boolean
 }
 
 interface CategoryCarouselSectionProps {
@@ -20,28 +25,42 @@ export default async function CategoryCarouselSection({
 }: CategoryCarouselSectionProps) {
 	const limit = Math.min(Math.max(config?.limit ?? 12, 1), 48)
 	const orderField = config?.orderBy ?? 'name'
+	const explicitIds = config?.categories
 
-	const categories = await prisma.category.findMany({
-		where: {
-			parentId: config?.parentId ?? null,
-		},
-		orderBy: { [orderField]: 'asc' },
-		select: {
-			id: true,
-			name: true,
-			slug: true,
-			imagePath: true,
-			image: true,
-			children: {
+	const categories = explicitIds && explicitIds.length > 0
+		? await prisma.category.findMany({
+				where: { id: { in: explicitIds } },
 				select: {
+					id: true,
 					name: true,
 					slug: true,
+					imagePath: true,
+					image: true,
+					children: {
+						select: { name: true, slug: true },
+						orderBy: { name: 'asc' },
+					},
 				},
-				orderBy: { name: 'asc' },
-			},
-		},
-		take: limit,
-	})
+			}).then(cats =>
+				// Preserve the manual order from explicitIds
+				explicitIds.map(id => cats.find(c => c.id === id)).filter(Boolean) as typeof cats,
+			)
+		: await prisma.category.findMany({
+				where: { parentId: config?.parentId ?? null },
+				orderBy: { [orderField]: 'asc' },
+				select: {
+					id: true,
+					name: true,
+					slug: true,
+					imagePath: true,
+					image: true,
+					children: {
+						select: { name: true, slug: true },
+						orderBy: { name: 'asc' },
+					},
+				},
+				take: limit,
+			})
 
 	if (categories.length === 0) return null
 

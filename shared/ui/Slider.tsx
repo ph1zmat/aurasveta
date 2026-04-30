@@ -55,7 +55,8 @@ function resolveBreakpoints(
 	defaultVisibleItems: number,
 	defaultGap: number,
 ): { visibleItems: number; gap: number } {
-	if (!breakpoints) return { visibleItems: defaultVisibleItems, gap: defaultGap }
+	if (!breakpoints)
+		return { visibleItems: defaultVisibleItems, gap: defaultGap }
 	const resolved = { visibleItems: defaultVisibleItems, gap: defaultGap }
 	const sortedKeys = Object.keys(breakpoints)
 		.map(Number)
@@ -63,7 +64,8 @@ function resolveBreakpoints(
 	for (const bp of sortedKeys) {
 		if (containerWidth >= bp) {
 			const override = breakpoints[bp]
-			if (override.visibleItems !== undefined) resolved.visibleItems = override.visibleItems
+			if (override.visibleItems !== undefined)
+				resolved.visibleItems = override.visibleItems
 			if (override.gap !== undefined) resolved.gap = override.gap
 		}
 	}
@@ -200,7 +202,7 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 				onClick={direction === 'prev' ? prev : next}
 				disabled={direction === 'prev' ? !canGoPrev : !canGoNext}
 				className={cn(
-					'rounded-full border border-border bg-card shadow-sm hover:bg-accent',
+					'rounded-full border border-border bg-card shadow-sm hover:bg-accent hover:text-white',
 					arrowClassName,
 				)}
 				aria-label={direction === 'prev' ? 'Назад' : 'Вперёд'}

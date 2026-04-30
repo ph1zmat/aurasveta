@@ -104,9 +104,9 @@ export default async function BrandCarouselByPropertySection({
 					<Link
 						key={item.id}
 						href={item.href}
-						className='group flex h-full min-h-[144px] flex-col items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/20'
+						className='group flex max-h-64 max-w-64 flex-col items-center gap-3 rounded-2xl border border-border transition-colors hover:border-primary/40'
 					>
-						<div className='flex h-24 w-full items-center justify-center overflow-hidden rounded-xl bg-muted/20'>
+						<div className='flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-muted/20'>
 							{item.photo ? (
 								// eslint-disable-next-line @next/next/no-img-element
 								<img
@@ -119,14 +119,11 @@ export default async function BrandCarouselByPropertySection({
 									className='h-full w-full object-cover'
 								/>
 							) : (
-								<span className='px-3 text-center text-xs font-medium text-muted-foreground'>
+								<span className='px-3 text-center text-xs font-medium text-muted-foreground w-full h-full flex items-center justify-center'>
 									{item.value}
 								</span>
 							)}
 						</div>
-						<span className='line-clamp-2 text-center text-sm font-medium text-foreground'>
-							{item.value}
-						</span>
 					</Link>
 				))}
 			</Slider>

@@ -5,11 +5,32 @@ import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
 import { sendPushToAdmins } from '@/lib/push/send'
 import { adminEventBus } from '@/lib/realtime/admin-events'
 import { productImageSelect } from '@/lib/products/product-images'
+import {
+	AdminOrderStatusSchema,
+	AdminOrderUpdateInputSchema,
+} from '@/shared/types/order'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' as const },
 	select: productImageSelect,
 }
+
+const adminOrderInclude = {
+	user: { select: { name: true, email: true } },
+	items: {
+		include: {
+			product: {
+				select: {
+					id: true,
+					name: true,
+					slug: true,
+					images: orderedProductImages,
+					category: { select: { id: true, name: true, slug: true } },
+				},
+			},
+		},
+	},
+} as const
 
 export const ordersRouter = createTRPCRouter({
 	getMyOrders: protectedProcedure.query(async ({ ctx }) => {
@@ -57,6 +78,7 @@ export const ordersRouter = createTRPCRouter({
 			z.object({
 				address: z.string().min(1),
 				phone: z.string().min(1),
+				contactMethod: z.enum(['PHONE', 'VIBER']).default('PHONE'),
 				comment: z.string().optional(),
 				items: z.array(
 					z.object({
@@ -115,6 +137,7 @@ export const ordersRouter = createTRPCRouter({
 						total,
 						address: input.address,
 						phone: input.phone,
+						contactMethod: input.contactMethod,
 						comment: input.comment,
 						items: {
 							create: input.items.map(item => ({
@@ -237,17 +260,44 @@ export const ordersRouter = createTRPCRouter({
 			}
 		}),
 
+	getAdminById: adminProcedure.input(z.string()).query(async ({ ctx, input }) => {
+		return ctx.prisma.order.findUnique({
+			where: { id: input },
+			include: adminOrderInclude,
+		})
+	}),
+
+	updateAdminOrder: adminProcedure
+		.input(AdminOrderUpdateInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { id, ...data } = input
+			const updateData: Prisma.OrderUpdateInput = {}
+
+			if (data.status !== undefined) {
+				updateData.status = data.status
+			}
+			if (data.phone !== undefined) {
+				updateData.phone = data.phone?.trim() || null
+			}
+			if (data.address !== undefined) {
+				updateData.address = data.address?.trim() || null
+			}
+			if (data.comment !== undefined) {
+				updateData.comment = data.comment?.trim() || null
+			}
+
+			return ctx.prisma.order.update({
+				where: { id },
+				data: updateData,
+				include: adminOrderInclude,
+			})
+		}),
+
 	updateStatus: adminProcedure
 		.input(
 			z.object({
 				id: z.string(),
-				status: z.enum([
-					'PENDING',
-					'PAID',
-					'SHIPPED',
-					'DELIVERED',
-					'CANCELLED',
-				]),
+				status: AdminOrderStatusSchema,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -256,4 +306,31 @@ export const ordersRouter = createTRPCRouter({
 				data: { status: input.status },
 			})
 		}),
+
+	getAllByStatuses: adminProcedure.query(async ({ ctx }) => {
+		const statuses = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const
+		// Один запрос вместо 5 отдельных; группируем в JS
+		const orders = await ctx.prisma.order.findMany({
+			where: { status: { in: statuses as unknown as ('PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED')[] } },
+			include: {
+				user: { select: { name: true, email: true } },
+				items: { include: { product: { select: { name: true, slug: true } } } },
+			},
+			orderBy: { createdAt: 'desc' },
+			take: 250,
+		})
+
+		const result = Object.fromEntries(
+			statuses.map((s) => [s, [] as typeof orders]),
+		) as Record<(typeof statuses)[number], typeof orders>
+
+		for (const order of orders) {
+			const list = result[order.status as (typeof statuses)[number]]
+			if (list.length < 50) {
+				list.push(order)
+			}
+		}
+
+		return result
+	}),
 })

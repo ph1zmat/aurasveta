@@ -173,7 +173,7 @@ export default function FileUploader({
 						displayImage
 							? 'border-border bg-muted/30'
 							: 'border-dashed border-border hover:bg-muted/30',
-						compact && 'rounded-xl',
+						compact && 'rounded-xl max-w-lg flex',
 					)}
 				>
 					{displayImage ? (

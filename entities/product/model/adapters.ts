@@ -16,6 +16,8 @@ export interface DbProduct {
 	slug: string
 	name: string
 	description?: string | null
+	metaTitle?: string | null
+	metaDesc?: string | null
 	price?: number | null
 	compareAtPrice?: number | null
 	stock: number
@@ -27,6 +29,8 @@ export interface DbProduct {
 	badges: unknown
 	createdAt: Date | string
 	category?: { name: string; slug?: string } | null
+	rootCategory?: { name: string; slug?: string } | null
+	subcategory?: { name: string; slug?: string } | null
 }
 
 function toProductImage(image: unknown, index: number): ProductImage | null {
@@ -104,6 +108,8 @@ export function toFrontendProduct(p: DbProduct): Product {
 		slug: p.slug,
 		name: p.name,
 		description: p.description ?? '',
+		metaTitle: p.metaTitle ?? undefined,
+		metaDesc: p.metaDesc ?? undefined,
 		price: p.price ? Number(p.price) : 0,
 		oldPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
 		discountPercent:
@@ -111,8 +117,12 @@ export function toFrontendProduct(p: DbProduct): Product {
 				? Math.round((1 - Number(p.price) / Number(p.compareAtPrice)) * 100)
 				: undefined,
 		bonusAmount: p.price ? Math.round(Number(p.price) * 0.06) : undefined,
-		category: p.category?.name ?? '',
-		categorySlug: p.category?.slug ?? undefined,
+		category: p.subcategory?.name ?? p.category?.name ?? p.rootCategory?.name ?? '',
+		categorySlug: p.subcategory?.slug ?? p.category?.slug ?? p.rootCategory?.slug ?? undefined,
+		rootCategory: p.rootCategory?.name ?? undefined,
+		rootCategorySlug: p.rootCategory?.slug ?? undefined,
+		subcategory: p.subcategory?.name ?? p.category?.name ?? undefined,
+		subcategorySlug: p.subcategory?.slug ?? p.category?.slug ?? undefined,
 		brand: p.brand ?? undefined,
 		brandCountry: p.brandCountry ?? undefined,
 		images,

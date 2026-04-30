@@ -11,7 +11,7 @@
 	--font-sans: 'Chiron GoRound TC WS', sans-serif;
 	--font-mono: 'Chiron GoRound TC WS', monospace;
 	--font-serif: 'Chiron GoRound TC WS', sans-serif;
-	--radius: 1.25rem;
+	--radius: 1.5rem;
 	--tracking-tighter: calc(var(--tracking-normal) - 0.0625em);
 	--tracking-tight: calc(var(--tracking-normal) - 0.03125em);
 	--tracking-wide: calc(var(--tracking-normal) + 0.03125em);
@@ -190,7 +190,7 @@
 	--chart-3: oklch(0.6351 0.1052 63.859);
 	--chart-4: oklch(0.5751 0.0845 67.8075);
 	--chart-5: oklch(0.4983 0.0757 70.8312);
-	--radius: 0.25rem;
+	--radius: 1.5rem;
 	--sidebar: oklch(0.2765 0.0184 59.7941);
 	--sidebar-foreground: oklch(0.928 0.0263 82.3839);
 	--sidebar-primary: oklch(0.7369 0.0805 66.0333);

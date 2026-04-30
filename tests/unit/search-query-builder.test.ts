@@ -19,23 +19,24 @@ function buildSearchQuery(
 	limit: number,
 	offset: number,
 ): { filterClause: string; params: unknown[]; orderClause: string } {
+	const likeQuery = `%${query}%`
 	let orderClause: string
 	switch (sortBy) {
 		case 'price_asc':
-			orderClause = `p."price" ASC NULLS LAST`
+			orderClause = `p."price" ASC NULLS LAST, rank DESC, p."id" ASC`
 			break
 		case 'price_desc':
-			orderClause = `p."price" DESC NULLS LAST`
+			orderClause = `p."price" DESC NULLS LAST, rank DESC, p."id" ASC`
 			break
 		case 'newest':
-			orderClause = `p."created_at" DESC`
+			orderClause = `p."created_at" DESC, rank DESC, p."id" ASC`
 			break
 		default:
-			orderClause = `rank DESC`
+			orderClause = `rank DESC, p."created_at" DESC, p."id" ASC`
 	}
 
-	const params: unknown[] = [query] // $1 = query
-	let paramIndex = 2
+	const params: unknown[] = [query, likeQuery] // $1 = tsquery, $2 = ILIKE fallback
+	let paramIndex = 3
 	let filterClause = ''
 
 	if (categorySlug) {
@@ -70,22 +71,22 @@ function buildSearchQuery(
 describe('buildSearchQuery – ORDER BY', () => {
 	it('defaults to rank DESC for "relevance"', () => {
 		const { orderClause } = buildSearchQuery('test', undefined, undefined, 'relevance', 12, 0)
-		expect(orderClause).toBe('rank DESC')
+		expect(orderClause).toBe('rank DESC, p."created_at" DESC, p."id" ASC')
 	})
 
 	it('returns price ASC for "price_asc"', () => {
 		const { orderClause } = buildSearchQuery('test', undefined, undefined, 'price_asc', 12, 0)
-		expect(orderClause).toBe('p."price" ASC NULLS LAST')
+		expect(orderClause).toBe('p."price" ASC NULLS LAST, rank DESC, p."id" ASC')
 	})
 
 	it('returns price DESC for "price_desc"', () => {
 		const { orderClause } = buildSearchQuery('test', undefined, undefined, 'price_desc', 12, 0)
-		expect(orderClause).toBe('p."price" DESC NULLS LAST')
+		expect(orderClause).toBe('p."price" DESC NULLS LAST, rank DESC, p."id" ASC')
 	})
 
 	it('returns created_at DESC for "newest"', () => {
 		const { orderClause } = buildSearchQuery('test', undefined, undefined, 'newest', 12, 0)
-		expect(orderClause).toBe('p."created_at" DESC')
+		expect(orderClause).toBe('p."created_at" DESC, rank DESC, p."id" ASC')
 	})
 })
 
@@ -102,8 +103,8 @@ describe('buildSearchQuery – category filter', () => {
 			12,
 			0,
 		)
-		expect(filterClause).toContain(`c."slug" = $2`)
-		expect(params[1]).toBe('ceiling')
+		expect(filterClause).toContain(`c."slug" = $3`)
+		expect(params[2]).toBe('ceiling')
 	})
 
 	it('does not add category clause when categorySlug is undefined', () => {
@@ -125,8 +126,8 @@ describe('buildSearchQuery – price filters', () => {
 			12,
 			0,
 		)
-		expect(filterClause).toContain(`p."price" >= $2`)
-		expect(params[1]).toBe(100)
+		expect(filterClause).toContain(`p."price" >= $3`)
+		expect(params[2]).toBe(100)
 	})
 
 	it('adds maxPrice clause after minPrice', () => {
@@ -138,10 +139,10 @@ describe('buildSearchQuery – price filters', () => {
 			12,
 			0,
 		)
-		expect(filterClause).toContain(`p."price" >= $2`)
-		expect(filterClause).toContain(`p."price" <= $3`)
-		expect(params[1]).toBe(100)
-		expect(params[2]).toBe(500)
+		expect(filterClause).toContain(`p."price" >= $3`)
+		expect(filterClause).toContain(`p."price" <= $4`)
+		expect(params[2]).toBe(100)
+		expect(params[3]).toBe(500)
 	})
 
 	it('adds maxPrice at $2 when no category and no minPrice', () => {
@@ -153,8 +154,8 @@ describe('buildSearchQuery – price filters', () => {
 			12,
 			0,
 		)
-		expect(filterClause).toContain(`p."price" <= $2`)
-		expect(params[1]).toBe(500)
+		expect(filterClause).toContain(`p."price" <= $3`)
+		expect(params[2]).toBe(500)
 	})
 
 	it('shifts param indices when category precedes price', () => {
@@ -166,11 +167,11 @@ describe('buildSearchQuery – price filters', () => {
 			12,
 			0,
 		)
-		// $2 = category, $3 = minPrice
-		expect(filterClause).toContain(`c."slug" = $2`)
-		expect(filterClause).toContain(`p."price" >= $3`)
-		expect(params[1]).toBe('ceiling')
-		expect(params[2]).toBe(100)
+		// $3 = category, $4 = minPrice
+		expect(filterClause).toContain(`c."slug" = $3`)
+		expect(filterClause).toContain(`p."price" >= $4`)
+		expect(params[2]).toBe('ceiling')
+		expect(params[3]).toBe(100)
 	})
 })
 
@@ -211,10 +212,10 @@ describe('buildSearchQuery – inStock filter', () => {
 			10,
 			0,
 		)
-		// params: [query, limit+1, offset]
-		expect(params).toHaveLength(3)
-		expect(params[1]).toBe(11) // limit+1
-		expect(params[2]).toBe(0)  // offset
+		// params: [query, likeQuery, limit+1, offset]
+		expect(params).toHaveLength(4)
+		expect(params[2]).toBe(11) // limit+1
+		expect(params[3]).toBe(0)  // offset
 	})
 })
 
@@ -227,6 +228,11 @@ describe('buildSearchQuery – params array', () => {
 		expect(params[0]).toBe('test')
 	})
 
+	it('stores substring fallback as second param', () => {
+		const { params } = buildSearchQuery('Бра', undefined, undefined, 'relevance', 12, 0)
+		expect(params[1]).toBe('%Бра%')
+	})
+
 	it('appends limit+1 and offset at the end', () => {
 		const { params } = buildSearchQuery('test', undefined, undefined, 'relevance', 12, 24)
 		expect(params[params.length - 2]).toBe(13) // limit+1
@@ -235,8 +241,8 @@ describe('buildSearchQuery – params array', () => {
 
 	it('no extra params when no filters', () => {
 		const { params } = buildSearchQuery('test', undefined, undefined, 'relevance', 12, 0)
-		// [query, limit+1, offset]
-		expect(params).toHaveLength(3)
+		// [query, likeQuery, limit+1, offset]
+		expect(params).toHaveLength(4)
 	})
 
 	it('correct param count with all filters', () => {
@@ -248,7 +254,7 @@ describe('buildSearchQuery – params array', () => {
 			12,
 			0,
 		)
-		// [query, categorySlug, minPrice, maxPrice, limit+1, offset]
-		expect(params).toHaveLength(6)
+		// [query, likeQuery, categorySlug, minPrice, maxPrice, limit+1, offset]
+		expect(params).toHaveLength(7)
 	})
 })

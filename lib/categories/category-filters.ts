@@ -9,6 +9,7 @@ export type CategoryFilterAware = {
 }
 
 type CategoryFilterAwareWithChildren = CategoryFilterAware & {
+	parentId?: string | null
 	children?: Array<{ id: string }> | null
 }
 
@@ -31,15 +32,31 @@ export function buildCategoryProductWhere(
 			? (category.children ?? []).map(child => child.id)
 			: []
 
-		if (childIds.length > 0) {
+		if (category.parentId) {
 			return {
-				categoryId: {
-					in: [category.id, ...childIds],
-				},
+				OR: [
+					{ subcategoryId: category.id },
+					{ categoryId: category.id },
+				],
 			}
 		}
 
-		return { categoryId: category.id }
+		if (childIds.length > 0) {
+			return {
+				OR: [
+					{ rootCategoryId: category.id },
+					{ subcategoryId: { in: childIds } },
+					{ categoryId: { in: [category.id, ...childIds] } },
+				],
+			}
+		}
+
+		return {
+			OR: [
+				{ rootCategoryId: category.id },
+				{ categoryId: category.id },
+			],
+		}
 	}
 
 	switch (category.filterKind) {

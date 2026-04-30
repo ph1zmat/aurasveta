@@ -47,7 +47,7 @@ const buttonVariants = cva(
 				link: 'font-medium text-foreground hover:text-primary disabled:text-muted-foreground',
 				icon: 'text-muted-foreground hover:text-foreground disabled:opacity-30',
 				subtle:
-					'rounded-md border border-border text-foreground hover:bg-accent',
+					'rounded-md border border-border text-foreground hover:bg-accent hover:text-white',
 				chip: 'rounded-full border border-foreground text-foreground hover:bg-foreground hover:text-card',
 			},
 			size: {
@@ -91,7 +91,8 @@ function getDefaultSize(
 }
 
 interface ButtonProps
-	extends ButtonHTMLAttributes<HTMLButtonElement>,
+	extends
+		ButtonHTMLAttributes<HTMLButtonElement>,
 		VariantProps<typeof buttonVariants> {
 	asChild?: boolean
 }

@@ -1,7 +1,5 @@
-import { requireAdmin } from '@/lib/auth/auth-utils'
 import SettingsClient from './SettingsClient'
 
-export default async function AdminSettingsPage() {
-	await requireAdmin()
+export default function SettingsPage() {
 	return <SettingsClient />
 }

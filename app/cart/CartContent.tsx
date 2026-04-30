@@ -7,6 +7,7 @@ import CartSummary from '@/features/cart/ui/CartSummary'
 import type { CartItemData } from '@/entities/cart/model/types'
 import { Button } from '@/shared/ui/Button'
 import { Link2 } from 'lucide-react'
+import { FaPhoneAlt, FaViber } from 'react-icons/fa'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
 import { trpc } from '@/lib/trpc/client'
@@ -107,6 +108,7 @@ export default function CartContent() {
 	const [showCheckout, setShowCheckout] = useState(false)
 	const [address, setAddress] = useState('')
 	const [phone, setPhone] = useState('')
+	const [contactMethod, setContactMethod] = useState<'PHONE' | 'VIBER'>('PHONE')
 	const [comment, setComment] = useState('')
 	const [testPushLoading, setTestPushLoading] = useState(false)
 
@@ -178,6 +180,7 @@ export default function CartContent() {
 		createOrderMut.mutate({
 			address,
 			phone,
+			contactMethod,
 			comment: comment || undefined,
 			items: rawItems,
 		})
@@ -279,6 +282,37 @@ export default function CartContent() {
 										{addressError}
 									</p>
 								)}
+							</div>
+							<div className='space-y-1'>
+								<label className='text-sm font-medium'>Способ связи</label>
+								<div className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
+									<button
+										type='button'
+										onClick={() => setContactMethod('PHONE')}
+										className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors ${
+											contactMethod === 'PHONE'
+												? 'border-primary bg-primary/10 text-foreground'
+												: 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+										}`}
+										aria-pressed={contactMethod === 'PHONE'}
+									>
+										<FaPhoneAlt className='h-4 w-4 shrink-0' />
+										<span>По номеру телефона</span>
+									</button>
+									<button
+										type='button'
+										onClick={() => setContactMethod('VIBER')}
+										className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors ${
+											contactMethod === 'VIBER'
+												? 'border-primary bg-primary/10 text-foreground'
+												: 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+										}`}
+										aria-pressed={contactMethod === 'VIBER'}
+									>
+										<FaViber className='h-4 w-4 shrink-0' />
+										<span>Через Viber</span>
+									</button>
+								</div>
 							</div>
 							<div className='space-y-1'>
 								<label className='text-sm font-medium'>Телефон</label>

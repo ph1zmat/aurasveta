@@ -1,299 +1,219 @@
-﻿'use client'
+'use client'
 
-import { useMemo, useState } from 'react'
-import { readBooleanParam, readStringParam } from '@aurasveta/shared-admin'
+import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
-import type { RouterOutputs } from '@/lib/trpc/client'
-import { Button } from '@/shared/ui/Button'
-import {
-	Plus,
-	Pencil,
-	Trash2,
-	X,
-	Tag,
-	Package,
-	ChevronDown,
-	ChevronRight,
-	Image as ImageIcon,
-} from 'lucide-react'
-import PropertyFormModal from './PropertyFormModal'
-import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
-
-type PropertyItem = RouterOutputs['properties']['getAll'][number]
-type PropertyValue = PropertyItem['values'][number]
-
-/* ============ Main ============ */
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import PropertyFormModal from './components/PropertyFormModal'
+import PropertyValueFormModal from './components/PropertyValueFormModal'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function PropertiesClient() {
+	const [modalOpen, setModalOpen] = useState(false)
+	const [editingProperty, setEditingProperty] = useState<any>(null)
+	const [expandedId, setExpandedId] = useState<string | null>(null)
+	const [confirmDeleteProperty, setConfirmDeleteProperty] = useState<string | null>(null)
+	const [confirmDeleteValue, setConfirmDeleteValue] = useState<string | null>(null)
+
+	// Стейт для модалки редактирования/создания значения
+	const [valueModalOpen, setValueModalOpen] = useState(false)
+	const [editingValue, setEditingValue] = useState<any>(null)
+	const [valueModalPropertyId, setValueModalPropertyId] = useState<string>('')
+	const [valueModalHasPhoto, setValueModalHasPhoto] = useState(false)
+
 	const { data: properties, refetch } = trpc.properties.getAll.useQuery()
-	const { searchParams, updateSearchParams } = useAdminSearchParams()
-	const deleteMut = trpc.properties.delete.useMutation({
-		onSuccess: () => refetch(),
+	const { mutate: deleteProperty } = trpc.properties.delete.useMutation({
+		onSuccess: () => { toast.success('Свойство удалено'); refetch(); setConfirmDeleteProperty(null) },
 	})
-	const deleteValueMut = trpc.properties.deleteValue.useMutation({
-		onSuccess: () => refetch(),
+	const { mutate: deleteValue } = trpc.properties.deleteValue.useMutation({
+		onSuccess: () => { toast.success('Значение удалено'); refetch(); setConfirmDeleteValue(null) },
 	})
-	const createValueMut = trpc.properties.createValue.useMutation({
-		onSuccess: () => refetch(),
+	const { mutate: reorderValues } = trpc.properties.reorderValues.useMutation({
+		onSuccess: () => { refetch() },
 	})
-	const showCreate =
-		readBooleanParam(searchParams.get('create'), false) === true
-	const editId = readStringParam(searchParams.get('edit')) || null
-	const expandedId = readStringParam(searchParams.get('expand')) || null
-	const search = readStringParam(searchParams.get('search'))
-	const addValueFor = readStringParam(searchParams.get('addValue')) || null
-	const [newValue, setNewValue] = useState({ value: '', slug: '' })
 
-	const filtered = useMemo(() => {
-		if (!properties) return []
-		if (!search) return properties
-		const q = search.toLowerCase()
-		return properties.filter(
-			(p: PropertyItem) =>
-				p.name?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q),
-		)
-	}, [properties, search])
+	const openNewValue = (prop: { id: string; hasPhoto: boolean }) => {
+		setEditingValue(null)
+		setValueModalPropertyId(prop.id)
+		setValueModalHasPhoto(prop.hasPhoto)
+		setValueModalOpen(true)
+	}
 
-	const handleAddValue = (e: React.FormEvent) => {
-		e.preventDefault()
-		if (!addValueFor) return
-		createValueMut.mutate({
-			propertyId: addValueFor,
-			value: newValue.value,
-			slug: newValue.slug || undefined,
-		})
-		updateSearchParams({ addValue: null }, { history: 'replace' })
-		setNewValue({ value: '', slug: '' })
+	const openEditValue = (prop: { id: string; hasPhoto: boolean }, val: any) => {
+		setEditingValue(val)
+		setValueModalPropertyId(prop.id)
+		setValueModalHasPhoto(prop.hasPhoto)
+		setValueModalOpen(true)
+	}
+
+	const moveValue = (_propertyId: string, values: { id: string; order?: number }[], index: number, direction: 'up' | 'down') => {
+		const newIndex = direction === 'up' ? index - 1 : index + 1
+		if (newIndex < 0 || newIndex >= values.length) return
+		const reordered = [...values]
+		const temp = reordered[index]
+		reordered[index] = reordered[newIndex]
+		reordered[newIndex] = temp
+		reorderValues(reordered.map((v, i) => ({ id: v.id, order: i })))
 	}
 
 	return (
-		<div className='space-y-5'>
+		<div className='space-y-4'>
 			<div className='flex items-center justify-between'>
-				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-					Свойства
-				</h1>
-				<button
-					onClick={() => {
-						updateSearchParams(
-							{ create: true, edit: null },
-							{ history: 'push' },
-						)
-					}}
-					className='flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
-				>
-					<Plus className='h-4 w-4' /> Добавить
-				</button>
+				<div>
+					<h1 className='text-xl font-bold'>Свойства</h1>
+					<p className='text-sm text-muted-foreground'>Управление характеристиками товаров</p>
+				</div>
+				<Button size='sm' onClick={() => { setEditingProperty(null); setModalOpen(true) }}>
+					<Plus className='h-4 w-4 mr-1' />
+					Новое свойство
+				</Button>
 			</div>
 
-			{properties && properties.length > 4 && (
-				<input
-					type='search'
-					placeholder='Поиск свойств...'
-					value={search}
-					onChange={e =>
-						updateSearchParams(
-							{ search: e.target.value },
-							{ history: 'replace' },
-						)
-					}
-					className='flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-				/>
-			)}
-
-			{(showCreate || Boolean(editId)) && (
-				<PropertyFormModal
-					editId={editId}
-					onClose={() =>
-						updateSearchParams(
-							{ create: null, edit: null },
-							{ history: 'replace' },
-						)
-					}
-					onSuccess={() => {
-						updateSearchParams(
-							{ create: null, edit: null },
-							{ history: 'replace' },
-						)
-						refetch()
-					}}
-				/>
-			)}
-
-			{filtered.length > 0 ? (
-				<div className='flex flex-col gap-3'>
-					{filtered.map((prop: PropertyItem) => {
-						const productCount = prop._count?.productValues ?? 0
-						const isExpanded = expandedId === prop.id
-
-						return (
-							<div
-								key={prop.id}
-								className='rounded-2xl border border-border bg-muted/10'
-							>
-								<div className='flex items-center justify-between p-4'>
-									<div className='flex items-center gap-3'>
-										<button
-											onClick={() =>
-												updateSearchParams(
-													{ expand: isExpanded ? null : prop.id },
-													{ history: 'replace' },
-												)
-											}
-											className='flex items-center gap-2 text-left'
-										>
-											{isExpanded ? (
-												<ChevronDown className='h-4 w-4 text-muted-foreground' />
-											) : (
-												<ChevronRight className='h-4 w-4 text-muted-foreground' />
-											)}
-											<div>
-												<div className='text-sm font-semibold text-foreground'>
-													{prop.name}
-												</div>
-												<div className='mt-0.5 font-mono text-xs text-muted-foreground'>
-													{prop.slug}
-												</div>
-											</div>
-										</button>
-										{prop.hasPhoto && (
-											<span className='inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-500'>
-												<ImageIcon className='h-2.5 w-2.5' /> Фото
-											</span>
-										)}
-										<span className='rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground'>
-											{prop.values?.length ?? 0} значений
-										</span>
-										{productCount > 0 && (
-											<span className='flex items-center gap-1 text-xs text-muted-foreground'>
-												<Package className='h-3 w-3' />
-												{productCount}
-											</span>
-										)}
-									</div>
-									<div className='flex gap-1'>
-										<button
-											onClick={() => {
-												updateSearchParams(
-													{ edit: prop.id, create: null },
-													{ history: 'push' },
-												)
-											}}
-											className='rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-										>
-											<Pencil className='h-3.5 w-3.5' />
-										</button>
-										<button
-											onClick={() => {
-												if (confirm('Удалить свойство и все его значения?'))
-													deleteMut.mutate(prop.id)
-											}}
-											className='rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive'
-										>
-											<Trash2 className='h-3.5 w-3.5' />
-										</button>
-									</div>
+			<div className='space-y-3'>
+				{(properties ?? []).map((prop) => {
+					const isOpen = expandedId === prop.id
+					const values = [...(prop.values ?? [])].sort((a: { order?: number }, b: { order?: number }) => (a.order ?? 0) - (b.order ?? 0))
+					return (
+						<Card key={prop.id} className='border-border'>
+							<CardHeader className='flex flex-row items-center justify-between py-3'>
+								<div className='flex items-center gap-3'>
+									<CardTitle className='text-sm font-bold'>{prop.name}</CardTitle>
+									<Badge variant='secondary' className='text-[10px]'>{prop.slug}</Badge>
+									{prop.hasPhoto && <Badge className='bg-accent/15 text-accent text-[10px]'>Фото</Badge>}
 								</div>
-
-								{isExpanded && (
-									<div className='border-t border-border px-4 pb-4 pt-3'>
-										<div className='flex flex-wrap gap-2'>
-											{(prop.values ?? []).map((v: PropertyValue) => (
-												<span
-													key={v.id}
-													className='group flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-foreground'
+								<div className='flex gap-1'>
+									<Button variant='ghost' size='sm' onClick={() => setExpandedId(isOpen ? null : prop.id)}>
+										{isOpen ? 'Скрыть' : `Значения (${values.length})`}
+									</Button>
+									<Button
+										variant='ghost'
+										size='icon'
+										className='h-7 w-7'
+										onClick={() => { setEditingProperty(prop); setModalOpen(true) }}
+										aria-label='Редактировать свойство'
+									>
+										<Pencil className='h-3.5 w-3.5' />
+									</Button>
+									<Button
+										variant='ghost'
+										size='icon'
+										className='h-7 w-7 text-destructive'
+										onClick={() => setConfirmDeleteProperty(prop.id)}
+										aria-label='Удалить свойство'
+									>
+										<Trash2 className='h-3.5 w-3.5' />
+									</Button>
+								</div>
+							</CardHeader>
+							{isOpen && (
+								<CardContent className='pt-0'>
+									<div className='space-y-2'>
+										{values.map((val: { id: string; value: string; slug: string; photo?: string | null }, index: number) => (
+											<div key={val.id} className='flex items-center gap-2 py-2 px-3 rounded-(--radius-md) bg-secondary/30'>
+												<span className='text-sm flex-1'>{val.value}</span>
+												{val.photo && (
+													<Badge className='bg-accent/15 text-accent text-[10px]'>Фото ✓</Badge>
+												)}
+												{prop.hasPhoto && !val.photo && (
+													<Badge variant='outline' className='text-[10px] text-muted-foreground'>Нет фото</Badge>
+												)}
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-6 w-6'
+													disabled={index === 0}
+													onClick={() => moveValue(prop.id, values, index, 'up')}
+													aria-label='Переместить вверх'
 												>
-													{v.value}
-													{v.slug && (
-														<span className='font-mono text-muted-foreground'>
-															({v.slug})
-														</span>
-													)}
-													<button
-														onClick={() => {
-															if (confirm(`Удалить "${v.value}"?`))
-																deleteValueMut.mutate(v.id)
-														}}
-														className='ml-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive'
-													>
-														<X className='h-3 w-3' />
-													</button>
-												</span>
-											))}
-										</div>
-
-										{addValueFor === prop.id ? (
-											<form
-												onSubmit={handleAddValue}
-												className='mt-3 flex gap-2'
-											>
-												<input
-													placeholder='Значение'
-													required
-													value={newValue.value}
-													onChange={e =>
-														setNewValue(v => ({
-															...v,
-															value: e.target.value,
-														}))
-													}
-													className='h-8 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary'
-												/>
-												<input
-													placeholder='Slug (авто)'
-													value={newValue.slug}
-													onChange={e =>
-														setNewValue(v => ({
-															...v,
-															slug: e.target.value,
-														}))
-													}
-													className='h-8 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-primary'
-												/>
-												<Button size='sm' type='submit'>
-													Добавить
+													<ArrowUp className='h-3 w-3' />
 												</Button>
 												<Button
-													size='sm'
 													variant='ghost'
-													type='button'
-													onClick={() =>
-														updateSearchParams(
-															{ addValue: null },
-															{ history: 'replace' },
-														)
-													}
+													size='icon'
+													className='h-6 w-6'
+													disabled={index === values.length - 1}
+													onClick={() => moveValue(prop.id, values, index, 'down')}
+													aria-label='Переместить вниз'
 												>
-													<X className='h-4 w-4' />
+													<ArrowDown className='h-3 w-3' />
 												</Button>
-											</form>
-										) : (
-											<button
-												onClick={() => {
-													updateSearchParams(
-														{ addValue: prop.id },
-														{ history: 'push' },
-													)
-													setNewValue({ value: '', slug: '' })
-												}}
-												className='mt-3 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground'
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-6 w-6'
+													onClick={() => openEditValue(prop, val)}
+													aria-label='Редактировать значение'
+												>
+													<Pencil className='h-3 w-3' />
+												</Button>
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-6 w-6 text-destructive'
+													onClick={() => setConfirmDeleteValue(val.id)}
+													aria-label='Удалить значение'
+												>
+													<Trash2 className='h-3 w-3' />
+												</Button>
+											</div>
+										))}
+										<div className='pt-2'>
+											<Button
+												size='sm'
+												variant='outline'
+												onClick={() => openNewValue(prop)}
 											>
-												<Plus className='h-3 w-3' /> Добавить значение
-											</button>
-										)}
+												<Plus className='h-3.5 w-3.5 mr-1' />
+												Добавить значение
+											</Button>
+										</div>
 									</div>
-								)}
-							</div>
-						)
-					})}
-				</div>
-			) : (
-				<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
-					<Tag className='mb-3 h-10 w-10 text-muted-foreground/30' />
-					<p className='text-sm text-muted-foreground'>
-						{search ? 'Свойства не найдены' : 'Нет свойств'}
-					</p>
-				</div>
-			)}
+								</CardContent>
+							)}
+						</Card>
+					)
+				})}
+				{(!properties || properties.length === 0) && (
+					<div className='text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border rounded-(--radius-lg)'>
+						Нет свойств
+					</div>
+				)}
+			</div>
+
+			<PropertyFormModal
+				open={modalOpen}
+				onOpenChange={setModalOpen}
+				onSuccess={() => refetch()}
+				property={editingProperty}
+			/>
+
+			<PropertyValueFormModal
+				open={valueModalOpen}
+				onOpenChange={setValueModalOpen}
+				onSuccess={() => refetch()}
+				propertyId={valueModalPropertyId}
+				hasPhoto={valueModalHasPhoto}
+				value={editingValue}
+			/>
+
+			<ConfirmDialog
+				open={!!confirmDeleteProperty}
+				onOpenChange={() => setConfirmDeleteProperty(null)}
+				title='Подтвердите удаление'
+				description='Свойство и все его значения будут безвозвратно удалены. Это действие нельзя отменить.'
+				onConfirm={() => confirmDeleteProperty && deleteProperty(confirmDeleteProperty)}
+			/>
+
+			<ConfirmDialog
+				open={!!confirmDeleteValue}
+				onOpenChange={() => setConfirmDeleteValue(null)}
+				title='Подтвердите удаление'
+				description='Значение будет безвозвратно удалено. Это действие нельзя отменить.'
+				onConfirm={() => confirmDeleteValue && deleteValue(confirmDeleteValue)}
+			/>
 		</div>
 	)
 }

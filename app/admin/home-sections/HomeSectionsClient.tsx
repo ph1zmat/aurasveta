@@ -1,964 +1,351 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState, useCallback } from 'react'
+import { trpc } from '@/lib/trpc/client'
 import {
 	DndContext,
-	PointerSensor,
-	type DragEndEvent,
 	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
 	useSensor,
 	useSensors,
+	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
 } from '@dnd-kit/core'
 import {
 	SortableContext,
-	arrayMove,
-	useSortable,
+	sortableKeyboardCoordinates,
 	verticalListSortingStrategy,
+	useSortable,
+	arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 import {
-	readBooleanParam,
-	readStringParam,
-	useUnsavedChangesGuard,
-} from '@aurasveta/shared-admin'
-import { trpc } from '@/lib/trpc/client'
-import type { RouterOutputs } from '@/lib/trpc/client'
-import { Button } from '@/shared/ui/Button'
-import {
-	Plus,
+	GripVertical,
 	Pencil,
 	Trash2,
-	Eye,
-	EyeOff,
-	GripVertical,
-	X,
-	ChevronUp,
-	ChevronDown,
-	LayoutGrid,
+	Plus,
+	Monitor,
+	Smartphone,
+	Save,
 } from 'lucide-react'
-import { SectionConfigEditor } from './SectionConfigEditor'
-import { useAdminSearchParams } from '../hooks/useAdminSearchParams'
+import SectionFormModal from './SectionFormModal'
 
-type SectionItem = RouterOutputs['homeSection']['getAll'][number]
-type SectionTypeItem = RouterOutputs['sectionType']['getAll'][number]
-type SectionTypePreset = {
-	name: string
-	component: string
-	description: string
-	defaultTitle?: string
-	defaultConfig: Record<string, unknown>
+type Section = {
+	id: string
+	title: string | null
+	order: number
+	isActive: boolean
+	config: unknown
+	sectionTypeId: string
+	sectionType?: { id: string; name: string; component: string } | null
 }
 
-const inputCls =
-	'flex h-9 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
-
-const SECTION_TYPE_PRESETS: SectionTypePreset[] = [
-	{
-		name: 'Баннер',
-		component: 'Banner',
-		description: 'Слайды с картинками, CTA и ссылками.',
-		defaultTitle: 'Добро пожаловать',
-		defaultConfig: {},
-	},
-	{
-		name: 'Сетка товаров',
-		component: 'ProductGrid',
-		description: 'Подборка товаров по акции, новинкам, категории или свойству.',
-		defaultTitle: 'Акции и скидки',
-		defaultConfig: { source: 'promotion', limit: 8, cols: 4, sortBy: 'newest' },
-	},
-	{
-		name: 'Карусель брендов по свойству',
-		component: 'BrandCarousel',
-		description: 'Показывает значения выбранного свойства как карточки-бренды.',
-		defaultTitle: 'Бренды',
-		defaultConfig: { propertySlug: 'brand', filterParam: 'brand' },
-	},
-	{
-		name: 'Карусель категорий',
-		component: 'CategoryCarousel',
-		description: 'Показывает реальные категории из каталога.',
-		defaultTitle: 'Категории',
-		defaultConfig: { limit: 12, orderBy: 'name' },
-	},
-	{
-		name: 'Преимущества',
-		component: 'Advantages',
-		description: 'Карточки преимуществ магазина.',
-		defaultTitle: 'Наши преимущества',
-		defaultConfig: {},
-	},
-	{
-		name: 'О нас',
-		component: 'AboutText',
-		description: 'Текстовый блок с абзацами и раскрытием.',
-		defaultTitle: 'О нас',
-		defaultConfig: {},
-	},
-	{
-		name: 'Популярные запросы',
-		component: 'PopularQueries',
-		description: 'Автоматически выводит популярные поисковые запросы.',
-		defaultTitle: 'Популярные запросы',
-		defaultConfig: { limit: 10 },
-	},
-	{
-		name: 'Комнаты',
-		component: 'RoomCategories',
-		description: 'Карточки помещений с ссылками на реальные фильтры каталога.',
-		defaultTitle: 'Товары по расположению',
-		defaultConfig: {},
-	},
-	{
-		name: 'Новинки',
-		component: 'NewProducts',
-		description: 'Автоматическая секция новых товаров.',
-		defaultTitle: 'Новинки',
-		defaultConfig: {
-			heading: 'Новинки',
-			limit: 8,
-			viewAllLabel: 'Все новинки',
-			viewAllHref: '/new',
-		},
-	},
-	{
-		name: 'Акции',
-		component: 'SaleProducts',
-		description: 'Автоматическая секция товаров со скидкой.',
-		defaultTitle: 'Акции и скидки',
-		defaultConfig: {
-			heading: 'Акции и скидки',
-			limit: 8,
-			viewAllLabel: 'Все акции',
-			viewAllHref: '/clearance',
-		},
-	},
-	{
-		name: 'Популярные товары',
-		component: 'PopularProducts',
-		description: 'Автоматическая секция популярных товаров.',
-		defaultTitle: 'Популярные товары',
-		defaultConfig: {
-			heading: 'Популярные товары',
-			limit: 10,
-			viewAllLabel: 'Смотреть все',
-		},
-	},
-	{
-		name: 'Популярные категории',
-		component: 'PopularCategories',
-		description: 'Корневые категории каталога с лимитом.',
-		defaultTitle: 'Популярные категории',
-		defaultConfig: { heading: 'Популярные категории', limit: 7 },
-	},
-	{
-		name: 'Вы смотрели',
-		component: 'RecentlyViewed',
-		description: 'Персональная секция истории просмотра пользователя.',
-		defaultTitle: 'Вы смотрели',
-		defaultConfig: { heading: 'Вы смотрели', limit: 4 },
-	},
-	{
-		name: 'Карусель брендов из товаров',
-		component: 'BrandsCarousel',
-		description:
-			'Показывает бренды как значения свойства brand с фото, а при отсутствии свойства использует fallback из товаров.',
-		defaultTitle: 'Бренды',
-		defaultConfig: {
-			heading: 'Бренды',
-			propertySlug: 'brand',
-			filterParam: 'brand',
-		},
-	},
-]
-
-function getPresetByComponent(component?: string | null) {
-	return SECTION_TYPE_PRESETS.find(preset => preset.component === component)
-}
-
-function clonePresetConfig(component?: string | null) {
-	const preset = getPresetByComponent(component)
-	return preset ? JSON.parse(JSON.stringify(preset.defaultConfig)) : {}
-}
-
-function SortableSectionRow({
-	item,
-	index,
-	total,
-	onMove,
-	onToggleActive,
+function SortableCard({
+	section,
 	onEdit,
 	onDelete,
+	onToggle,
 }: {
-	item: SectionItem
-	index: number
-	total: number
-	onMove: (index: number, dir: -1 | 1) => void
-	onToggleActive: (id: string, next: boolean) => void
-	onEdit: (item: SectionItem) => void
-	onDelete: (item: SectionItem) => void
+	section: Section
+	onEdit: (s: Section) => void
+	onDelete: (id: string) => void
+	onToggle: (id: string, val: boolean) => void
 }) {
-	const {
-		attributes,
-		listeners,
-		setNodeRef,
-		transform,
-		transition,
-		isDragging,
-	} = useSortable({ id: item.id })
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+		useSortable({ id: section.id })
 
-	const style = {
+	const style: React.CSSProperties = {
 		transform: CSS.Transform.toString(transform),
 		transition,
+		opacity: isDragging ? 0.4 : 1,
 	}
 
 	return (
-		<div
-			ref={setNodeRef}
-			style={style}
-			className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
-				isDragging
-					? 'opacity-90'
-					: item.isActive
-						? 'border-border bg-card'
-						: 'border-border/50 bg-muted/10 opacity-60'
-			}`}
-		>
-			<button
-				type='button'
-				{...attributes}
-				{...listeners}
-				className='cursor-grab rounded p-1 text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing'
-				title='Перетащить'
-			>
-				<GripVertical className='h-4 w-4 shrink-0' />
-			</button>
-
-			<div className='flex items-center gap-2'>
-				<button
-					type='button'
-					onClick={() => onMove(index, -1)}
-					disabled={index === 0}
-					className='rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30'
-				>
-					<ChevronUp className='h-3.5 w-3.5' />
-				</button>
-				<button
-					type='button'
-					onClick={() => onMove(index, 1)}
-					disabled={index === total - 1}
-					className='rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30'
-				>
-					<ChevronDown className='h-3.5 w-3.5' />
-				</button>
-			</div>
-
-			<span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-mono text-muted-foreground'>
-				{index + 1}
-			</span>
-
-			<div className='min-w-0 flex-1'>
-				<div className='flex items-center gap-2'>
-					<span className='truncate text-sm font-medium text-foreground'>
-						{item.title ?? item.sectionType.name}
-					</span>
-					<span className='shrink-0 rounded-full bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground'>
-						{item.sectionType.component}
-					</span>
-				</div>
-			</div>
-
-			<div className='flex shrink-0 items-center gap-1'>
-				<button
-					type='button'
-					onClick={() => onToggleActive(item.id, !item.isActive)}
-					className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
-					title={item.isActive ? 'Скрыть' : 'Показать'}
-				>
-					{item.isActive ? (
-						<Eye className='h-3.5 w-3.5' />
-					) : (
-						<EyeOff className='h-3.5 w-3.5' />
-					)}
-				</button>
-				<button
-					type='button'
-					onClick={() => onEdit(item)}
-					className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
-				>
-					<Pencil className='h-3.5 w-3.5' />
-				</button>
-				<button
-					type='button'
-					onClick={() => onDelete(item)}
-					className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive'
-				>
-					<Trash2 className='h-3.5 w-3.5' />
-				</button>
-			</div>
+		<div ref={setNodeRef} style={style}>
+			<Card className='border-border mb-2'>
+				<CardHeader className='flex flex-row items-center gap-2 py-3 px-4'>
+					<button
+						{...attributes}
+						{...listeners}
+						className='cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0 touch-none'
+						tabIndex={-1}
+					>
+						<GripVertical className='h-4 w-4' />
+					</button>
+					<div className='flex-1 flex items-center gap-2 min-w-0'>
+						<Badge variant='secondary' className='text-[10px] shrink-0'>
+							{section.sectionType?.name ?? section.sectionTypeId}
+						</Badge>
+						<span className='text-sm font-medium truncate'>
+							{section.title ?? '—'}
+						</span>
+					</div>
+					<div className='flex items-center gap-1 shrink-0'>
+						<Switch
+							checked={section.isActive}
+							onCheckedChange={(v) => onToggle(section.id, v)}
+						/>
+						<Button
+							variant='ghost'
+							size='icon'
+							className='h-7 w-7'
+							onClick={() => onEdit(section)}
+						>
+							<Pencil className='h-3.5 w-3.5' />
+						</Button>
+						<Button
+							variant='ghost'
+							size='icon'
+							className='h-7 w-7 text-destructive hover:text-destructive'
+							onClick={() => onDelete(section.id)}
+						>
+							<Trash2 className='h-3.5 w-3.5' />
+						</Button>
+					</div>
+				</CardHeader>
+			</Card>
 		</div>
 	)
 }
 
 export default function HomeSectionsClient() {
-	const { searchParams, updateSearchParams } = useAdminSearchParams()
+	const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
+	const [editingSection, setEditingSection] = useState<Section | null>(null)
+	const [localOrder, setLocalOrder] = useState<string[] | null>(null)
+	const [activeId, setActiveId] = useState<string | null>(null)
+	const [dirty, setDirty] = useState(false)
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: { distance: 5 },
+		}),
+		useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+		}),
+	)
+
 	const { data: sections, refetch } = trpc.homeSection.getAll.useQuery()
-	const { data: sectionTypes, refetch: refetchSectionTypes } =
-		trpc.sectionType.getAll.useQuery()
+	const { data: sectionTypes } = trpc.sectionType.getAll.useQuery()
 
-	const showForm =
-		readBooleanParam(searchParams.get('create'), false) === true ||
-		Boolean(readStringParam(searchParams.get('edit')))
-	const showTypeForm =
-		readBooleanParam(searchParams.get('createType'), false) === true
-	const editId = readStringParam(searchParams.get('edit')) || null
-	const typeComponentParam = readStringParam(searchParams.get('typeComponent'))
-	const editItem = useMemo(
-		() =>
-			editId && sections
-				? (sections.find(item => item.id === editId) ?? null)
-				: null,
-		[editId, sections],
-	)
-	const [typeForm, setTypeForm] = useState({
-		name: SECTION_TYPE_PRESETS[0]?.name ?? '',
-		component: SECTION_TYPE_PRESETS[0]?.component ?? '',
-	})
-	const [form, setForm] = useState<{
-		sectionTypeId: string
-		title: string
-		isActive: boolean
-		config: Record<string, unknown>
-	}>({
-		sectionTypeId: '',
-		title: '',
-		isActive: true,
-		config: {},
-	})
-	const [hasSectionFormChanges, setHasSectionFormChanges] = useState(false)
-	const [hasTypeFormChanges, setHasTypeFormChanges] = useState(false)
-
-	const sensors = useSensors(useSensor(PointerSensor))
-	const existingPresetComponents = useMemo(
-		() => new Set(sectionTypes?.map(type => type.component) ?? []),
-		[sectionTypes],
-	)
-	const missingPresets = useMemo(
-		() =>
-			SECTION_TYPE_PRESETS.filter(
-				preset => !existingPresetComponents.has(preset.component),
-			),
-		[existingPresetComponents],
-	)
-	const selectedTypePreset = useMemo(
-		() => getPresetByComponent(typeForm.component),
-		[typeForm.component],
-	)
-
-	const orderedSections = useMemo(() => sections ?? [], [sections])
-	const formRouteKey = showForm ? (editId ?? 'create') : 'closed'
-	const typeFormRouteKey = showTypeForm
-		? typeComponentParam || 'createType'
-		: 'closed'
-	const confirmSectionDiscard = useUnsavedChangesGuard(hasSectionFormChanges)
-	const confirmTypeDiscard = useUnsavedChangesGuard(hasTypeFormChanges)
-
-	useEffect(() => {
-		if (!showForm) return
-
-		if (editItem) {
-			queueMicrotask(() => {
-				setForm({
-					sectionTypeId: editItem.sectionTypeId,
-					title: editItem.title ?? '',
-					isActive: editItem.isActive,
-					config: (editItem.config as Record<string, unknown>) ?? {},
-				})
-				setHasSectionFormChanges(false)
-			})
-			return
-		}
-
-		const firstType = sectionTypes?.[0]
-		const preset = getPresetByComponent(firstType?.component)
-		queueMicrotask(() => {
-			setForm({
-				sectionTypeId: firstType?.id ?? '',
-				title: preset?.defaultTitle ?? firstType?.name ?? '',
-				isActive: true,
-				config: clonePresetConfig(firstType?.component),
-			})
-			setHasSectionFormChanges(false)
-		})
-	}, [formRouteKey, editItem, sectionTypes, showForm])
-
-	useEffect(() => {
-		if (!showTypeForm) return
-
-		const preset =
-			getPresetByComponent(typeComponentParam) ?? SECTION_TYPE_PRESETS[0]
-		queueMicrotask(() => {
-			setTypeForm({
-				name: preset?.name ?? '',
-				component: preset?.component ?? '',
-			})
-			setHasTypeFormChanges(false)
-		})
-	}, [showTypeForm, typeComponentParam, typeFormRouteKey])
-
-	function closeForm() {
-		if (!confirmSectionDiscard()) return
-		setHasSectionFormChanges(false)
-		updateSearchParams({ create: null, edit: null }, { history: 'replace' })
-	}
-
-	function closeTypeForm() {
-		if (!confirmTypeDiscard()) return
-		setHasTypeFormChanges(false)
-		updateSearchParams(
-			{ createType: null, typeComponent: null },
-			{ history: 'replace' },
-		)
-	}
-
-	const createMut = trpc.homeSection.create.useMutation({
+	const { mutate: createSection } = trpc.homeSection.create.useMutation({
 		onSuccess: () => {
+			toast.success('Секция добавлена')
 			refetch()
-			setHasSectionFormChanges(false)
-			closeForm()
+			setLocalOrder(null)
 		},
 	})
-	const createTypeMut = trpc.sectionType.create.useMutation({
-		onSuccess: created => {
-			const preset = getPresetByComponent(created.component)
-			refetchSectionTypes()
-			setTypeForm({
-				name: SECTION_TYPE_PRESETS[0]?.name ?? '',
-				component: SECTION_TYPE_PRESETS[0]?.component ?? '',
-			})
-			setHasTypeFormChanges(false)
-			closeTypeForm()
-			setForm(prev => ({
-				...prev,
-				sectionTypeId: created.id,
-				title: prev.title || preset?.defaultTitle || created.name,
-				config:
-					Object.keys(prev.config).length > 0
-						? prev.config
-						: clonePresetConfig(created.component),
-			}))
-		},
-	})
-	const updateMut = trpc.homeSection.update.useMutation({
+	const { mutate: updateSection } = trpc.homeSection.update.useMutation({
 		onSuccess: () => {
+			toast.success('Секция обновлена')
 			refetch()
-			setHasSectionFormChanges(false)
-			closeForm()
+			setEditingSection(null)
 		},
 	})
-	const deleteMut = trpc.homeSection.delete.useMutation({
-		onSuccess: () => refetch(),
+	const { mutate: deleteSection } = trpc.homeSection.delete.useMutation({
+		onSuccess: () => {
+			toast.success('Секция удалена')
+			refetch()
+			setLocalOrder(null)
+		},
 	})
-	const reorderMut = trpc.homeSection.reorder.useMutation({
-		onSuccess: () => refetch(),
+	const { mutate: reorder, isPending: reordering } = trpc.homeSection.reorder.useMutation({
+		onSuccess: () => {
+			toast.success('Порядок сохранён')
+			refetch()
+			setLocalOrder(null)
+			setDirty(false)
+		},
 	})
 
-	function persistOrder(items: SectionItem[]) {
-		reorderMut.mutate(
-			items.map((section, index) => ({ id: section.id, order: index })),
-		)
-	}
+	const sorted = [...(sections ?? [])].sort((a, b) => a.order - b.order)
+	const displayIds = localOrder ?? sorted.map((s) => s.id)
+	const displaySections = displayIds
+		.map((id) => sorted.find((s) => s.id === id))
+		.filter(Boolean) as Section[]
 
-	function openCreate() {
-		updateSearchParams({ create: true, edit: null }, { history: 'push' })
-	}
+	const handleDragStart = useCallback((event: DragStartEvent) => {
+		setActiveId(String(event.active.id))
+	}, [])
 
-	function openCreateType(component?: string) {
-		const preset = getPresetByComponent(component) ?? SECTION_TYPE_PRESETS[0]
-		updateSearchParams(
-			{
-				createType: true,
-				typeComponent: preset?.component ?? '',
-			},
-			{ history: 'push' },
-		)
-	}
-
-	function createTypeFromPreset(preset: SectionTypePreset) {
-		createTypeMut.mutate({
-			name: preset.name,
-			component: preset.component,
-		})
-	}
-
-	function handleCreateType(e: React.FormEvent) {
-		e.preventDefault()
-		createTypeMut.mutate({
-			name: typeForm.name.trim(),
-			component: typeForm.component.trim(),
-		})
-	}
-
-	function openEdit(section: SectionItem) {
-		updateSearchParams({ edit: section.id, create: null }, { history: 'push' })
-	}
-
-	function handleSubmit(e: React.FormEvent) {
-		e.preventDefault()
-		if (editItem) {
-			updateMut.mutate({
-				id: editItem.id,
-				sectionTypeId:
-					form.sectionTypeId !== editItem.sectionTypeId
-						? form.sectionTypeId
-						: undefined,
-				title: form.title || undefined,
-				isActive: form.isActive,
-				config: form.config,
-			})
-			return
-		}
-
-		createMut.mutate({
-			sectionTypeId: form.sectionTypeId,
-			title: form.title || undefined,
-			isActive: form.isActive,
-			order: orderedSections.length,
-			config: form.config,
-		})
-	}
-
-	function moveSection(index: number, dir: -1 | 1) {
-		const targetIndex = index + dir
-		if (targetIndex < 0 || targetIndex >= orderedSections.length) return
-		const next = arrayMove(orderedSections, index, targetIndex)
-		persistOrder(next)
-	}
-
-	function handleDragEnd(event: DragEndEvent) {
-		const { active, over } = event
-		if (!over || active.id === over.id) return
-
-		const oldIndex = orderedSections.findIndex(s => s.id === String(active.id))
-		const newIndex = orderedSections.findIndex(s => s.id === String(over.id))
-		if (oldIndex === -1 || newIndex === -1) return
-
-		const next = arrayMove(orderedSections, oldIndex, newIndex)
-		persistOrder(next)
-	}
-
-	const currentComponentName =
-		sectionTypes?.find(t => t.id === form.sectionTypeId)?.component ??
-		editItem?.sectionType?.component ??
-		''
-	const currentTypePreset = getPresetByComponent(currentComponentName)
-
-	const sortableIds = useMemo(
-		() => orderedSections.map(section => section.id),
-		[orderedSections],
+	const handleDragEnd = useCallback(
+		(event: DragEndEvent) => {
+			const { active, over } = event
+			setActiveId(null)
+			if (!over || active.id === over.id) return
+			const oldIndex = displayIds.indexOf(String(active.id))
+			const newIndex = displayIds.indexOf(String(over.id))
+			if (oldIndex === -1 || newIndex === -1) return
+			const newOrder = arrayMove(displayIds, oldIndex, newIndex)
+			setLocalOrder(newOrder)
+			setDirty(true)
+		},
+		[displayIds],
 	)
+
+	const handlePublish = () => {
+		const ids = localOrder ?? sorted.map((s) => s.id)
+		reorder(ids.map((id, i) => ({ id, order: i })))
+	}
+
+	const handleAdd = (typeId: string) => {
+		createSection({
+			sectionTypeId: typeId,
+			title: 'Новая секция',
+			order: sorted.length,
+		})
+	}
+
+	const activeSection = activeId ? sorted.find((s) => s.id === activeId) : null
 
 	return (
-		<div className='space-y-6'>
-			<div className='flex items-center justify-between'>
-				<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
-					Секции
-				</h1>
-				<Button variant='primary' size='sm' onClick={openCreate}>
-					<Plus className='mr-1 h-4 w-4' /> Добавить секцию
-				</Button>
+		<div className='space-y-4'>
+			{/* Header */}
+			<div className='flex items-center justify-between flex-wrap gap-2'>
+				<div>
+					<h1 className='text-xl font-bold'>Главная страница</h1>
+					<p className='text-sm text-muted-foreground'>
+						{sorted.length} секций · перетащите для изменения порядка
+					</p>
+				</div>
+				<div className='flex items-center gap-2'>
+					{dirty && (
+						<span className='text-xs text-warning font-medium'>Несохранённые изменения</span>
+					)}
+					{dirty && (
+						<Button size='sm' onClick={handlePublish} disabled={reordering}>
+							<Save className='h-4 w-4 mr-1' />
+							{reordering ? 'Сохранение...' : 'Сохранить порядок'}
+						</Button>
+					)}
+					{/* Device toggle */}
+					<div className='flex rounded-md border border-border overflow-hidden'>
+						<button
+							className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+								device === 'desktop'
+									? 'bg-accent text-accent-foreground'
+									: 'hover:bg-secondary text-muted-foreground'
+							}`}
+							onClick={() => setDevice('desktop')}
+						>
+							<Monitor className='h-4 w-4' />
+							<span className='hidden sm:inline'>Desktop</span>
+						</button>
+						<button
+							className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+								device === 'mobile'
+									? 'bg-accent text-accent-foreground'
+									: 'hover:bg-secondary text-muted-foreground'
+							}`}
+							onClick={() => setDevice('mobile')}
+						>
+							<Smartphone className='h-4 w-4' />
+							<span className='hidden sm:inline'>Mobile</span>
+						</button>
+					</div>
+				</div>
 			</div>
 
-			{showTypeForm && (
-				<div
-					className='fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-16'
-					onClick={e => {
-						if (e.target === e.currentTarget) closeTypeForm()
-					}}
-				>
-					<div className='flex w-full max-w-xl flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-						<div className='flex shrink-0 items-center justify-between border-b border-border px-6 py-4'>
-							<h2 className='text-base font-semibold text-foreground'>
-								Новый тип секции
-							</h2>
-							<button
-								type='button'
-								onClick={closeTypeForm}
-								className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+			<div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4'>
+				{/* Library */}
+				<Card className='border-border h-fit'>
+					<CardHeader className='pb-2'>
+						<CardTitle className='text-base font-bold'>Типы секций</CardTitle>
+					</CardHeader>
+					<CardContent className='space-y-2 p-3'>
+						{(sectionTypes ?? []).map((st) => (
+							<div
+								key={st.id}
+								className='flex items-center gap-2 p-2.5 rounded-md border border-border bg-card hover:border-accent hover:bg-accent/5 transition-colors'
 							>
-								<X className='h-4 w-4' />
-							</button>
-						</div>
-
-						<form
-							id='section-type-form'
-							onSubmit={handleCreateType}
-							className='space-y-4 px-6 py-5'
-						>
-							<div>
-								<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-									Поддерживаемый компонент
-								</label>
-								<select
-									required
-									value={typeForm.component}
-									onChange={e => {
-										const preset = getPresetByComponent(e.target.value)
-										setHasTypeFormChanges(true)
-										setTypeForm({
-											name: preset?.name ?? '',
-											component: preset?.component ?? e.target.value,
-										})
-									}}
-									className={inputCls}
+								<div className='flex-1 min-w-0'>
+									<div className='text-sm font-medium'>{st.name}</div>
+									<div className='text-xs text-muted-foreground'>{st.component}</div>
+								</div>
+								<Button
+									size='icon'
+									variant='ghost'
+									className='h-7 w-7 shrink-0'
+									onClick={() => handleAdd(st.id)}
 								>
-									{SECTION_TYPE_PRESETS.map(preset => (
-										<option key={preset.component} value={preset.component}>
-											{preset.name} ({preset.component})
-										</option>
-									))}
-								</select>
-								{selectedTypePreset && (
-									<p className='mt-1 text-[10px] text-muted-foreground'>
-										{selectedTypePreset.description}
-									</p>
-								)}
+									<Plus className='h-3.5 w-3.5' />
+								</Button>
 							</div>
+						))}
+						{(sectionTypes ?? []).length === 0 && (
+							<div className='text-xs text-muted-foreground text-center py-4'>Нет типов секций</div>
+						)}
+					</CardContent>
+				</Card>
 
-							<div>
-								<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-									Название
-								</label>
-								<input
-									required
-									value={typeForm.name}
-									onChange={e => {
-										setHasTypeFormChanges(true)
-										setTypeForm(prev => ({ ...prev, name: e.target.value }))
-									}}
-									placeholder='Баннер'
-									className={inputCls}
-								/>
-							</div>
-
-							<div>
-								<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-									Ключ компонента
-								</label>
-								<input
-									required
-									value={typeForm.component}
-									onChange={e => {
-										setHasTypeFormChanges(true)
-										setTypeForm(prev => ({
-											...prev,
-											component: e.target.value,
-										}))
-									}}
-									placeholder='Banner'
-									className={`${inputCls} font-mono`}
-								/>
-								<p className='mt-1 text-[10px] text-muted-foreground'>
-									Тип создаётся только для реально поддерживаемого компонента,
-									поэтому обычно менять это поле не нужно.
-								</p>
-								{existingPresetComponents.has(typeForm.component) && (
-									<p className='mt-1 text-[10px] text-amber-600'>
-										Этот тип уже создан в базе. Дубликат по компоненту не нужен.
-									</p>
-								)}
-							</div>
-
-							<div className='rounded-xl border border-dashed border-border bg-muted/10 px-4 py-3'>
-								<p className='text-xs font-medium text-foreground'>
-									Источник правды — реальные компоненты сайта
-								</p>
-								<p className='mt-1 text-xs text-muted-foreground'>
-									Сейчас в проекте поддерживается {SECTION_TYPE_PRESETS.length}{' '}
-									готовых типа секций, из них уже создано{' '}
-									{existingPresetComponents.size}.
-								</p>
-							</div>
-						</form>
-
-						<div className='flex shrink-0 items-center justify-end gap-2 border-t border-border px-6 py-4'>
-							<Button
-								variant='ghost'
-								type='button'
-								size='sm'
-								onClick={closeTypeForm}
-							>
-								Отмена
-							</Button>
-							<Button
-								variant='primary'
-								type='submit'
-								form='section-type-form'
-								size='sm'
-								disabled={
-									createTypeMut.isPending ||
-									existingPresetComponents.has(typeForm.component)
-								}
-							>
-								Создать тип
-							</Button>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{showForm && (
+				{/* Canvas */}
 				<div
-					className='fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-16 h-full overflow-y-auto'
-					onClick={e => {
-						if (e.target === e.currentTarget) closeForm()
-					}}
+					className={`transition-all duration-300 ${device === 'mobile' ? 'max-w-[390px] mx-auto w-full' : ''}`}
 				>
-					<div className='flex w-full max-w-5xl max-h-[88vh] flex-col rounded-2xl border border-border bg-card shadow-2xl'>
-						<div className='flex shrink-0 items-center justify-between border-b border-border px-6 py-4'>
-							<h2 className='text-base font-semibold text-foreground'>
-								{editItem ? 'Редактировать секцию' : 'Новая секция'}
-							</h2>
-							<button
-								type='button'
-								onClick={closeForm}
-								className='rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-							>
-								<X className='h-4 w-4' />
-							</button>
-						</div>
-
-						<div className='min-h-0 flex-1 overflow-y-auto px-6 py-5'>
-							<form
-								id='section-form'
-								onSubmit={handleSubmit}
-								className='space-y-4'
-							>
-								<div>
-									<div className='mb-1 flex items-center justify-between'>
-										<label className='block text-xs font-medium text-muted-foreground'>
-											Тип секции
-										</label>
-										<button
-											type='button'
-											onClick={() => openCreateType(currentComponentName)}
-											className='text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
-										>
-											+ Новый тип
-										</button>
-									</div>
-									<select
-										required
-										value={form.sectionTypeId}
-										onChange={e => {
-											const nextType = sectionTypes?.find(
-												type => type.id === e.target.value,
-											)
-											const preset = getPresetByComponent(nextType?.component)
-											setHasSectionFormChanges(true)
-											setForm(f => ({
-												...f,
-												sectionTypeId: e.target.value,
-												title:
-													!editItem || !f.title
-														? (preset?.defaultTitle ?? nextType?.name ?? '')
-														: f.title,
-												config: clonePresetConfig(nextType?.component),
-											}))
-										}}
-										className={inputCls}
-									>
-										<option value=''>Выберите тип...</option>
-										{sectionTypes?.map((type: SectionTypeItem) => (
-											<option key={type.id} value={type.id}>
-												{type.name} ({type.component})
-											</option>
-										))}
-									</select>
-									{editItem && (
-										<p className='mt-1 text-[10px] text-muted-foreground'>
-											Теперь тип можно менять и при редактировании. При смене
-											типа настройки секции переключаются на конфиг нового
-											компонента.
-										</p>
-									)}
-									{(!sectionTypes || sectionTypes.length === 0) && (
-										<div className='mt-2 rounded-xl border border-dashed border-border bg-muted/10 p-3'>
-											<p className='text-xs font-medium text-foreground'>
-												Нет доступных типов секций в базе
-											</p>
-											<p className='mt-1 text-[10px] text-muted-foreground'>
-												Ниже — реальные поддерживаемые компоненты сайта.
-												Создайте тип из них в один клик.
-											</p>
-											<div className='mt-3 flex flex-wrap gap-2'>
-												{missingPresets.slice(0, 8).map(preset => (
-													<button
-														key={preset.component}
-														type='button'
-														onClick={() => createTypeFromPreset(preset)}
-														className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-													>
-														+ {preset.name}
-													</button>
-												))}
-											</div>
-										</div>
-									)}
-								</div>
-
-								<div>
-									<label className='mb-1 block text-xs font-medium text-muted-foreground'>
-										Заголовок (опционально)
-									</label>
-									<input
-										value={form.title}
-										onChange={e => {
-											setHasSectionFormChanges(true)
-											setForm(f => ({ ...f, title: e.target.value }))
-										}}
-										placeholder='Переопределить заголовок секции'
-										className={inputCls}
-									/>
-									{currentTypePreset && !form.title && (
-										<p className='mt-1 text-[10px] text-muted-foreground'>
-											По умолчанию будет использован заголовок типа:{' '}
-											{currentTypePreset.defaultTitle ?? currentTypePreset.name}
-											.
-										</p>
-									)}
-								</div>
-
-								{currentComponentName && (
-									<SectionConfigEditor
-										componentName={currentComponentName}
-										value={form.config}
-										onChange={config => {
-											setHasSectionFormChanges(true)
-											setForm(f => ({
-												...f,
-												config:
-													typeof config === 'function' ? config(f.config) : config,
-											}))
-										}}
-									/>
-								)}
-
-								<div className='flex items-center gap-2 pt-1'>
-									<input
-										type='checkbox'
-										id='isActive'
-										checked={form.isActive}
-										onChange={e => {
-											setHasSectionFormChanges(true)
-											setForm(f => ({ ...f, isActive: e.target.checked }))
-										}}
-										className='h-4 w-4 rounded border-border accent-primary'
-									/>
-									<label htmlFor='isActive' className='text-sm text-foreground'>
-										Активна
-									</label>
-								</div>
-							</form>
-						</div>
-
-						<div className='flex shrink-0 items-center justify-end gap-2 border-t border-border px-6 py-4'>
-							<Button
-								variant='ghost'
-								type='button'
-								size='sm'
-								onClick={closeForm}
-							>
-								Отмена
-							</Button>
-							<Button
-								variant='primary'
-								type='submit'
-								form='section-form'
-								size='sm'
-								disabled={createMut.isPending || updateMut.isPending}
-							>
-								{editItem ? 'Сохранить' : 'Создать'}
-							</Button>
-						</div>
+					<div className='flex items-center justify-between mb-3 px-1'>
+						<span className='text-xs text-muted-foreground font-medium uppercase tracking-wider'>
+							{device === 'mobile' ? 'Мобильный вид · 390px' : 'Полный вид'}
+						</span>
+						<span className='text-xs text-muted-foreground'>{sorted.length} секций</span>
 					</div>
-				</div>
-			)}
 
-			{orderedSections.length > 0 ? (
-				<DndContext
-					sensors={sensors}
-					collisionDetection={closestCenter}
-					onDragEnd={handleDragEnd}
-				>
-					<SortableContext
-						items={sortableIds}
-						strategy={verticalListSortingStrategy}
+					<DndContext
+						sensors={sensors}
+						collisionDetection={closestCenter}
+						onDragStart={handleDragStart}
+						onDragEnd={handleDragEnd}
 					>
-						<div className='flex flex-col gap-2'>
-							{orderedSections.map((section, index) => (
-								<SortableSectionRow
+						<SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
+							{displaySections.map((section) => (
+								<SortableCard
 									key={section.id}
-									item={section}
-									index={index}
-									total={orderedSections.length}
-									onMove={moveSection}
-									onToggleActive={(id, next) =>
-										updateMut.mutate({ id, isActive: next })
-									}
-									onEdit={openEdit}
-									onDelete={item => {
-										if (
-											confirm(
-												`Удалить секцию "${item.title ?? item.sectionType.name}"?`,
-											)
-										) {
-											deleteMut.mutate(item.id)
-										}
-									}}
+									section={section}
+									onEdit={(s) => setEditingSection(s)}
+									onDelete={(id) => deleteSection(id)}
+									onToggle={(id, val) => updateSection({ id, isActive: val })}
 								/>
 							))}
-						</div>
-					</SortableContext>
-				</DndContext>
-			) : (
-				<div className='flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-16'>
-					<LayoutGrid className='mb-3 h-10 w-10 text-muted-foreground/30' />
-					<p className='mb-4 text-sm text-muted-foreground'>Нет секций</p>
-					{sectionTypes && sectionTypes.length === 0 && (
-						<div className='space-y-3 text-center'>
-							<p className='text-xs text-muted-foreground/60'>
-								Сначала создайте тип секции из реально поддерживаемых
-								компонентов сайта.
-							</p>
-							<div className='flex max-w-2xl flex-wrap justify-center gap-2 px-6'>
-								{missingPresets.slice(0, 6).map(preset => (
-									<button
-										key={preset.component}
-										type='button'
-										onClick={() => createTypeFromPreset(preset)}
-										className='rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-									>
-										+ {preset.name}
-									</button>
-								))}
-							</div>
+						</SortableContext>
+
+						<DragOverlay>
+							{activeSection && (
+								<Card className='border-accent shadow-xl bg-card opacity-95'>
+									<CardHeader className='flex flex-row items-center gap-2 py-3 px-4'>
+										<GripVertical className='h-4 w-4 text-muted-foreground' />
+										<Badge variant='secondary' className='text-[10px]'>
+											{activeSection.sectionType?.name ?? activeSection.sectionTypeId}
+										</Badge>
+										<span className='text-sm font-medium'>{activeSection.title ?? '—'}</span>
+									</CardHeader>
+								</Card>
+							)}
+						</DragOverlay>
+					</DndContext>
+
+					{sorted.length === 0 && (
+						<div className='border-2 border-dashed border-border rounded-xl py-16 text-center text-muted-foreground text-sm'>
+							<Plus className='h-8 w-8 mx-auto mb-2 opacity-30' />
+							Добавьте секции из библиотеки слева
 						</div>
 					)}
-					<Button
-						variant='primary'
-						size='sm'
-						onClick={() => {
-							if (sectionTypes?.length) {
-								openCreate()
-								return
-							}
-							openCreateType()
-						}}
-					>
-						<Plus className='mr-1 h-4 w-4' /> Создать первую секцию
-					</Button>
 				</div>
+			</div>
+
+			{/* Type-specific edit modal */}
+			{editingSection && (
+				<SectionFormModal
+					section={editingSection}
+					onSave={({ title, config }) =>
+						updateSection({ id: editingSection.id, title, config })
+					}
+					onClose={() => setEditingSection(null)}
+				/>
 			)}
 		</div>
 	)
