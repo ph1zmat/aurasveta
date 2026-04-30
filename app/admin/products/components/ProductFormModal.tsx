@@ -45,6 +45,7 @@ interface ProductFormModalProps {
 		sku?: string | null
 		rootCategoryId?: string | null
 		subcategoryId?: string | null
+		categoryId?: string | null
 		brand?: string | null
 		brandCountry?: string | null
 		isActive?: boolean | null
@@ -89,6 +90,7 @@ function defaultFormValues(): ProductFormValue {
 		sku: '',
 		rootCategoryId: '',
 		subcategoryId: '',
+		categoryId: '',
 		brand: '',
 		brandCountry: '',
 		isActive: true,
@@ -120,6 +122,7 @@ function productToFormValues(
 		sku: product.sku ?? '',
 		rootCategoryId: product.rootCategoryId ?? '',
 		subcategoryId: product.subcategoryId ?? '',
+		categoryId: product.categoryId ?? '',
 		brand: product.brand ?? '',
 		brandCountry: product.brandCountry ?? '',
 		isActive: product.isActive ?? true,
@@ -210,8 +213,7 @@ export default function ProductFormModal({
 				: null,
 			stock: values.stock ? Number(values.stock) : 0,
 			sku: values.sku || null,
-			rootCategoryId: values.rootCategoryId || null,
-			subcategoryId: values.subcategoryId || null,
+			categoryId: values.subcategoryId || values.rootCategoryId || null,
 			brand: values.brand || null,
 			brandCountry: values.brandCountry || null,
 			isActive: values.isActive,
@@ -325,7 +327,7 @@ export default function ProductFormModal({
 							<div className='space-y-2'>
 								<label className='text-sm font-medium'>Описание</label>
 								<textarea
-									className='w-full rounded-[var(--radius-md)] border border-input bg-background px-3 py-2 text-sm min-h-[80px]'
+									className='w-full rounded-(--radius-md) border border-input bg-background px-3 py-2 text-sm min-h-[80px]'
 									{...register('description')}
 								/>
 							</div>
@@ -431,7 +433,7 @@ export default function ProductFormModal({
 									<Input type='number' placeholder='—' disabled />
 								</div>
 							</div>
-							<div className='rounded-[var(--radius-md)] bg-secondary p-4'>
+							<div className='rounded-(--radius-md) bg-secondary p-4'>
 								<div className='text-xs font-bold text-muted-foreground uppercase mb-2'>
 									Маржинальность
 								</div>
@@ -464,7 +466,9 @@ export default function ProductFormModal({
 									)}
 								</div>
 								<div className='space-y-2'>
-									<label className='text-sm font-medium'>Порог "мало"</label>
+									<label className='text-sm font-medium'>
+										Порог &quot;мало&quot;
+									</label>
 									<Input type='number' defaultValue={20} disabled />
 								</div>
 							</div>
@@ -487,7 +491,7 @@ export default function ProductFormModal({
 							</div>
 
 							{propertiesValue.length === 0 ? (
-								<div className='rounded-[var(--radius-md)] border border-dashed border-border p-4 text-sm text-muted-foreground'>
+								<div className='rounded-(--radius-md) border border-dashed border-border p-4 text-sm text-muted-foreground'>
 									Характеристики ещё не добавлены
 								</div>
 							) : (
@@ -501,7 +505,7 @@ export default function ProductFormModal({
 										return (
 											<div
 												key={`${row.propertyId}-${row.propertyValueId}-${index}`}
-												className='grid grid-cols-1 gap-3 rounded-[var(--radius-md)] border border-border p-3 md:grid-cols-[1fr_1fr_auto]'
+												className='grid grid-cols-1 gap-3 rounded-(--radius-md) border border-border p-3 md:grid-cols-[1fr_1fr_auto]'
 											>
 												<div className='space-y-2'>
 													<label className='text-sm font-medium'>

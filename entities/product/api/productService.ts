@@ -11,8 +11,6 @@ import { withResolvedProductImages } from '@/lib/storage-image-assets'
 
 const productInclude = {
 	category: { select: { name: true, slug: true } },
-	rootCategory: { select: { name: true, slug: true } },
-	subcategory: { select: { name: true, slug: true } },
 	metaTitle: true,
 	metaDesc: true,
 	images: {
@@ -43,12 +41,9 @@ const productCardSelect = {
 	badges: true,
 	createdAt: true,
 	categoryId: true,
-	rootCategoryId: true,
-	subcategoryId: true,
 	category: { select: { name: true, slug: true } },
-	rootCategory: { select: { name: true, slug: true } },
-	subcategory: { select: { name: true, slug: true } },
 } as const
+
 /**
  * Returns all products.
  */
@@ -106,11 +101,7 @@ export async function getProductsByCategory(
 	const dbProducts = await prisma.product.findMany({
 		where: {
 			isActive: true,
-			OR: [
-				{ subcategory: { name: category } },
-				{ rootCategory: { name: category } },
-				{ category: { name: category } },
-			],
+			category: { name: category },
 		},
 		select: productCardSelect,
 		orderBy: { createdAt: 'desc' },
@@ -198,7 +189,10 @@ export async function getCompareSpecs(
 	>()
 	for (const v of values) {
 		if (!propMap.has(v.property.slug)) {
-			propMap.set(v.property.slug, { label: v.property.name, values: new Map() })
+			propMap.set(v.property.slug, {
+				label: v.property.name,
+				values: new Map(),
+			})
 		}
 		propMap.get(v.property.slug)!.values.set(v.productId, v.propertyValue.value)
 	}

@@ -17,7 +17,12 @@ interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	property?: any
+	property?: {
+		id?: string
+		name?: string
+		slug?: string
+		hasPhoto?: boolean
+	} | null
 }
 
 export default function PropertyFormModal({ open, onOpenChange, onSuccess, property }: Props) {
@@ -25,6 +30,12 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 	const [name, setName] = useState('')
 	const [slug, setSlug] = useState('')
 	const [hasPhoto, setHasPhoto] = useState(false)
+
+	const reset = () => {
+		setName('')
+		setSlug('')
+		setHasPhoto(false)
+	}
 
 	const { mutate: create } = trpc.properties.create.useMutation({
 		onSuccess: () => {
@@ -45,6 +56,7 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 
 	useEffect(() => {
 		if (property) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setName(property.name ?? '')
 			setSlug(property.slug ?? '')
 			setHasPhoto(property.hasPhoto ?? false)
@@ -53,17 +65,11 @@ export default function PropertyFormModal({ open, onOpenChange, onSuccess, prope
 		}
 	}, [property, open])
 
-	const reset = () => {
-		setName('')
-		setSlug('')
-		setHasPhoto(false)
-	}
-
 	const handleSave = () => {
 		const generatedSlug = slug.trim() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 		const payload = { name, slug: generatedSlug, hasPhoto }
 		if (isEdit) {
-			update({ id: property.id, ...payload })
+			update({ id: property.id as string, ...payload })
 		} else {
 			create(payload)
 		}

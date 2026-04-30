@@ -14,7 +14,9 @@ const mockNext = vi.fn(() => mockResponse)
 
 vi.mock('next/server', () => ({
 	NextResponse: {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		redirect: (url: any) => mockRedirect(url),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		json: (body: any, init?: any) => mockJson(body, init),
 		next: () => mockNext(),
 	},
@@ -42,6 +44,7 @@ describe('proxy (middleware)', () => {
 			headers: {
 				get: (name: string) => headers[name] ?? null,
 			},
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any
 	}
 

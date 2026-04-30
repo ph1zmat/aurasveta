@@ -41,7 +41,7 @@ export default function CartItem({
 				<div className='min-w-0 flex-1'>
 					<Link
 						href={item.href}
-						className='text-lg font-medium text-primary transition-colors hover:text-foreground'
+						className='text-sm font-medium text-primary transition-colors hover:text-foreground lg:text-xl'
 					>
 						{item.name}
 					</Link>
@@ -54,7 +54,7 @@ export default function CartItem({
 					)}
 
 					{/* Mobile: price + quantity inline */}
-					<div className='mt-3 flex items-center justify-between md:hidden'>
+					<div className='mt-3 flex flex-row items-center justify-between md:hidden'>
 						<div className='flex items-center gap-0'>
 							<Button
 								variant='icon'
@@ -62,22 +62,22 @@ export default function CartItem({
 								onClick={() =>
 									onQuantityChange?.(item.id, Math.max(1, item.quantity - 1))
 								}
-								className='h-8 w-8'
+								className='h-6 w-6'
 								aria-label='Уменьшить'
 							>
-								<Minus className='h-6 w-6' strokeWidth={1.5} />
+								<Minus className='h-4 w-4' strokeWidth={1.5} />
 							</Button>
-							<span className='flex h-8 w-8 items-center justify-center text-sm font-medium text-foreground'>
+							<span className='flex h-6 w-6 items-center justify-center text-sm font-medium text-foreground'>
 								{item.quantity}
 							</span>
 							<Button
 								variant='icon'
 								size='icon-sm'
 								onClick={() => onQuantityChange?.(item.id, item.quantity + 1)}
-								className='h-8 w-8'
+								className='h-6 w-6'
 								aria-label='Увеличить'
 							>
-								<Plus className='h-6 w-6' strokeWidth={1.5} />
+								<Plus className='h-4 w-4' strokeWidth={1.5} />
 							</Button>
 						</div>
 

@@ -15,6 +15,7 @@ import ProductTabs from '@/features/product-details/ui/ProductTabs'
 import ProductCarousel from '@/widgets/product-carousel/ui/ProductCarousel'
 import StickyHeaderWithTrigger from '@/features/product-details/ui/StickyHeaderWithTrigger'
 import TrackRecentlyViewed from '@/features/product-details/ui/TrackRecentlyViewed'
+import RecentlyViewedCarousel from '@/features/product-details/ui/RecentlyViewedCarousel'
 import ProductStructuredData from '@/shared/ui/ProductStructuredData'
 import BackToListLink from '@/shared/ui/BackToListLink'
 import ProductBreadcrumbs from '@/features/product-details/ui/ProductBreadcrumbs'
@@ -76,8 +77,10 @@ export default async function ProductPage({
 	const product = await getProductBySlug(slug)
 	if (!product) notFound()
 
-	const quickSpecs = await getQuickSpecs(product.id)
-	const specGroups = await getProductSpecGroups(product.id)
+	const [quickSpecs, specGroups] = await Promise.all([
+		getQuickSpecs(product.id),
+		getProductSpecGroups(product.id),
+	])
 
 	const productId = String(product.id)
 
@@ -202,6 +205,9 @@ export default async function ProductPage({
 				<Suspense fallback={<ProductCarouselSkeleton />}>
 					<CollectionProductsSection productId={productId} />
 				</Suspense>
+
+				{/* Recently viewed — client-side from localStorage */}
+				<RecentlyViewedCarousel currentProductId={productId} />
 			</main>
 
 			<Footer />

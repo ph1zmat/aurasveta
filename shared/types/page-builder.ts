@@ -61,7 +61,10 @@ export const IconLinkBlockConfigSchema = z.object({
 
 export const PageBlockInputSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('heading'), config: HeadingBlockConfigSchema }),
-	z.object({ type: z.literal('paragraph'), config: ParagraphBlockConfigSchema }),
+	z.object({
+		type: z.literal('paragraph'),
+		config: ParagraphBlockConfigSchema,
+	}),
 	z.object({ type: z.literal('table'), config: TableBlockConfigSchema }),
 	z.object({ type: z.literal('image'), config: ImageBlockConfigSchema }),
 	z.object({ type: z.literal('link'), config: LinkBlockConfigSchema }),

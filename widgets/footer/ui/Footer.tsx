@@ -1,53 +1,137 @@
 import Link from 'next/link'
 import { MapPin, Phone, Mail, Send } from 'lucide-react'
 import Image from 'next/image'
+import { trpc } from '@/lib/trpc/server'
+import { prisma } from '@/lib/prisma'
+import { resolveCatalogLinkHref } from '@/lib/home-sections/catalog-link-resolver'
 
-const aboutLinks = [
-	{ label: 'Блог', href: '/blog' },
-	{ label: 'О нас', href: '/about' },
-	{ label: 'Наши магазины', href: '/stores' },
-	{ label: 'Доставка и оплата', href: '/delivery' },
-	{ label: 'Обмен и возврат', href: '/returns' },
-	{ label: 'Гарантия качества', href: '/warranty' },
-	{ label: 'Сборка и установка', href: '/assembly' },
-	{ label: 'Оптовикам', href: '/wholesale' },
-	{ label: 'Дизайнерам', href: '/designers' },
-	{ label: 'Контакты', href: '/contacts' },
-	{ label: 'Рекламации', href: '/complaints' },
-	{ label: 'Карта сайта', href: '/sitemap' },
-]
+async function getFooterBrandLinks() {
+	try {
+	const brandSection = await prisma.homeSection.findFirst({
+		where: {
+			isActive: true,
+			sectionType: { component: 'BrandCarousel' },
+		},
+		orderBy: { order: 'asc' },
+		select: { config: true },
+	})
 
-const catalogLinks = [
-	{ label: 'Все бренды', href: '/brands' },
-	{ label: 'Новинки', href: '/new' },
-	{ label: 'Светильники', href: '/catalog/svetilniki' },
-	{ label: 'Люстры', href: '/catalog/lyustry' },
-	{ label: 'Бра и подсветки', href: '/catalog/bra' },
-	{ label: 'Споты', href: '/catalog/spoty' },
-	{ label: 'Настольные лампы', href: '/catalog/nastolnye-lampy' },
-	{ label: 'Торшеры', href: '/catalog/torshery' },
-	{ label: 'Уличное освещение', href: '/catalog/ulichnoe-osveshenie' },
-]
+	if (!brandSection) return [] as Array<{ label: string; href: string }>
 
-const brandLinks = [
-	'Эра',
-	'Feron',
-	'Favourite',
-	'Maytoni',
-	'Arte Lamp',
-	'Odeon Light',
-	'Uniel',
-	'Citilux',
-	'ST Luce',
-	'Eglo',
-]
+	const config = (brandSection.config ?? {}) as Record<string, unknown>
+	const propertySlug =
+		typeof config.propertySlug === 'string' &&
+		config.propertySlug.trim().length > 0
+			? config.propertySlug
+			: 'brand'
+	const filterParam =
+		typeof config.filterParam === 'string' &&
+		config.filterParam.trim().length > 0
+			? config.filterParam
+			: propertySlug
 
-export default function Footer() {
+	const property = await prisma.property.findUnique({
+		where: { slug: propertySlug },
+		select: {
+			values: {
+				orderBy: [{ order: 'asc' }, { value: 'asc' }],
+				select: { id: true, value: true, slug: true },
+			},
+		},
+	})
+
+	if (!property || property.values.length === 0) {
+		return []
+	}
+
+	const rawBrandLinks =
+		config.brandLinks && typeof config.brandLinks === 'object'
+			? (config.brandLinks as Record<string, Record<string, unknown>>)
+			: {}
+
+	const links = await Promise.all(
+		property.values.map(async value => {
+			const custom = rawBrandLinks[value.id]
+			const href =
+				(await resolveCatalogLinkHref(prisma, {
+					href: typeof custom?.href === 'string' ? custom.href : undefined,
+					linkCategoryId:
+						typeof custom?.linkCategoryId === 'string'
+							? custom.linkCategoryId
+							: undefined,
+					linkPropertyId:
+						typeof custom?.linkPropertyId === 'string'
+							? custom.linkPropertyId
+							: undefined,
+					linkPropertyValueId:
+						typeof custom?.linkPropertyValueId === 'string'
+							? custom.linkPropertyValueId
+							: undefined,
+				})) ?? `/catalog?prop.${filterParam}=${value.slug}`
+
+			return { label: value.value, href }
+		}),
+	)
+
+	return links
+	} catch {
+		return [] as Array<{ label: string; href: string }>
+	}
+}
+
+export default async function Footer() {
+	// Запрашиваем публичный layout-конфиг
+	let layout: Awaited<
+		ReturnType<typeof trpc.siteNavigation.getPublicLayoutConfig>
+	> | null = null
+	try {
+		layout = await trpc.siteNavigation.getPublicLayoutConfig()
+	} catch {
+		// БД недоступна — пропускаем связанный контент
+	}
+
+	const [navItems, footerCategories, brandLinks] = await Promise.all([
+		Promise.resolve(layout?.navItems ?? []),
+		prisma.category.findMany({
+			where: { parentId: null, showInHeader: true },
+			select: { id: true, name: true, slug: true },
+			orderBy: { name: 'asc' },
+		}).catch(() => []),
+		getFooterBrandLinks().catch(() => [] as Array<{ label: string; href: string }>),
+	])
+
+	const vis = layout?.footerVisibility
+	const store = layout?.store
+
+	const aboutLinks = navItems
+		.filter(i => i.zone === 'FOOTER_ABOUT')
+		.map(i => ({ label: i.label, href: i.href }))
+
+	const serviceLinks = footerCategories.map(category => ({
+		label: category.name,
+		href: `/catalog/${category.slug}`,
+	}))
+
+	const showPhone = vis?.showPhone !== false
+	const showAdditionalPhone = vis?.showAdditionalPhone !== false
+	const showEmail = vis?.showEmail !== false
+	const showAddress = vis?.showAddress !== false
+	const showSocial = vis?.showSocialLinks !== false
+
+	const phone = store?.phone ?? null
+	const additionalPhone = store?.additionalPhone
+	const email = store?.email ?? null
+	const address = store?.address ?? null
+	const city = store?.city
+
+	const socialLinks =
+		(store?.socialLinks as Array<{ platform: string; url: string }>) ?? []
+
 	return (
 		<footer className='bg-foreground text-card'>
 			<div className='mx-auto max-w-7xl px-4 py-12'>
 				<div className='grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4'>
-					{/* Column 1: Logo & Contact */}
+					{/* Колонка 1: Логотип и контакты */}
 					<div className='space-y-6'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
 							<Image
@@ -59,45 +143,52 @@ export default function Footer() {
 							/>
 						</Link>
 
-						<div className='space-y-3 text-sm'>
-							<div className='font-normal uppercase tracking-widest text-card/80'>
-								Отдел продаж
+						{(showAddress || city) && (
+							<div className='space-y-3 text-sm'>
+								<div className='font-normal uppercase tracking-widest text-card/80'>
+									Отдел продаж
+								</div>
+								{showAddress && (
+									<div className='flex items-start gap-2 text-card/70'>
+										<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
+										<span>{city ? `${city}, ${address}` : address}</span>
+									</div>
+								)}
 							</div>
-							<div className='flex items-start gap-2 text-card/70'>
-								<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
-								<span>г. Москва, Автомобильный проезд 10, строение 4</span>
-							</div>
-							<Link href='/stores' className='text-primary underline text-sm'>
-								Наши магазины
-							</Link>
-						</div>
+						)}
 
 						<div className='space-y-2 text-sm'>
-							<a
-								href='tel:+74992292322'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Phone className='h-4 w-4' />
-								+7 (499) 229 23 22
-							</a>
-							<a
-								href='tel:+78001003384'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Phone className='h-4 w-4' />
-								+7 (800) 100-33-84
-							</a>
-							<a
-								href='mailto:buy@aurasveta.ru'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Mail className='h-4 w-4' />
-								buy@aurasveta.ru
-							</a>
+							{showPhone && phone && (
+								<a
+									href={`tel:${phone.replace(/[\s().-]/g, '')}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Phone className='h-4 w-4' />
+									{phone}
+								</a>
+							)}
+							{showAdditionalPhone && additionalPhone && (
+								<a
+									href={`tel:${additionalPhone.replace(/[\s().-]/g, '')}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Phone className='h-4 w-4' />
+									{additionalPhone}
+								</a>
+							)}
+							{showEmail && email && (
+								<a
+									href={`mailto:${email}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Mail className='h-4 w-4' />
+									{email}
+								</a>
+							)}
 						</div>
 					</div>
 
-					{/* Column 2: About */}
+					{/* Колонка 2: О магазине */}
 					<div>
 						<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
 							О AURASVETA.RU
@@ -116,13 +207,13 @@ export default function Footer() {
 						</ul>
 					</div>
 
-					{/* Column 3: Catalog */}
+					{/* Колонка 3: Сервис */}
 					<div>
 						<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
 							Каталог
 						</h3>
 						<ul className='space-y-2'>
-							{catalogLinks.map(link => (
+							{serviceLinks.map(link => (
 								<li key={link.href}>
 									<Link
 										href={link.href}
@@ -135,40 +226,49 @@ export default function Footer() {
 						</ul>
 					</div>
 
-					{/* Column 4: Brands & Social */}
+					{/* Колонка 4: Бренды + соцсети */}
 					<div className='space-y-6'>
 						<div>
 							<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
 								Бренды
 							</h3>
 							<ul className='space-y-2'>
-								{brandLinks.map(brand => (
-									<li key={brand}>
+								{brandLinks.map(link => (
+									<li key={link.href}>
 										<Link
-											href={`/brands/${brand.toLowerCase().replace(/\s/g, '-')}`}
+											href={link.href}
 											className='text-sm text-card/60 hover:text-card transition-colors'
 										>
-											{brand}
+											{link.label}
 										</Link>
 									</li>
 								))}
 							</ul>
 						</div>
 
-						<div>
-							<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
-								Мы в соцсетях
-							</h3>
-							<a
-								href='https://t.me/aurasveta'
-								target='_blank'
-								rel='noopener noreferrer'
-								className='inline-flex items-center gap-2 text-sm text-card/60 hover:text-card transition-colors'
-							>
-								<Send className='h-4 w-4' />
-								Telegram
-							</a>
-						</div>
+						{showSocial && socialLinks.length > 0 && (
+							<div>
+								<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
+									Мы в соцсетях
+								</h3>
+								<div className='space-y-2'>
+									{socialLinks.map(s => (
+										<a
+											key={s.url}
+											href={s.url}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='inline-flex items-center gap-2 text-sm text-card/60 hover:text-card transition-colors'
+										>
+											<Send className='h-4 w-4' />
+											{s.platform}
+										</a>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Без fallback: соцсети показываем только если они заданы в БД */}
 					</div>
 				</div>
 
@@ -178,7 +278,7 @@ export default function Footer() {
 						Аура Света © 2011–2026 Все права защищены
 					</p>
 					<Link
-						href='/privacy'
+						href='/pages/privacy'
 						className='text-xs text-card/50 hover:text-card/80 underline'
 					>
 						Политика в области обработки персональных данных

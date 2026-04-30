@@ -29,8 +29,6 @@ export interface DbProduct {
 	badges: unknown
 	createdAt: Date | string
 	category?: { name: string; slug?: string } | null
-	rootCategory?: { name: string; slug?: string } | null
-	subcategory?: { name: string; slug?: string } | null
 }
 
 function toProductImage(image: unknown, index: number): ProductImage | null {
@@ -80,8 +78,8 @@ function toProductImage(image: unknown, index: number): ProductImage | null {
 		productId: value.productId,
 		url: resolvedUrl,
 		key: key || resolvedValue,
-			displayUrl: resolvedUrl,
-			imageAsset,
+		displayUrl: resolvedUrl,
+		imageAsset,
 		originalName: value.originalName ?? null,
 		size: value.size ?? null,
 		mimeType: value.mimeType ?? null,
@@ -117,12 +115,8 @@ export function toFrontendProduct(p: DbProduct): Product {
 				? Math.round((1 - Number(p.price) / Number(p.compareAtPrice)) * 100)
 				: undefined,
 		bonusAmount: p.price ? Math.round(Number(p.price) * 0.06) : undefined,
-		category: p.subcategory?.name ?? p.category?.name ?? p.rootCategory?.name ?? '',
-		categorySlug: p.subcategory?.slug ?? p.category?.slug ?? p.rootCategory?.slug ?? undefined,
-		rootCategory: p.rootCategory?.name ?? undefined,
-		rootCategorySlug: p.rootCategory?.slug ?? undefined,
-		subcategory: p.subcategory?.name ?? p.category?.name ?? undefined,
-		subcategorySlug: p.subcategory?.slug ?? p.category?.slug ?? undefined,
+		category: p.category?.name ?? '',
+		categorySlug: p.category?.slug ?? undefined,
 		brand: p.brand ?? undefined,
 		brandCountry: p.brandCountry ?? undefined,
 		images,

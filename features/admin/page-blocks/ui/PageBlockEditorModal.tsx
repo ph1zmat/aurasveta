@@ -37,20 +37,52 @@ interface Props {
 	onSubmit: (updated: PageBlockDraft) => void
 }
 
-function Label({ className = '', ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
-	return <label className={`text-sm font-medium ${className}`.trim()} {...props} />
+function Label({
+	className = '',
+	...props
+}: LabelHTMLAttributes<HTMLLabelElement>) {
+	return (
+		<label className={`text-sm font-medium ${className}`.trim()} {...props} />
+	)
 }
 
 // ── Lucide token список для icon-link ──────────────────────────────────────
 
 const LUCIDE_TOKENS = [
-	'ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown',
-	'Star', 'Heart', 'Zap', 'Shield', 'CheckCircle', 'Info',
-	'Phone', 'Mail', 'MapPin', 'Clock', 'Calendar', 'User',
-	'Truck', 'Package', 'ShoppingCart', 'Gift', 'Tag',
-	'Link', 'ExternalLink', 'Download', 'Upload', 'Share2',
-	'Settings', 'HelpCircle', 'AlertCircle', 'XCircle',
-	'Home', 'Building2', 'Lightbulb', 'Sparkles',
+	'ArrowRight',
+	'ArrowLeft',
+	'ArrowUp',
+	'ArrowDown',
+	'Star',
+	'Heart',
+	'Zap',
+	'Shield',
+	'CheckCircle',
+	'Info',
+	'Phone',
+	'Mail',
+	'MapPin',
+	'Clock',
+	'Calendar',
+	'User',
+	'Truck',
+	'Package',
+	'ShoppingCart',
+	'Gift',
+	'Tag',
+	'Link',
+	'ExternalLink',
+	'Download',
+	'Upload',
+	'Share2',
+	'Settings',
+	'HelpCircle',
+	'AlertCircle',
+	'XCircle',
+	'Home',
+	'Building2',
+	'Lightbulb',
+	'Sparkles',
 ]
 
 // ── Редакторы по типу блока ────────────────────────────────────────────────
@@ -83,7 +115,9 @@ function HeadingEditor({
 					</SelectTrigger>
 					<SelectContent>
 						{(['h1', 'h2', 'h3', 'h4'] as const).map(l => (
-							<SelectItem key={l} value={l}>{l.toUpperCase()}</SelectItem>
+							<SelectItem key={l} value={l}>
+								{l.toUpperCase()}
+							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
@@ -122,9 +156,7 @@ function TableEditor({
 	const columns = Array.isArray(config.columns)
 		? (config.columns as Array<{ key: string; label: string }>)
 		: [{ key: 'col1', label: 'Колонка 1' }]
-	const rows = Array.isArray(config.rows)
-		? (config.rows as string[][])
-		: [['']]
+	const rows = Array.isArray(config.rows) ? (config.rows as string[][]) : [['']]
 
 	function updateColumn(idx: number, label: string) {
 		const next = columns.map((c, i) => (i === idx ? { ...c, label } : c))
@@ -216,7 +248,10 @@ function TableEditor({
 						<thead>
 							<tr>
 								{columns.map(col => (
-									<th key={col.key} className='border border-border bg-muted px-2 py-1 text-left font-medium'>
+									<th
+										key={col.key}
+										className='border border-border bg-muted px-2 py-1 text-left font-medium'
+									>
 										{col.label}
 									</th>
 								))}
@@ -298,7 +333,9 @@ function ImageEditor({
 				<div className='space-y-2'>
 					<Label>Выравнивание</Label>
 					<Select
-						value={typeof config.alignment === 'string' ? config.alignment : 'center'}
+						value={
+							typeof config.alignment === 'string' ? config.alignment : 'center'
+						}
 						onValueChange={v => onChange({ ...config, alignment: v })}
 					>
 						<SelectTrigger>
@@ -314,7 +351,9 @@ function ImageEditor({
 				<div className='space-y-2'>
 					<Label>Ширина</Label>
 					<Select
-						value={typeof config.widthMode === 'string' ? config.widthMode : 'normal'}
+						value={
+							typeof config.widthMode === 'string' ? config.widthMode : 'normal'
+						}
 						onValueChange={v => onChange({ ...config, widthMode: v })}
 					>
 						<SelectTrigger>
@@ -406,7 +445,9 @@ function IconLinkEditor({
 					</SelectTrigger>
 					<SelectContent className='max-h-60'>
 						{LUCIDE_TOKENS.map(token => (
-							<SelectItem key={token} value={token}>{token}</SelectItem>
+							<SelectItem key={token} value={token}>
+								{token}
+							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
@@ -414,7 +455,9 @@ function IconLinkEditor({
 			<div className='space-y-2'>
 				<Label>Описание</Label>
 				<Input
-					value={typeof config.description === 'string' ? config.description : ''}
+					value={
+						typeof config.description === 'string' ? config.description : ''
+					}
 					onChange={e => onChange({ ...config, description: e.target.value })}
 					placeholder='Необязательная подпись'
 				/>
@@ -433,7 +476,12 @@ function IconLinkEditor({
 
 // ── Главная модалка ────────────────────────────────────────────────────────
 
-export default function PageBlockEditorModal({ draft, open, onOpenChange, onSubmit }: Props) {
+export default function PageBlockEditorModal({
+	draft,
+	open,
+	onOpenChange,
+	onSubmit,
+}: Props) {
 	const [config, setConfig] = useState<Record<string, unknown>>(draft.config)
 	const [isActive, setIsActive] = useState(draft.isActive)
 
@@ -446,7 +494,10 @@ export default function PageBlockEditorModal({ draft, open, onOpenChange, onSubm
 
 	function handleSave() {
 		// Валидация по схеме
-		let result: { success: boolean; error?: { issues: Array<{ message: string }> } }
+		let result: {
+			success: boolean
+			error?: { issues: Array<{ message: string }> }
+		}
 		switch (draft.type) {
 			case 'heading':
 				result = HeadingBlockConfigSchema.safeParse(config)
@@ -471,7 +522,9 @@ export default function PageBlockEditorModal({ draft, open, onOpenChange, onSubm
 		}
 
 		if (!result.success && result.error) {
-			toast.error(result.error.issues[0]?.message ?? 'Проверьте заполненные поля')
+			toast.error(
+				result.error.issues[0]?.message ?? 'Проверьте заполненные поля',
+			)
 			return
 		}
 

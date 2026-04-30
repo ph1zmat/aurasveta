@@ -141,7 +141,9 @@ function normalizeSectionBackground(value: unknown): SectionBackground | null {
 	return parsed.success ? parsed.data : null
 }
 
-function buildProductOrderBy(sort: ResolvedSectionRecord<'product-grid'>['config']['sort']) {
+function buildProductOrderBy(
+	sort: ResolvedSectionRecord<'product-grid'>['config']['sort'],
+) {
 	switch (sort) {
 		case 'popular':
 			return { reviewsCount: 'desc' as const }
@@ -156,7 +158,9 @@ function buildProductOrderBy(sort: ResolvedSectionRecord<'product-grid'>['config
 	}
 }
 
-function mapProduct(product: SectionWithRelations['products'][number]['product']): ResolvedSectionProduct {
+function mapProduct(
+	product: SectionWithRelations['products'][number]['product'],
+): ResolvedSectionProduct {
 	return {
 		id: product.id,
 		slug: product.slug,
@@ -176,9 +180,14 @@ function mapProduct(product: SectionWithRelations['products'][number]['product']
 	}
 }
 
-async function resolveProductGridProducts(section: SectionWithRelations, config: ResolvedSectionRecord<'product-grid'>['config']) {
+async function resolveProductGridProducts(
+	section: SectionWithRelations,
+	config: ResolvedSectionRecord<'product-grid'>['config'],
+) {
 	if (config.source.mode === 'manual') {
-		return section.products.map(item => mapProduct(item.product)).slice(0, config.limit)
+		return section.products
+			.map(item => mapProduct(item.product))
+			.slice(0, config.limit)
 	}
 
 	const where: Prisma.ProductWhereInput = { isActive: true }
@@ -220,8 +229,11 @@ async function resolveProductGridProducts(section: SectionWithRelations, config:
 	}
 
 	const orderBy =
-		config.source.mode === 'collection' && config.source.collection === 'featured'
-			? ({ reviewsCount: 'desc' as const } satisfies Prisma.ProductOrderByWithRelationInput)
+		config.source.mode === 'collection' &&
+		config.source.collection === 'featured'
+			? ({
+					reviewsCount: 'desc' as const,
+				} satisfies Prisma.ProductOrderByWithRelationInput)
 			: buildProductOrderBy(config.sort)
 
 	const products = await prisma.product.findMany({
@@ -257,7 +269,9 @@ async function resolveFeaturedCategories(
 	cache: Map<string, Awaited<ReturnType<typeof createStorageImageAsset>>>,
 ) {
 	if (config.source.mode === 'manual') {
-		return Promise.all(section.categories.map(item => mapCategory(item.category, cache)))
+		return Promise.all(
+			section.categories.map(item => mapCategory(item.category, cache)),
+		)
 	}
 
 	const categories = await prisma.category.findMany({
@@ -298,7 +312,9 @@ async function resolveMediaItems(
 ): Promise<ResolvedSectionMediaItem[]> {
 	return Promise.all(
 		section.mediaItems.map(async item => {
-			const asset = await createStorageImageAsset(item.mediaAsset.storageKey, { cache })
+			const asset = await createStorageImageAsset(item.mediaAsset.storageKey, {
+				cache,
+			})
 			return {
 				id: item.mediaAsset.id,
 				storageKey: item.mediaAsset.storageKey,
@@ -371,7 +387,9 @@ async function resolveSection(
 			pages,
 			mediaItems,
 			products: section.products.map(item => mapProduct(item.product)),
-			categories: await Promise.all(section.categories.map(item => mapCategory(item.category, cache))),
+			categories: await Promise.all(
+				section.categories.map(item => mapCategory(item.category, cache)),
+			),
 		}
 	}
 
@@ -380,14 +398,23 @@ async function resolveSection(
 		pages,
 		mediaItems,
 		products: section.products.map(item => mapProduct(item.product)),
-		categories: await Promise.all(section.categories.map(item => mapCategory(item.category, cache))),
+		categories: await Promise.all(
+			section.categories.map(item => mapCategory(item.category, cache)),
+		),
 	}
 }
 
 async function resolveSections(page: PageWithSections) {
-	const cache = new Map<string, Awaited<ReturnType<typeof createStorageImageAsset>>>()
-	const sections = await Promise.all(page.sections.map(section => resolveSection(section, cache)))
-	return sections.filter((section): section is ResolvedSectionRecord => section !== null)
+	const cache = new Map<
+		string,
+		Awaited<ReturnType<typeof createStorageImageAsset>>
+	>()
+	const sections = await Promise.all(
+		page.sections.map(section => resolveSection(section, cache)),
+	)
+	return sections.filter(
+		(section): section is ResolvedSectionRecord => section !== null,
+	)
 }
 
 export async function getPublishedPageRenderDataBySlug(

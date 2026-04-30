@@ -7,6 +7,8 @@ import FavoritesContent from './FavoritesContent'
 import { Suspense } from 'react'
 import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
 	title: 'Избранное — Аура Света',
 }

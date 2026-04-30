@@ -44,7 +44,11 @@ function getBlockSummary(draft: PageBlockDraft): string {
 					? `${(cfg.columns as unknown[]).length} кол. / ${Array.isArray(cfg.rows) ? (cfg.rows as unknown[]).length : 0} стр.`
 					: '—'
 		case 'image':
-			return typeof cfg.alt === 'string' && cfg.alt ? cfg.alt : typeof cfg.storageKey === 'string' && cfg.storageKey ? 'Изображение' : '—'
+			return typeof cfg.alt === 'string' && cfg.alt
+				? cfg.alt
+				: typeof cfg.storageKey === 'string' && cfg.storageKey
+					? 'Изображение'
+					: '—'
 		case 'link':
 		case 'icon-link':
 			return typeof cfg.label === 'string' && cfg.label ? cfg.label : '—'
@@ -53,7 +57,10 @@ function getBlockSummary(draft: PageBlockDraft): string {
 	}
 }
 
-export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorProps) {
+export default function PageBlocksEditor({
+	value,
+	onChange,
+}: PageBlocksEditorProps) {
 	const [editingDraft, setEditingDraft] = useState<PageBlockDraft | null>(null)
 	const [addingType, setAddingType] = useState<PageBlockType | null>(null)
 
@@ -83,7 +90,7 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 
 	function handleDuplicate(draft: PageBlockDraft) {
 		const copy: PageBlockDraft = {
-			...JSON.parse(JSON.stringify(draft)) as PageBlockDraft,
+			...(JSON.parse(JSON.stringify(draft)) as PageBlockDraft),
 			draftId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
 			id: undefined,
 		}
@@ -94,7 +101,11 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 	}
 
 	function handleToggleActive(draft: PageBlockDraft) {
-		onChange(value.map(b => b.draftId === draft.draftId ? { ...b, isActive: !b.isActive } : b))
+		onChange(
+			value.map(b =>
+				b.draftId === draft.draftId ? { ...b, isActive: !b.isActive } : b,
+			),
+		)
 	}
 
 	return (
@@ -106,7 +117,9 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 					onReorder={onChange}
 					renderItem={block => {
 						const meta = PAGE_BLOCK_META[block.type]
-						const IconComponent = LucideIcons[meta.icon as keyof typeof LucideIcons] as React.ElementType | undefined
+						const IconComponent = LucideIcons[
+							meta.icon as keyof typeof LucideIcons
+						] as React.ElementType | undefined
 						const summary = getBlockSummary(block)
 
 						return (
@@ -137,7 +150,9 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 										variant='ghost'
 										size='sm'
 										onClick={() => handleToggleActive(block)}
-										aria-label={block.isActive ? 'Скрыть блок' : 'Показать блок'}
+										aria-label={
+											block.isActive ? 'Скрыть блок' : 'Показать блок'
+										}
 									>
 										{block.isActive ? (
 											<Eye className='h-4 w-4' />
@@ -203,7 +218,9 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 					<div className='flex flex-wrap gap-2'>
 						{PAGE_BLOCK_TYPES.map(type => {
 							const meta = PAGE_BLOCK_META[type]
-							const IconComponent = LucideIcons[meta.icon as keyof typeof LucideIcons] as React.ElementType | undefined
+							const IconComponent = LucideIcons[
+								meta.icon as keyof typeof LucideIcons
+							] as React.ElementType | undefined
 							return (
 								<Button
 									key={type}
@@ -213,7 +230,9 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 									onClick={() => addBlock(type)}
 									className='flex items-center gap-1'
 								>
-									{IconComponent ? <IconComponent className='h-3.5 w-3.5' /> : null}
+									{IconComponent ? (
+										<IconComponent className='h-3.5 w-3.5' />
+									) : null}
 									{meta.label}
 								</Button>
 							)
@@ -226,7 +245,9 @@ export default function PageBlocksEditor({ value, onChange }: PageBlocksEditorPr
 				<PageBlockEditorModal
 					draft={editingDraft}
 					open
-					onOpenChange={open => { if (!open) setEditingDraft(null) }}
+					onOpenChange={open => {
+						if (!open) setEditingDraft(null)
+					}}
 					onSubmit={handleEditorSubmit}
 				/>
 			) : null}

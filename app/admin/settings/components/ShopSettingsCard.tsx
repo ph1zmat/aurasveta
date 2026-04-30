@@ -145,8 +145,9 @@ export default function ShopSettingsCard() {
 	}
 
 	const removeWorkingHoursRow = (key: string) => {
-		const { [key]: _, ...rest } = form.workingHours
-		setField('workingHours', rest)
+		const next = { ...form.workingHours }
+		delete next[key]
+		setField('workingHours', next)
 	}
 
 	// Загрузка файлов

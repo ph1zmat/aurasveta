@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { resolveCorsOrigin } from '@/lib/cors'
 
 const protectedPaths = ['/admin']
 const authPaths = ['/login', '/register']
@@ -48,18 +49,10 @@ function cleanStaleEntries() {
 /*
  * CORS helper for API routes
  */
-const ALLOWED_ORIGINS = [
-	'http://localhost:3000',
-	'http://localhost:5173',
-	'http://localhost:8081',
-	process.env.NEXT_PUBLIC_APP_URL,
-	'https://aurasveta.ru',
-].filter(Boolean) as string[]
-
 function addCorsHeaders(response: NextResponse, request: NextRequest): NextResponse {
-	const origin = request.headers.get('origin') ?? ''
-	if (ALLOWED_ORIGINS.includes(origin)) {
-		response.headers.set('Access-Control-Allow-Origin', origin)
+	const corsOrigin = resolveCorsOrigin(request.headers.get('origin'))
+	if (corsOrigin) {
+		response.headers.set('Access-Control-Allow-Origin', corsOrigin)
 		response.headers.set('Access-Control-Allow-Credentials', 'true')
 		response.headers.set(
 			'Access-Control-Allow-Methods',
@@ -88,18 +81,7 @@ export function proxy(request: NextRequest) {
 
 	// ── CORS & rate limiting for API routes ──
 	if (pathname.startsWith('/api/')) {
-		const origin = request.headers.get('origin') ?? ''
-		const isDev = process.env.NODE_ENV !== 'production'
-		const prodOrigins = ['https://aurasveta.ru']
-		const devOrigins = [
-			'http://localhost:3000',
-			'http://localhost:5173',
-			'http://localhost:8081',
-			'http://127.0.0.1:5173',
-			'http://127.0.0.1:8081',
-		]
-		const allowedOrigins = isDev ? [...prodOrigins, ...devOrigins] : prodOrigins
-		const corsOrigin = allowedOrigins.includes(origin) ? origin : ''
+		const corsOrigin = resolveCorsOrigin(request.headers.get('origin'))
 
 		// OPTIONS preflight — return immediately with CORS headers
 		if (request.method === 'OPTIONS') {

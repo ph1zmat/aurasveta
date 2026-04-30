@@ -30,16 +30,18 @@ interface ManagedSeoEditorProps extends BaseSeoEditorProps {
 
 export type SeoEditorProps = ControlledSeoEditorProps | ManagedSeoEditorProps
 
-function getInitialValues(existing?: {
-	title?: string | null
-	description?: string | null
-	keywords?: string | null
-	ogTitle?: string | null
-	ogDescription?: string | null
-	ogImage?: string | null
-	canonicalUrl?: string | null
-	noIndex?: boolean | null
-} | null): SeoFormValues {
+function getInitialValues(
+	existing?: {
+		title?: string | null
+		description?: string | null
+		keywords?: string | null
+		ogTitle?: string | null
+		ogDescription?: string | null
+		ogImage?: string | null
+		canonicalUrl?: string | null
+		noIndex?: boolean | null
+	} | null,
+): SeoFormValues {
 	return {
 		title: existing?.title ?? '',
 		description: existing?.description ?? '',
@@ -70,7 +72,7 @@ function getSubmitError(value: SeoFormValues) {
 	}
 
 	return null
-	}
+}
 
 function getMutationErrorMessage(error: unknown) {
 	if (error instanceof Error && error.message.trim()) {

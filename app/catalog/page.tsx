@@ -17,7 +17,10 @@ export const metadata = {
 export default async function CatalogPage() {
 	// Prefetch data on the server for instant hydration
 	void trpc.categories.getTree.prefetch()
-	void trpc.products.getMany.prefetch({ page: 1, limit: 24 })
+	void trpc.products.getCatalogPage.prefetch({
+		categoryLimit: 6,
+		productLimit: 4,
+	})
 
 	return (
 		<HydrateClient>
@@ -36,9 +39,7 @@ export default async function CatalogPage() {
 						</p>
 					</div>
 
-					<Suspense
-						fallback={<CatalogContentSkeleton />}
-					>
+					<Suspense fallback={<CatalogContentSkeleton />}>
 						<CatalogContent />
 					</Suspense>
 				</main>

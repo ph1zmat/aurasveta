@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 // Replicate the helper logic from lib/trpc/init.ts to verify it works
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getUserRole(session: any): string | undefined {
 	return (session?.user as Record<string, unknown>)?.role as string | undefined
 }

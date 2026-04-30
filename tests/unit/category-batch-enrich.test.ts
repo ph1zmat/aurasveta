@@ -6,6 +6,7 @@ describe('Category batch enrichment logic', () => {
 			{ categoryId: 'cat1', category: { parentId: null }, images: [{ key: 'img1', url: 'http://example.com/1' }] },
 			{ categoryId: 'cat2', category: { parentId: null }, images: [{ key: 'img2', url: 'http://example.com/2' }] },
 		])
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const prisma = { product: { findMany } } as any
 
 		const categoryIds = ['cat1', 'cat2', 'cat3']
@@ -32,6 +33,7 @@ describe('Category batch enrichment logic', () => {
 
 	it('parallelizes product counts for filtering categories', async () => {
 		const count = vi.fn().mockResolvedValue(5)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const prisma = { product: { count } } as any
 
 		const filteringCategories = [

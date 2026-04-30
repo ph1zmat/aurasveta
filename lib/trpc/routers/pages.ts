@@ -2,24 +2,18 @@ import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, editorProcedure } from '../init'
 import { deleteFile } from '@/lib/storage'
 import { withResolvedImageAsset } from '@/lib/storage-image-assets'
-import { pageLegacySeoToFields, upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
-import { SectionBackgroundSchema, SectionTypeSchema } from '@/shared/types/sections'
+import {
+	pageLegacySeoToFields,
+	upsertSeoMetadata,
+} from '@/lib/seo/metadata-persistence'
+import {
+	SectionBackgroundSchema,
+	SectionTypeSchema,
+} from '@/shared/types/sections'
 import {
 	createPageVersionSnapshotInput,
 	replacePageSections,
 } from '@/lib/sections/page-section-persistence'
-import { PAGE_BLOCK_TYPES } from '@/shared/types/page-builder'
-import {
-	replacePageBlocks,
-	pageBlocksToSnapshot,
-} from '@/lib/pages/page-block-persistence'
-
-const pageBlockInputSchema = z.object({
-	id: z.string().optional(),
-	type: z.enum(PAGE_BLOCK_TYPES),
-	isActive: z.boolean().default(true),
-	config: z.record(z.string(), z.unknown()),
-})
 
 const pageSectionBackgroundInputSchema = SectionBackgroundSchema
 
@@ -146,7 +140,10 @@ export const pagesRouter = createTRPCRouter({
 				sections: {
 					orderBy: { order: 'asc' },
 					include: {
-						products: { orderBy: { order: 'asc' }, select: { productId: true } },
+						products: {
+							orderBy: { order: 'asc' },
+							select: { productId: true },
+						},
 						categories: {
 							orderBy: { order: 'asc' },
 							select: { categoryId: true },
@@ -168,9 +165,6 @@ export const pagesRouter = createTRPCRouter({
 							},
 						},
 					},
-				},
-				blocks: {
-					orderBy: { order: 'asc' },
 				},
 				versions: { orderBy: { version: 'desc' }, take: 10 },
 			},
@@ -209,11 +203,10 @@ export const pagesRouter = createTRPCRouter({
 				metaDesc: z.string().optional(),
 				isPublished: z.boolean().default(false),
 				sections: z.array(pageSectionInputSchema).optional(),
-				blocks: z.array(pageBlockInputSchema).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { sections, blocks, ...pageInput } = input
+			const { sections, ...pageInput } = input
 
 			return ctx.prisma.$transaction(async tx => {
 				const page = await tx.page.create({
@@ -227,10 +220,6 @@ export const pagesRouter = createTRPCRouter({
 
 				if (sections) {
 					await replacePageSections(tx, page.id, sections)
-				}
-
-				if (blocks !== undefined) {
-					await replacePageBlocks(tx, page.id, blocks)
 				}
 
 				await upsertSeoMetadata(tx, {
@@ -256,9 +245,6 @@ export const pagesRouter = createTRPCRouter({
 							page,
 							sections: sections ?? [],
 						}),
-						...(blocks !== undefined
-							? { blocksSnapshot: pageBlocksToSnapshot(blocks) }
-							: {}),
 					},
 				})
 
@@ -283,11 +269,10 @@ export const pagesRouter = createTRPCRouter({
 				metaDesc: z.string().optional(),
 				isPublished: z.boolean().optional(),
 				sections: z.array(pageSectionInputSchema).optional(),
-				blocks: z.array(pageBlockInputSchema).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { id, contentBlocks, sections, blocks, ...data } = input
+			const { id, contentBlocks, sections, ...data } = input
 
 			if (data.isPublished !== undefined) {
 				;(data as Record<string, unknown>).publishedAt = data.isPublished
@@ -308,10 +293,6 @@ export const pagesRouter = createTRPCRouter({
 
 				if (sections) {
 					await replacePageSections(tx, id, sections)
-				}
-
-				if (blocks !== undefined) {
-					await replacePageBlocks(tx, id, blocks)
 				}
 
 				await upsertSeoMetadata(tx, {
@@ -342,9 +323,6 @@ export const pagesRouter = createTRPCRouter({
 							page,
 							sections: sections ?? [],
 						}),
-						...(blocks !== undefined
-							? { blocksSnapshot: pageBlocksToSnapshot(blocks) }
-							: {}),
 					},
 				})
 
@@ -413,22 +391,24 @@ export const pagesRouter = createTRPCRouter({
 					title: input.title,
 					slug: 'home',
 					kind: 'HOME' as const,
-					status: input.isPublished ? ('PUBLISHED' as const) : ('DRAFT' as const),
+					status: input.isPublished
+						? ('PUBLISHED' as const)
+						: ('DRAFT' as const),
 					isPublished: input.isPublished,
 					publishedAt: input.isPublished ? new Date() : null,
 				}
 
 				const page = existing
 					? await tx.page.update({
-						where: { id: existing.id },
-						data: pageData,
-					})
+							where: { id: existing.id },
+							data: pageData,
+						})
 					: await tx.page.create({
-						data: {
-							...pageData,
-							authorId: ctx.userId,
-						},
-					})
+							data: {
+								...pageData,
+								authorId: ctx.userId,
+							},
+						})
 
 				await replacePageSections(tx, page.id, input.sections)
 

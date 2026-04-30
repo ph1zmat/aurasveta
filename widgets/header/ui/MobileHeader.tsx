@@ -8,9 +8,16 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import MobileCatalogMenu from '@/widgets/navigation/ui/MobileCatalogMenu'
+import { trpc } from '@/lib/trpc/client'
 
 export default function MobileHeader() {
 	const router = useRouter()
+	const { data: layout } = trpc.siteNavigation.getPublicLayoutConfig.useQuery(
+		undefined,
+		{
+			staleTime: 5 * 60 * 1000,
+		},
+	)
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [searchTerm, setSearchTerm] = useState('')
 	const toggleMenu = useCallback(() => setMenuOpen(prev => !prev), [])
@@ -26,6 +33,12 @@ export default function MobileHeader() {
 		[searchTerm, router],
 	)
 
+	const navLinks = layout?.navItems ?? []
+	const store = layout?.store
+	const headerVisibility = layout?.headerVisibility
+	const phone =
+		headerVisibility?.showPhone !== false ? (store?.phone ?? null) : null
+
 	return (
 		<>
 			<header className='fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/85 md:hidden'>
@@ -33,21 +46,23 @@ export default function MobileHeader() {
 					{/* Top row: Logo + Phone */}
 					<div className='flex items-center justify-between gap-3 py-2'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
-						<Image
-							src='/aura-logo-noline-primary.png'
-							alt='Аура Света'
-							width={110}
-							height={40}
-							className='h-10 w-28 object-cover'
-						/>
+							<Image
+								src='/aura-logo-noline-primary.png'
+								alt='Аура Света'
+								width={110}
+								height={40}
+								className='h-10 w-28 object-cover'
+							/>
 						</Link>
-						<a
-							href='tel:+74992292322'
-							className='flex items-center gap-1 rounded-md px-2 py-1 text-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-						>
-							<Phone className='h-4 w-4 shrink-0' />
-							<span className='text-xs font-normal sm:text-sm'>+7 (499) 229 23 22</span>
-						</a>
+						{phone && (
+							<a
+								href={`tel:${phone.replace(/[\s().-]/g, '')}`}
+								className='flex items-center gap-1 rounded-md px-2 py-1 text-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
+							>
+								<Phone className='h-4 w-4 shrink-0' />
+								<span className='text-xs font-normal sm:text-sm'>{phone}</span>
+							</a>
+						)}
 					</div>
 
 					{/* Search row */}
@@ -66,7 +81,11 @@ export default function MobileHeader() {
 								<Menu className='h-5 w-5' strokeWidth={1.5} />
 							)}
 						</Button>
-						<form className='relative flex-1' onSubmit={handleSearchSubmit} role='search'>
+						<form
+							className='relative flex-1'
+							onSubmit={handleSearchSubmit}
+							role='search'
+						>
 							<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
 							<Input
 								variant='search'
@@ -82,7 +101,18 @@ export default function MobileHeader() {
 			</header>
 
 			{/* Mobile catalog menu overlay */}
-			{menuOpen && <MobileCatalogMenu onClose={closeMenu} />}
+			{menuOpen && (
+				<MobileCatalogMenu
+					onClose={closeMenu}
+					navLinks={navLinks.map(link => ({
+						label: link.label,
+						href: link.href,
+					}))}
+					city={store?.city ?? null}
+					address={store?.address ?? null}
+					headerVisibility={headerVisibility}
+				/>
+			)}
 		</>
 	)
 }

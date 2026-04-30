@@ -1,352 +1,267 @@
 ﻿'use client'
 
-import { useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+	FormCheckbox,
+	FormInput,
+	FormSection,
+	useUnsavedChangesGuard,
+} from '@aurasveta/shared-admin'
+import { Home, Pencil } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import {
-	DndContext,
-	closestCenter,
-	KeyboardSensor,
-	PointerSensor,
-	useSensor,
-	useSensors,
-	type DragEndEvent,
-	DragOverlay,
-	type DragStartEvent,
-} from '@dnd-kit/core'
-import {
-	SortableContext,
-	sortableKeyboardCoordinates,
-	verticalListSortingStrategy,
-	useSortable,
-	arrayMove,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { toast } from 'sonner'
-import {
-	GripVertical,
-	Pencil,
-	Trash2,
-	Plus,
-	Monitor,
-	Smartphone,
-	Save,
-} from 'lucide-react'
-import SectionFormModal from './SectionFormModal'
+	PageSectionsEditor,
+	toPageSectionDraft,
+	type PageSectionDraft,
+} from '@/features/admin/page-sections'
+import { NLButton } from '../components/ui/button'
 
-type Section = {
-	id: string
-	title: string | null
-	order: number
-	isActive: boolean
-	config: unknown
-	sectionTypeId: string
-	sectionType?: { id: string; name: string; component: string } | null
+function toPageSectionPayload(section: PageSectionDraft) {
+	return {
+		type: section.type,
+		title: section.title.trim() || null,
+		subtitle: section.subtitle.trim() || null,
+		anchor: section.anchor.trim() || null,
+		isActive: section.isActive,
+		background: section.background,
+		config: section.config as Record<string, unknown>,
+		manualProductIds: section.manualProductIds,
+		manualCategoryIds: section.manualCategoryIds,
+		mediaItems: section.mediaItems,
+	}
 }
 
-function SortableCard({
-	section,
-	onEdit,
-	onDelete,
-	onToggle,
-}: {
-	section: Section
-	onEdit: (s: Section) => void
-	onDelete: (id: string) => void
-	onToggle: (id: string, val: boolean) => void
-}) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-		useSortable({ id: section.id })
+type HomeDraftState = {
+	title: string
+	isPublished: boolean
+	sections: PageSectionDraft[]
+}
 
-	const style: React.CSSProperties = {
-		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: isDragging ? 0.4 : 1,
+function HomeSectionsEditorContent({
+	homePageId,
+	initialState,
+	onSave,
+	isSaving,
+}: {
+	homePageId: string | null
+	initialState: HomeDraftState
+	onSave: (value: HomeDraftState) => Promise<void>
+	isSaving: boolean
+}) {
+	const router = useRouter()
+	const [title, setTitle] = useState(initialState.title)
+	const [isPublished, setIsPublished] = useState(initialState.isPublished)
+	const [sections, setSections] = useState(initialState.sections)
+	const [submitError, setSubmitError] = useState<string | null>(null)
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+	const confirmDiscard = useUnsavedChangesGuard(hasUnsavedChanges)
+
+	function markDirty() {
+		setHasUnsavedChanges(true)
+		setSubmitError(null)
+	}
+
+	async function handleSave() {
+		if (!title.trim()) {
+			setSubmitError('Введите заголовок главной страницы.')
+			return
+		}
+
+		setSubmitError(null)
+
+		try {
+			await onSave({
+				title: title.trim(),
+				isPublished,
+				sections,
+			})
+			setHasUnsavedChanges(false)
+		} catch (error) {
+			setSubmitError(
+				error instanceof Error && error.message.trim()
+					? error.message
+					: 'Не удалось сохранить главную страницу.',
+			)
+		}
+	}
+
+	function openFullPageEditor() {
+		if (!homePageId) return
+		router.push(`/admin/pages?edit=${homePageId}`)
+	}
+
+	function resetDraft() {
+		if (!confirmDiscard()) return
+
+		setTitle(initialState.title)
+		setIsPublished(initialState.isPublished)
+		setSections(initialState.sections)
+		setHasUnsavedChanges(false)
+		setSubmitError(null)
 	}
 
 	return (
-		<div ref={setNodeRef} style={style}>
-			<Card className='border-border mb-2'>
-				<CardHeader className='flex flex-row items-center gap-2 py-3 px-4'>
-					<button
-						{...attributes}
-						{...listeners}
-						className='cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0 touch-none'
-						tabIndex={-1}
+		<div className='space-y-6'>
+			<div className='flex flex-wrap items-center justify-between gap-3'>
+				<div className='flex items-center gap-3'>
+					<div className='flex h-10 w-10 items-center justify-center rounded-xl bg-muted'>
+						<Home className='h-5 w-5 text-(--nl-accent)' />
+					</div>
+					<div>
+						<h1 className='text-xl font-semibold uppercase tracking-widest text-foreground'>
+							Главная страница
+						</h1>
+						<p className='mt-1 text-xs text-muted-foreground'>
+							Единый редактор секций для публичной страницы `/`.
+						</p>
+					</div>
+				</div>
+
+				<div className='flex flex-wrap gap-2'>
+					{homePageId ? (
+						<NLButton
+							type='button'
+							variant='outline'
+							onClick={openFullPageEditor}
+						>
+							<Pencil className='mr-1.5 h-4 w-4' /> Открыть карточку страницы
+						</NLButton>
+					) : null}
+					<NLButton type='button' variant='outline' onClick={resetDraft}>
+						Сбросить
+					</NLButton>
+					<NLButton
+						type='button'
+						onClick={() => {
+							void handleSave()
+						}}
+						disabled={isSaving}
 					>
-						<GripVertical className='h-4 w-4' />
-					</button>
-					<div className='flex-1 flex items-center gap-2 min-w-0'>
-						<Badge variant='secondary' className='text-[10px] shrink-0'>
-							{section.sectionType?.name ?? section.sectionTypeId}
-						</Badge>
-						<span className='text-sm font-medium truncate'>
-							{section.title ?? '—'}
-						</span>
-					</div>
-					<div className='flex items-center gap-1 shrink-0'>
-						<Switch
-							checked={section.isActive}
-							onCheckedChange={(v) => onToggle(section.id, v)}
+						{isSaving ? 'Сохранение...' : 'Сохранить главную'}
+					</NLButton>
+				</div>
+			</div>
+
+			{submitError ? (
+				<div className='rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
+					{submitError}
+				</div>
+			) : null}
+
+			<div className='grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]'>
+				<div className='space-y-4'>
+					<FormSection
+						title='Параметры HOME'
+						description='Управляйте заголовком и статусом публикации главной страницы.'
+					>
+						<FormInput
+							id='home-title'
+							label='Заголовок'
+							value={title}
+							onChange={event => {
+								markDirty()
+								setTitle(event.target.value)
+							}}
+							placeholder='Главная'
 						/>
-						<Button
-							variant='ghost'
-							size='icon'
-							className='h-7 w-7'
-							onClick={() => onEdit(section)}
-						>
-							<Pencil className='h-3.5 w-3.5' />
-						</Button>
-						<Button
-							variant='ghost'
-							size='icon'
-							className='h-7 w-7 text-destructive hover:text-destructive'
-							onClick={() => onDelete(section.id)}
-						>
-							<Trash2 className='h-3.5 w-3.5' />
-						</Button>
-					</div>
-				</CardHeader>
-			</Card>
+
+						<FormCheckbox
+							variant='card'
+							checked={isPublished}
+							onChange={checked => {
+								markDirty()
+								setIsPublished(checked)
+							}}
+							label='Опубликовать HOME'
+							description='После сохранения эти секции будут использованы публичной главной страницей.'
+						/>
+					</FormSection>
+				</div>
+
+				<FormSection
+					title='Секции главной'
+					description='Настройте состав и порядок блоков для главной страницы.'
+				>
+					<PageSectionsEditor
+						value={sections}
+						onChange={next => {
+							markDirty()
+							setSections(next)
+						}}
+					/>
+				</FormSection>
+			</div>
 		</div>
 	)
 }
 
 export default function HomeSectionsClient() {
-	const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
-	const [editingSection, setEditingSection] = useState<Section | null>(null)
-	const [localOrder, setLocalOrder] = useState<string[] | null>(null)
-	const [activeId, setActiveId] = useState<string | null>(null)
-	const [dirty, setDirty] = useState(false)
-
-	const sensors = useSensors(
-		useSensor(PointerSensor, {
-			activationConstraint: { distance: 5 },
-		}),
-		useSensor(KeyboardSensor, {
-			coordinateGetter: sortableKeyboardCoordinates,
-		}),
-	)
-
-	const { data: sections, refetch } = trpc.homeSection.getAll.useQuery()
-	const { data: sectionTypes } = trpc.sectionType.getAll.useQuery()
-
-	const { mutate: createSection } = trpc.homeSection.create.useMutation({
-		onSuccess: () => {
-			toast.success('Секция добавлена')
-			refetch()
-			setLocalOrder(null)
-		},
-	})
-	const { mutate: updateSection } = trpc.homeSection.update.useMutation({
-		onSuccess: () => {
-			toast.success('Секция обновлена')
-			refetch()
-			setEditingSection(null)
-		},
-	})
-	const { mutate: deleteSection } = trpc.homeSection.delete.useMutation({
-		onSuccess: () => {
-			toast.success('Секция удалена')
-			refetch()
-			setLocalOrder(null)
-		},
-	})
-	const { mutate: reorder, isPending: reordering } = trpc.homeSection.reorder.useMutation({
-		onSuccess: () => {
-			toast.success('Порядок сохранён')
-			refetch()
-			setLocalOrder(null)
-			setDirty(false)
-		},
-	})
-
-	const sorted = [...(sections ?? [])].sort((a, b) => a.order - b.order)
-	const displayIds = localOrder ?? sorted.map((s) => s.id)
-	const displaySections = displayIds
-		.map((id) => sorted.find((s) => s.id === id))
-		.filter(Boolean) as Section[]
-
-	const handleDragStart = useCallback((event: DragStartEvent) => {
-		setActiveId(String(event.active.id))
-	}, [])
-
-	const handleDragEnd = useCallback(
-		(event: DragEndEvent) => {
-			const { active, over } = event
-			setActiveId(null)
-			if (!over || active.id === over.id) return
-			const oldIndex = displayIds.indexOf(String(active.id))
-			const newIndex = displayIds.indexOf(String(over.id))
-			if (oldIndex === -1 || newIndex === -1) return
-			const newOrder = arrayMove(displayIds, oldIndex, newIndex)
-			setLocalOrder(newOrder)
-			setDirty(true)
-		},
-		[displayIds],
-	)
-
-	const handlePublish = () => {
-		const ids = localOrder ?? sorted.map((s) => s.id)
-		reorder(ids.map((id, i) => ({ id, order: i })))
-	}
-
-	const handleAdd = (typeId: string) => {
-		createSection({
-			sectionTypeId: typeId,
-			title: 'Новая секция',
-			order: sorted.length,
+	const utils = trpc.useUtils()
+	const { data: homePage, isLoading: isHomePageLoading } =
+		trpc.pages.getHomePage.useQuery()
+	const { data: homePageDetails, isLoading: isHomePageDetailsLoading } =
+		trpc.pages.getById.useQuery(homePage?.id ?? '', {
+			enabled: Boolean(homePage?.id),
 		})
+	const upsertHomePageMut = trpc.pages.upsertHomePageSections.useMutation({
+		onSuccess: async () => {
+			await Promise.all([
+				utils.pages.getHomePage.invalidate(),
+				utils.pages.getAll.invalidate(),
+				utils.pages.getAdminList.invalidate(),
+				homePage?.id
+					? utils.pages.getById.invalidate(homePage.id)
+					: Promise.resolve(),
+			])
+		},
+	})
+
+	const bootstrapSections = useMemo(() => {
+		const unifiedSections =
+			(homePageDetails?.sections ?? [])
+				.map(section => toPageSectionDraft(section))
+				.filter((section): section is PageSectionDraft => section !== null) ??
+			[]
+
+		return unifiedSections
+	}, [homePageDetails])
+
+	const isLoading = isHomePageLoading || isHomePageDetailsLoading
+
+	if (isLoading) {
+		return (
+			<div className='rounded-2xl border border-border bg-background p-6 text-sm text-muted-foreground'>
+				Загрузка главной страницы...
+			</div>
+		)
 	}
 
-	const activeSection = activeId ? sorted.find((s) => s.id === activeId) : null
+	const initialState: HomeDraftState = {
+		title: homePageDetails?.title ?? homePage?.title ?? 'Главная',
+		isPublished: homePageDetails?.isPublished ?? homePage?.isPublished ?? false,
+		sections: bootstrapSections,
+	}
+	const editorKey = JSON.stringify({
+		id: homePage?.id ?? 'new',
+		title: initialState.title,
+		isPublished: initialState.isPublished,
+		sections: initialState.sections.map(section => section.id),
+	})
 
 	return (
-		<div className='space-y-4'>
-			{/* Header */}
-			<div className='flex items-center justify-between flex-wrap gap-2'>
-				<div>
-					<h1 className='text-xl font-bold'>Главная страница</h1>
-					<p className='text-sm text-muted-foreground'>
-						{sorted.length} секций · перетащите для изменения порядка
-					</p>
-				</div>
-				<div className='flex items-center gap-2'>
-					{dirty && (
-						<span className='text-xs text-warning font-medium'>Несохранённые изменения</span>
-					)}
-					{dirty && (
-						<Button size='sm' onClick={handlePublish} disabled={reordering}>
-							<Save className='h-4 w-4 mr-1' />
-							{reordering ? 'Сохранение...' : 'Сохранить порядок'}
-						</Button>
-					)}
-					{/* Device toggle */}
-					<div className='flex rounded-md border border-border overflow-hidden'>
-						<button
-							className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
-								device === 'desktop'
-									? 'bg-accent text-accent-foreground'
-									: 'hover:bg-secondary text-muted-foreground'
-							}`}
-							onClick={() => setDevice('desktop')}
-						>
-							<Monitor className='h-4 w-4' />
-							<span className='hidden sm:inline'>Desktop</span>
-						</button>
-						<button
-							className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
-								device === 'mobile'
-									? 'bg-accent text-accent-foreground'
-									: 'hover:bg-secondary text-muted-foreground'
-							}`}
-							onClick={() => setDevice('mobile')}
-						>
-							<Smartphone className='h-4 w-4' />
-							<span className='hidden sm:inline'>Mobile</span>
-						</button>
-					</div>
-				</div>
-			</div>
-
-			<div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4'>
-				{/* Library */}
-				<Card className='border-border h-fit'>
-					<CardHeader className='pb-2'>
-						<CardTitle className='text-base font-bold'>Типы секций</CardTitle>
-					</CardHeader>
-					<CardContent className='space-y-2 p-3'>
-						{(sectionTypes ?? []).map((st) => (
-							<div
-								key={st.id}
-								className='flex items-center gap-2 p-2.5 rounded-md border border-border bg-card hover:border-accent hover:bg-accent/5 transition-colors'
-							>
-								<div className='flex-1 min-w-0'>
-									<div className='text-sm font-medium'>{st.name}</div>
-									<div className='text-xs text-muted-foreground'>{st.component}</div>
-								</div>
-								<Button
-									size='icon'
-									variant='ghost'
-									className='h-7 w-7 shrink-0'
-									onClick={() => handleAdd(st.id)}
-								>
-									<Plus className='h-3.5 w-3.5' />
-								</Button>
-							</div>
-						))}
-						{(sectionTypes ?? []).length === 0 && (
-							<div className='text-xs text-muted-foreground text-center py-4'>Нет типов секций</div>
-						)}
-					</CardContent>
-				</Card>
-
-				{/* Canvas */}
-				<div
-					className={`transition-all duration-300 ${device === 'mobile' ? 'max-w-[390px] mx-auto w-full' : ''}`}
-				>
-					<div className='flex items-center justify-between mb-3 px-1'>
-						<span className='text-xs text-muted-foreground font-medium uppercase tracking-wider'>
-							{device === 'mobile' ? 'Мобильный вид · 390px' : 'Полный вид'}
-						</span>
-						<span className='text-xs text-muted-foreground'>{sorted.length} секций</span>
-					</div>
-
-					<DndContext
-						sensors={sensors}
-						collisionDetection={closestCenter}
-						onDragStart={handleDragStart}
-						onDragEnd={handleDragEnd}
-					>
-						<SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
-							{displaySections.map((section) => (
-								<SortableCard
-									key={section.id}
-									section={section}
-									onEdit={(s) => setEditingSection(s)}
-									onDelete={(id) => deleteSection(id)}
-									onToggle={(id, val) => updateSection({ id, isActive: val })}
-								/>
-							))}
-						</SortableContext>
-
-						<DragOverlay>
-							{activeSection && (
-								<Card className='border-accent shadow-xl bg-card opacity-95'>
-									<CardHeader className='flex flex-row items-center gap-2 py-3 px-4'>
-										<GripVertical className='h-4 w-4 text-muted-foreground' />
-										<Badge variant='secondary' className='text-[10px]'>
-											{activeSection.sectionType?.name ?? activeSection.sectionTypeId}
-										</Badge>
-										<span className='text-sm font-medium'>{activeSection.title ?? '—'}</span>
-									</CardHeader>
-								</Card>
-							)}
-						</DragOverlay>
-					</DndContext>
-
-					{sorted.length === 0 && (
-						<div className='border-2 border-dashed border-border rounded-xl py-16 text-center text-muted-foreground text-sm'>
-							<Plus className='h-8 w-8 mx-auto mb-2 opacity-30' />
-							Добавьте секции из библиотеки слева
-						</div>
-					)}
-				</div>
-			</div>
-
-			{/* Type-specific edit modal */}
-			{editingSection && (
-				<SectionFormModal
-					section={editingSection}
-					onSave={({ title, config }) =>
-						updateSection({ id: editingSection.id, title, config })
-					}
-					onClose={() => setEditingSection(null)}
-				/>
-			)}
-		</div>
+		<HomeSectionsEditorContent
+			key={editorKey}
+			homePageId={homePage?.id ?? null}
+			initialState={initialState}
+			onSave={async value => {
+				await upsertHomePageMut.mutateAsync({
+					title: value.title,
+					isPublished: value.isPublished,
+					sections: value.sections.map(toPageSectionPayload),
+				})
+			}}
+			isSaving={upsertHomePageMut.isPending}
+		/>
 	)
 }

@@ -92,7 +92,7 @@ export default function FavoritesContent() {
 				{products.length} товара
 			</p>
 
-			<div className='grid grid-cols-1 gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3'>
+			<div className='grid grid-cols-2 gap-4 pb-8 sm:grid-cols-2 lg:grid-cols-3'>
 				{products.map(product => (
 					<FavoriteProductCard
 						key={product.href}

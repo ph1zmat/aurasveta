@@ -8,31 +8,51 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import PropertyFormModal from './components/PropertyFormModal'
-import PropertyValueFormModal from './components/PropertyValueFormModal'
+import PropertyValueFormModal, { type PropertyValue } from './components/PropertyValueFormModal'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function PropertiesClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingProperty, setEditingProperty] = useState<any>(null)
+	const [editingProperty, setEditingProperty] = useState<{
+		id: string
+		name: string
+		slug: string
+		hasPhoto: boolean
+		values?: PropertyValue[]
+	} | null>(null)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [confirmDeleteProperty, setConfirmDeleteProperty] = useState<string | null>(null)
-	const [confirmDeleteValue, setConfirmDeleteValue] = useState<string | null>(null)
+	const [confirmDeleteProperty, setConfirmDeleteProperty] = useState<
+		string | null
+	>(null)
+	const [confirmDeleteValue, setConfirmDeleteValue] = useState<string | null>(
+		null,
+	)
 
 	// Стейт для модалки редактирования/создания значения
 	const [valueModalOpen, setValueModalOpen] = useState(false)
-	const [editingValue, setEditingValue] = useState<any>(null)
+	const [editingValue, setEditingValue] = useState<PropertyValue | null>(null)
 	const [valueModalPropertyId, setValueModalPropertyId] = useState<string>('')
 	const [valueModalHasPhoto, setValueModalHasPhoto] = useState(false)
 
 	const { data: properties, refetch } = trpc.properties.getAll.useQuery()
 	const { mutate: deleteProperty } = trpc.properties.delete.useMutation({
-		onSuccess: () => { toast.success('Свойство удалено'); refetch(); setConfirmDeleteProperty(null) },
+		onSuccess: () => {
+			toast.success('Свойство удалено')
+			refetch()
+			setConfirmDeleteProperty(null)
+		},
 	})
 	const { mutate: deleteValue } = trpc.properties.deleteValue.useMutation({
-		onSuccess: () => { toast.success('Значение удалено'); refetch(); setConfirmDeleteValue(null) },
+		onSuccess: () => {
+			toast.success('Значение удалено')
+			refetch()
+			setConfirmDeleteValue(null)
+		},
 	})
 	const { mutate: reorderValues } = trpc.properties.reorderValues.useMutation({
-		onSuccess: () => { refetch() },
+		onSuccess: () => {
+			refetch()
+		},
 	})
 
 	const openNewValue = (prop: { id: string; hasPhoto: boolean }) => {
@@ -42,6 +62,7 @@ export default function PropertiesClient() {
 		setValueModalOpen(true)
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const openEditValue = (prop: { id: string; hasPhoto: boolean }, val: any) => {
 		setEditingValue(val)
 		setValueModalPropertyId(prop.id)
@@ -49,7 +70,12 @@ export default function PropertiesClient() {
 		setValueModalOpen(true)
 	}
 
-	const moveValue = (_propertyId: string, values: { id: string; order?: number }[], index: number, direction: 'up' | 'down') => {
+	const moveValue = (
+		_propertyId: string,
+		values: { id: string; order?: number }[],
+		index: number,
+		direction: 'up' | 'down',
+	) => {
 		const newIndex = direction === 'up' ? index - 1 : index + 1
 		if (newIndex < 0 || newIndex >= values.length) return
 		const reordered = [...values]
@@ -64,35 +90,61 @@ export default function PropertiesClient() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h1 className='text-xl font-bold'>Свойства</h1>
-					<p className='text-sm text-muted-foreground'>Управление характеристиками товаров</p>
+					<p className='text-sm text-muted-foreground'>
+						Управление характеристиками товаров
+					</p>
 				</div>
-				<Button size='sm' onClick={() => { setEditingProperty(null); setModalOpen(true) }}>
+				<Button
+					size='sm'
+					onClick={() => {
+						setEditingProperty(null)
+						setModalOpen(true)
+					}}
+				>
 					<Plus className='h-4 w-4 mr-1' />
 					Новое свойство
 				</Button>
 			</div>
 
 			<div className='space-y-3'>
-				{(properties ?? []).map((prop) => {
+				{(properties ?? []).map(prop => {
 					const isOpen = expandedId === prop.id
-					const values = [...(prop.values ?? [])].sort((a: { order?: number }, b: { order?: number }) => (a.order ?? 0) - (b.order ?? 0))
+					const values = [...(prop.values ?? [])].sort(
+						(a: { order?: number }, b: { order?: number }) =>
+							(a.order ?? 0) - (b.order ?? 0),
+					)
 					return (
 						<Card key={prop.id} className='border-border'>
 							<CardHeader className='flex flex-row items-center justify-between py-3'>
 								<div className='flex items-center gap-3'>
-									<CardTitle className='text-sm font-bold'>{prop.name}</CardTitle>
-									<Badge variant='secondary' className='text-[10px]'>{prop.slug}</Badge>
-									{prop.hasPhoto && <Badge className='bg-accent/15 text-accent text-[10px]'>Фото</Badge>}
+									<CardTitle className='text-sm font-bold'>
+										{prop.name}
+									</CardTitle>
+									<Badge variant='secondary' className='text-[10px]'>
+										{prop.slug}
+									</Badge>
+									{prop.hasPhoto && (
+										<Badge className='bg-accent/15 text-accent text-[10px]'>
+											Фото
+										</Badge>
+									)}
 								</div>
 								<div className='flex gap-1'>
-									<Button variant='ghost' size='sm' onClick={() => setExpandedId(isOpen ? null : prop.id)}>
+									<Button
+										variant='ghost'
+										size='sm'
+										onClick={() => setExpandedId(isOpen ? null : prop.id)}
+									>
 										{isOpen ? 'Скрыть' : `Значения (${values.length})`}
 									</Button>
 									<Button
 										variant='ghost'
 										size='icon'
 										className='h-7 w-7'
-										onClick={() => { setEditingProperty(prop); setModalOpen(true) }}
+										onClick={() => {
+											setEditingProperty(prop)
+											setModalOpen(true)
+										}}
 										aria-label='Редактировать свойство'
 									>
 										<Pencil className='h-3.5 w-3.5' />
@@ -111,55 +163,79 @@ export default function PropertiesClient() {
 							{isOpen && (
 								<CardContent className='pt-0'>
 									<div className='space-y-2'>
-										{values.map((val: { id: string; value: string; slug: string; photo?: string | null }, index: number) => (
-											<div key={val.id} className='flex items-center gap-2 py-2 px-3 rounded-(--radius-md) bg-secondary/30'>
-												<span className='text-sm flex-1'>{val.value}</span>
-												{val.photo && (
-													<Badge className='bg-accent/15 text-accent text-[10px]'>Фото ✓</Badge>
-												)}
-												{prop.hasPhoto && !val.photo && (
-													<Badge variant='outline' className='text-[10px] text-muted-foreground'>Нет фото</Badge>
-												)}
-												<Button
-													variant='ghost'
-													size='icon'
-													className='h-6 w-6'
-													disabled={index === 0}
-													onClick={() => moveValue(prop.id, values, index, 'up')}
-													aria-label='Переместить вверх'
+										{values.map(
+											(
+												val: {
+													id: string
+													value: string
+													slug: string
+													photo?: string | null
+												},
+												index: number,
+											) => (
+												<div
+													key={val.id}
+													className='flex items-center gap-2 py-2 px-3 rounded-(--radius-md) bg-secondary/30'
 												>
-													<ArrowUp className='h-3 w-3' />
-												</Button>
-												<Button
-													variant='ghost'
-													size='icon'
-													className='h-6 w-6'
-													disabled={index === values.length - 1}
-													onClick={() => moveValue(prop.id, values, index, 'down')}
-													aria-label='Переместить вниз'
-												>
-													<ArrowDown className='h-3 w-3' />
-												</Button>
-												<Button
-													variant='ghost'
-													size='icon'
-													className='h-6 w-6'
-													onClick={() => openEditValue(prop, val)}
-													aria-label='Редактировать значение'
-												>
-													<Pencil className='h-3 w-3' />
-												</Button>
-												<Button
-													variant='ghost'
-													size='icon'
-													className='h-6 w-6 text-destructive'
-													onClick={() => setConfirmDeleteValue(val.id)}
-													aria-label='Удалить значение'
-												>
-													<Trash2 className='h-3 w-3' />
-												</Button>
-											</div>
-										))}
+													<span className='text-sm flex-1'>{val.value}</span>
+													{val.photo && (
+														<Badge className='bg-accent/15 text-accent text-[10px]'>
+															Фото ✓
+														</Badge>
+													)}
+													{prop.hasPhoto && !val.photo && (
+														<Badge
+															variant='outline'
+															className='text-[10px] text-muted-foreground'
+														>
+															Нет фото
+														</Badge>
+													)}
+													<Button
+														variant='ghost'
+														size='icon'
+														className='h-6 w-6'
+														disabled={index === 0}
+														onClick={() =>
+															moveValue(prop.id, values, index, 'up')
+														}
+														aria-label='Переместить вверх'
+													>
+														<ArrowUp className='h-3 w-3' />
+													</Button>
+													<Button
+														variant='ghost'
+														size='icon'
+														className='h-6 w-6'
+														disabled={index === values.length - 1}
+														onClick={() =>
+															moveValue(prop.id, values, index, 'down')
+														}
+														aria-label='Переместить вниз'
+													>
+														<ArrowDown className='h-3 w-3' />
+													</Button>
+													<Button
+														variant='ghost'
+														size='icon'
+														className='h-6 w-6'
+														onClick={() => openEditValue(prop, val)}
+														aria-label='Редактировать значение'
+													>
+														<Pencil className='h-3 w-3' />
+													</Button>
+													<Button
+														variant='ghost'
+														size='icon'
+														className='h-6 w-6 text-destructive'
+														onClick={() => setConfirmDeleteValue(val.id)}
+														aria-label='Удалить значение'
+													>
+														<Trash2 className='h-3 w-3' />
+													</Button>
+												</div>
+											),
+										)}
 										<div className='pt-2'>
 											<Button
 												size='sm'
@@ -204,7 +280,9 @@ export default function PropertiesClient() {
 				onOpenChange={() => setConfirmDeleteProperty(null)}
 				title='Подтвердите удаление'
 				description='Свойство и все его значения будут безвозвратно удалены. Это действие нельзя отменить.'
-				onConfirm={() => confirmDeleteProperty && deleteProperty(confirmDeleteProperty)}
+				onConfirm={() =>
+					confirmDeleteProperty && deleteProperty(confirmDeleteProperty)
+				}
 			/>
 
 			<ConfirmDialog

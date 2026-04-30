@@ -514,7 +514,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 								Товары не найдены
 							</div>
 						) : (
-							<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
+							<div className='grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
 								{products.map(product => (
 									<InteractiveCatalogCard
 										key={product.productId}

@@ -29,10 +29,6 @@ export interface Product {
 	bonusAmount?: number
 	category: string
 	categorySlug?: string
-	rootCategory?: string
-	rootCategorySlug?: string
-	subcategory?: string
-	subcategorySlug?: string
 	brand?: string
 	brandCountry?: string
 	images: ProductImage[]

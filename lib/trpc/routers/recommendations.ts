@@ -26,8 +26,6 @@ const productCardSelect = {
 	badges: true,
 	createdAt: true,
 	category: { select: { id: true, name: true, slug: true } },
-	rootCategory: { select: { id: true, name: true, slug: true } },
-	subcategory: { select: { id: true, name: true, slug: true } },
 } as const
 
 type RecommendationImageShape = {
@@ -66,18 +64,14 @@ export const recommendationsRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			const product = await ctx.prisma.product.findUnique({
 				where: { id: input.productId },
-				select: { categoryId: true, subcategoryId: true, brand: true },
+				select: { categoryId: true, brand: true },
 			})
-			const effectiveSubcategoryId = product?.subcategoryId ?? product?.categoryId
-			if (!effectiveSubcategoryId) return []
+			if (!product?.categoryId) return []
 
 			const products = await ctx.prisma.product.findMany({
 				where: {
 					id: { not: input.productId },
-					OR: [
-						{ subcategoryId: effectiveSubcategoryId },
-						{ categoryId: effectiveSubcategoryId },
-					],
+					categoryId: product.categoryId,
 					isActive: true,
 				},
 				take: input.limit,
@@ -129,11 +123,7 @@ export const recommendationsRouter = createTRPCRouter({
 			const products = await ctx.prisma.product.findMany({
 				where: {
 					isActive: true,
-					OR: [
-						{ rootCategoryId: input.categoryId },
-						{ subcategoryId: input.categoryId },
-						{ categoryId: input.categoryId },
-					],
+					categoryId: input.categoryId,
 				},
 				take: input.limit,
 				orderBy: [

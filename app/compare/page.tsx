@@ -7,6 +7,8 @@ import CompareContent from './CompareContent'
 import { Suspense } from 'react'
 import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
 	title: 'Сравнение — Аура Света',
 }

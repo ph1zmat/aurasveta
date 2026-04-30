@@ -21,11 +21,24 @@ import {
 import { toast } from 'sonner'
 import { MediaPicker } from '@/packages/shared-admin/src/ui/admin/MediaPicker'
 
+interface CategoryFormData {
+	id?: string
+	name?: string
+	slug?: string
+	description?: string | null
+	parentId?: string | null
+	categoryMode?: 'MANUAL' | 'FILTER' | null
+	filterPropertyId?: string | null
+	filterPropertyValueId?: string | null
+	showInHeader?: boolean
+	imagePath?: string | null
+}
+
 interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	category?: any
+	category?: CategoryFormData | null
 }
 
 export default function CategoryFormModal({ open, onOpenChange, onSuccess, category }: Props) {
@@ -46,6 +59,19 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 
 	const selectedProperty = properties?.find((property) => property.id === filterPropertyId)
 	const selectedPropertyValues = selectedProperty?.values ?? []
+
+	const reset = () => {
+		setName('')
+		setSlug('')
+		setDescription('')
+		setParentId('')
+		setCategoryMode('MANUAL')
+		setFilterPropertyId('')
+		setFilterPropertyValueId('')
+		setShowInHeader(true)
+		setImagePath(null)
+	}
+
 	const { mutate: create } = trpc.categories.create.useMutation({
 		onSuccess: () => {
 			toast.success('Категория создана')
@@ -64,6 +90,7 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 
 	useEffect(() => {
 		if (category) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setName(category.name ?? '')
 			setSlug(category.slug ?? '')
 			setDescription(category.description ?? '')
@@ -77,18 +104,6 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 			reset()
 		}
 	}, [category, open])
-
-	const reset = () => {
-		setName('')
-		setSlug('')
-		setDescription('')
-		setParentId('')
-		setCategoryMode('MANUAL')
-		setFilterPropertyId('')
-		setFilterPropertyValueId('')
-		setShowInHeader(true)
-		setImagePath(null)
-	}
 
 	const handleSave = () => {
 		if (categoryMode === 'FILTER' && (!filterPropertyId || !filterPropertyValueId)) {
@@ -110,7 +125,7 @@ export default function CategoryFormModal({ open, onOpenChange, onSuccess, categ
 			imagePath: imagePath ?? undefined,
 		}
 		if (isEdit) {
-			update({ id: category.id, ...payload })
+			update({ id: category.id as string, ...payload })
 		} else {
 			create(payload)
 		}

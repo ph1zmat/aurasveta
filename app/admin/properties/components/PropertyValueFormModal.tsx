@@ -13,7 +13,7 @@ import {
 import FileUploader from '@/shared/ui/FileUploader'
 import { toast } from 'sonner'
 
-interface PropertyValue {
+export interface PropertyValue {
 	id: string
 	value: string
 	slug: string
@@ -48,6 +48,7 @@ export default function PropertyValueFormModal({
 	useEffect(() => {
 		if (open) {
 			if (value) {
+				// eslint-disable-next-line react-hooks/set-state-in-effect
 				setName(value.value ?? '')
 				setSlug(value.slug ?? '')
 				setPhoto(value.photo ?? null)
@@ -59,21 +60,23 @@ export default function PropertyValueFormModal({
 		}
 	}, [value, open])
 
-	const { mutate: create, isPending: creating } = trpc.properties.createValue.useMutation({
-		onSuccess: () => {
-			toast.success('Значение добавлено')
-			onSuccess()
-			onOpenChange(false)
-		},
-	})
+	const { mutate: create, isPending: creating } =
+		trpc.properties.createValue.useMutation({
+			onSuccess: () => {
+				toast.success('Значение добавлено')
+				onSuccess()
+				onOpenChange(false)
+			},
+		})
 
-	const { mutate: update, isPending: updating } = trpc.properties.updateValue.useMutation({
-		onSuccess: () => {
-			toast.success('Значение обновлено')
-			onSuccess()
-			onOpenChange(false)
-		},
-	})
+	const { mutate: update, isPending: updating } =
+		trpc.properties.updateValue.useMutation({
+			onSuccess: () => {
+				toast.success('Значение обновлено')
+				onSuccess()
+				onOpenChange(false)
+			},
+		})
 
 	const isPending = creating || updating
 
@@ -85,7 +88,10 @@ export default function PropertyValueFormModal({
 		}
 		const resolvedSlug =
 			slug.trim() ||
-			trimmedName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+			trimmedName
+				.toLowerCase()
+				.replace(/\s+/g, '-')
+				.replace(/[^a-z0-9-]/g, '')
 
 		if (isEdit) {
 			update({
@@ -117,16 +123,18 @@ export default function PropertyValueFormModal({
 						<label className='text-sm font-medium'>Название *</label>
 						<Input
 							value={name}
-							onChange={(e) => setName(e.target.value)}
+							onChange={e => setName(e.target.value)}
 							placeholder='Например: Белый'
-							onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+							onKeyDown={e => {
+								if (e.key === 'Enter') handleSave()
+							}}
 						/>
 					</div>
 					<div className='space-y-2'>
 						<label className='text-sm font-medium'>Slug</label>
 						<Input
 							value={slug}
-							onChange={(e) => setSlug(e.target.value)}
+							onChange={e => setSlug(e.target.value)}
 							placeholder='автоматически из названия'
 							className='font-mono text-sm'
 						/>
@@ -136,7 +144,7 @@ export default function PropertyValueFormModal({
 							<label className='text-sm font-medium'>Фото</label>
 							<FileUploader
 								currentImage={photo}
-								onUploaded={(key) => setPhoto(key)}
+								onUploaded={key => setPhoto(key)}
 								onRemove={() => setPhoto(null)}
 								aspectRatio='square'
 								compact
@@ -146,7 +154,11 @@ export default function PropertyValueFormModal({
 						</div>
 					)}
 					<div className='flex justify-end gap-2 pt-2'>
-						<Button variant='outline' onClick={() => onOpenChange(false)} disabled={isPending}>
+						<Button
+							variant='outline'
+							onClick={() => onOpenChange(false)}
+							disabled={isPending}
+						>
 							Отмена
 						</Button>
 						<Button onClick={handleSave} disabled={isPending}>

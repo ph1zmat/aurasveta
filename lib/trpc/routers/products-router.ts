@@ -1,11 +1,13 @@
 import { z } from 'zod'
-import { TRPCError } from '@trpc/server'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { validateWebhookUrl } from '@/shared/lib/validateUrl'
 import { buildCategoryProductWhere } from '@/lib/categories/category-filters'
-import { mergeSeoFields, upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
+import {
+	mergeSeoFields,
+	upsertSeoMetadata,
+} from '@/lib/seo/metadata-persistence'
 import { deleteFile } from '@/lib/storage'
 import type { StorageImageAsset } from '@/shared/types/storage'
 import { SeoFieldsInputSchema } from '@/shared/types/seo'
@@ -40,12 +42,8 @@ const productCardSelect = {
 	badges: true,
 	isActive: true,
 	categoryId: true,
-	rootCategoryId: true,
-	subcategoryId: true,
 	createdAt: true,
 	category: { select: { id: true, name: true, slug: true } },
-	rootCategory: { select: { id: true, name: true, slug: true, parentId: true } },
-	subcategory: { select: { id: true, name: true, slug: true, parentId: true } },
 } as const satisfies Prisma.ProductSelect
 
 const productCatalogSelect = {
@@ -56,8 +54,6 @@ const productCatalogSelect = {
 
 const productDetailInclude = {
 	category: true,
-	rootCategory: true,
-	subcategory: true,
 	images: orderedProductImages,
 	properties: { include: { property: true, propertyValue: true } },
 } as const satisfies Prisma.ProductInclude
@@ -75,8 +71,6 @@ type IncomingProductImage = z.infer<typeof incomingProductImageSchema>
 
 const productFilters = z.object({
 	categorySlug: z.string().optional(),
-	rootCategorySlug: z.string().optional(),
-	subcategorySlug: z.string().optional(),
 	includeChildren: z.boolean().default(true),
 	search: z.string().optional(),
 	minPrice: z.number().optional(),
@@ -129,58 +123,6 @@ function resolvePropertyValues(input: {
 	propertyValues?: Array<{ propertyId: string; propertyValueId: string }>
 }) {
 	return input.properties ?? input.propertyValues ?? []
-}
-
-async function resolveProductCategoryData(
-	db: PrismaClient | Prisma.TransactionClient,
-	input: {
-		categoryId?: string | null
-		rootCategoryId?: string | null
-		subcategoryId?: string | null
-	},
-) {
-	const candidateSubcategoryId = input.subcategoryId ?? input.categoryId ?? null
-	const candidateRootCategoryId = input.rootCategoryId ?? null
-
-	if (!candidateSubcategoryId) {
-		return {
-			categoryId: null,
-			rootCategoryId: candidateRootCategoryId,
-			subcategoryId: null,
-		}
-	}
-
-	const subcategory = await db.category.findUnique({
-		where: { id: candidateSubcategoryId },
-		select: { id: true, name: true, parentId: true },
-	})
-
-	if (!subcategory) {
-		throw new TRPCError({
-			code: 'BAD_REQUEST',
-			message: 'Выбранная субкатегория не найдена.',
-		})
-	}
-
-	if (!subcategory.parentId) {
-		throw new TRPCError({
-			code: 'BAD_REQUEST',
-			message: 'Товар должен быть привязан к субкатегории второго уровня.',
-		})
-		}
-
-	if (candidateRootCategoryId && subcategory.parentId !== candidateRootCategoryId) {
-		throw new TRPCError({
-			code: 'BAD_REQUEST',
-			message: 'Субкатегория не принадлежит выбранной корневой категории.',
-		})
-	}
-
-	return {
-		categoryId: subcategory.id,
-		rootCategoryId: subcategory.parentId,
-		subcategoryId: subcategory.id,
-	}
 }
 
 async function syncProductImages(
@@ -252,8 +194,6 @@ export const productsRouter = createTRPCRouter({
 			page,
 			limit,
 			categorySlug,
-			rootCategorySlug,
-			subcategorySlug,
 			includeChildren,
 			search,
 			minPrice,
@@ -275,7 +215,6 @@ export const productsRouter = createTRPCRouter({
 				where: { slug: categorySlug },
 				select: {
 					id: true,
-					parentId: true,
 					categoryMode: true,
 					filterKind: true,
 					filterPropertyId: true,
@@ -292,46 +231,12 @@ export const productsRouter = createTRPCRouter({
 			}
 		}
 
-		if (rootCategorySlug) {
-			const rootCategory = await ctx.prisma.category.findUnique({
-				where: { slug: rootCategorySlug },
-				select: { id: true },
-			})
-
-			if (rootCategory) {
-				andConditions.push({
-					OR: [
-						{ rootCategoryId: rootCategory.id },
-						{ categoryId: rootCategory.id },
-					],
-				})
-			}
-		}
-
-		if (subcategorySlug) {
-			const subcategory = await ctx.prisma.category.findUnique({
-				where: { slug: subcategorySlug },
-				select: { id: true },
-			})
-
-			if (subcategory) {
-				andConditions.push({
-					OR: [
-						{ subcategoryId: subcategory.id },
-						{ categoryId: subcategory.id },
-					],
-				})
-			}
-		}
-
 		if (search) {
-			andConditions.push({
-				OR: [
-					{ name: { contains: search, mode: 'insensitive' } },
-					{ description: { contains: search, mode: 'insensitive' } },
-					{ sku: { contains: search, mode: 'insensitive' } },
-				],
-			})
+			where.OR = [
+				{ name: { contains: search, mode: 'insensitive' } },
+				{ description: { contains: search, mode: 'insensitive' } },
+				{ sku: { contains: search, mode: 'insensitive' } },
+			]
 		}
 
 		if (minPrice !== undefined || maxPrice !== undefined) {
@@ -436,7 +341,6 @@ export const productsRouter = createTRPCRouter({
 					where: { slug: categorySlug },
 					select: {
 						id: true,
-						parentId: true,
 						categoryMode: true,
 						filterKind: true,
 						filterPropertyId: true,
@@ -615,8 +519,6 @@ export const productsRouter = createTRPCRouter({
 					name: true,
 					slug: true,
 					isActive: true,
-					rootCategory: { select: { name: true } },
-					subcategory: { select: { name: true } },
 					category: { select: { name: true } },
 				},
 				orderBy: { name: 'asc' },
@@ -646,8 +548,6 @@ export const productsRouter = createTRPCRouter({
 				sku: z.string().nullable().optional(),
 				images: z.array(incomingProductImageSchema).optional(),
 				categoryId: z.string().nullable().optional(),
-				rootCategoryId: z.string().nullable().optional(),
-				subcategoryId: z.string().nullable().optional(),
 				isActive: z.boolean().default(true),
 				brand: z.string().nullable().optional(),
 				brandCountry: z.string().nullable().optional(),
@@ -660,16 +560,7 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const {
-				properties,
-				propertyValues,
-				images,
-				seo,
-				categoryId,
-				rootCategoryId,
-				subcategoryId,
-				...productData
-			} = input
+			const { properties, propertyValues, images, seo, ...productData } = input
 			const resolvedProperties = resolvePropertyValues({
 				properties,
 				propertyValues,
@@ -677,18 +568,6 @@ export const productsRouter = createTRPCRouter({
 			const normalizedImages = normalizeProductImagesForWrite(
 				toIncomingProductImages(images),
 			)
-			const resolvedCategoryData = await resolveProductCategoryData(ctx.prisma, {
-				categoryId,
-				rootCategoryId,
-				subcategoryId,
-			})
-
-			if (!resolvedCategoryData.subcategoryId || !resolvedCategoryData.rootCategoryId) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'Для товара нужно выбрать корневую категорию и субкатегорию.',
-				})
-			}
 
 			let slug = productData.slug?.trim() || generateSlug(productData.name)
 			let suffix = 0
@@ -701,7 +580,6 @@ export const productsRouter = createTRPCRouter({
 				const createdProduct = await tx.product.create({
 					data: {
 						...productData,
-						...resolvedCategoryData,
 						slug,
 						userId: ctx.userId,
 						images:
@@ -715,7 +593,7 @@ export const productsRouter = createTRPCRouter({
 											propertyId: property.propertyId,
 											propertyValueId: property.propertyValueId,
 										})),
-								}
+									}
 								: undefined,
 					},
 					include: productDetailInclude,
@@ -753,8 +631,6 @@ export const productsRouter = createTRPCRouter({
 				sku: z.string().nullable().optional(),
 				images: z.array(incomingProductImageSchema).optional(),
 				categoryId: z.string().nullable().optional(),
-				rootCategoryId: z.string().nullable().optional(),
-				subcategoryId: z.string().nullable().optional(),
 				isActive: z.boolean().optional(),
 				brand: z.string().nullable().optional(),
 				brandCountry: z.string().nullable().optional(),
@@ -767,26 +643,11 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const {
-				id,
-				properties,
-				propertyValues,
-				images,
-				seo,
-				categoryId,
-				rootCategoryId,
-				subcategoryId,
-				...data
-			} = input
+			const { id, properties, propertyValues, images, seo, ...data } = input
 			const resolvedProperties =
 				properties === undefined && propertyValues === undefined
 					? undefined
 					: resolvePropertyValues({ properties, propertyValues })
-
-			const shouldUpdateCategoryFields =
-				categoryId !== undefined ||
-				rootCategoryId !== undefined ||
-				subcategoryId !== undefined
 
 			if (data.name && !data.slug) {
 				let slug = generateSlug(data.name)
@@ -804,49 +665,6 @@ export const productsRouter = createTRPCRouter({
 
 			const { product, keysToDelete } = await ctx.prisma.$transaction(
 				async tx => {
-					const existingProduct = shouldUpdateCategoryFields
-						? await tx.product.findUnique({
-							where: { id },
-							select: {
-								categoryId: true,
-								rootCategoryId: true,
-								subcategoryId: true,
-							},
-						})
-						: null
-
-					if (shouldUpdateCategoryFields && !existingProduct) {
-						throw new TRPCError({
-							code: 'NOT_FOUND',
-							message: 'Товар не найден.',
-						})
-					}
-
-					const resolvedCategoryData = shouldUpdateCategoryFields
-						? await resolveProductCategoryData(tx, {
-							categoryId:
-								categoryId === undefined ? existingProduct?.categoryId ?? null : categoryId,
-							rootCategoryId:
-								rootCategoryId === undefined
-									? existingProduct?.rootCategoryId ?? null
-									: rootCategoryId,
-							subcategoryId:
-								subcategoryId === undefined
-									? existingProduct?.subcategoryId ?? null
-									: subcategoryId,
-						})
-						: null
-
-					if (
-						shouldUpdateCategoryFields &&
-						(!resolvedCategoryData?.subcategoryId || !resolvedCategoryData.rootCategoryId)
-					) {
-						throw new TRPCError({
-							code: 'BAD_REQUEST',
-							message: 'Для товара нужно выбрать корневую категорию и субкатегорию.',
-						})
-					}
-
 					const existingSeo = await tx.seoMetadata.findUnique({
 						where: {
 							targetType_targetId: {
@@ -874,10 +692,7 @@ export const productsRouter = createTRPCRouter({
 
 					await tx.product.update({
 						where: { id },
-						data: {
-							...data,
-							...(resolvedCategoryData ?? {}),
-						},
+						data,
 					})
 
 					const removableKeys =
@@ -1251,6 +1066,61 @@ export const productsRouter = createTRPCRouter({
 			})
 
 			return enrichProducts(products)
+		}),
+
+	/**
+	 * Catalog home page: top-N root categories with their latest products.
+	 * Replaces N+1 individual category-product queries in CatalogContent.
+	 */
+	getCatalogPage: baseProcedure
+		.input(
+			z.object({
+				categoryLimit: z.number().int().min(1).max(20).default(6),
+				productLimit: z.number().int().min(1).max(12).default(4),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { categoryLimit, productLimit } = input
+
+			const categories = await ctx.prisma.category.findMany({
+				where: { parentId: null },
+				select: {
+					id: true,
+					name: true,
+					slug: true,
+					image: true,
+					imagePath: true,
+					_count: { select: { products: true } },
+				},
+			})
+
+			const topCategories = [...categories]
+				.sort((a, b) => (b._count?.products ?? 0) - (a._count?.products ?? 0))
+				.slice(0, categoryLimit)
+
+			const productsPerCategory = await Promise.all(
+				topCategories.map(cat =>
+					ctx.prisma.product.findMany({
+						where: { categoryId: cat.id, isActive: true },
+						orderBy: [{ createdAt: 'desc' }],
+						take: productLimit,
+						select: productCardSelect,
+					}),
+				),
+			)
+
+			const enrichedPerCategory = await Promise.all(
+				productsPerCategory.map(products => enrichProducts(products)),
+			)
+
+			return topCategories.map((cat, i) => ({
+				id: cat.id,
+				name: cat.name,
+				slug: cat.slug,
+				image: cat.imagePath ?? cat.image,
+				productCount: cat._count?.products ?? 0,
+				products: enrichedPerCategory[i],
+			}))
 		}),
 })
 

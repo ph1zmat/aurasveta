@@ -12,7 +12,11 @@ import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function WebhooksClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingWebhook, setEditingWebhook] = useState<any>(null)
+	const [editingWebhook, setEditingWebhook] = useState<{
+		id: string
+		url: string
+		events: string[]
+	} | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 	const [testResult, setTestResult] = useState<{ id: string; success: boolean; error?: string } | null>(null)
 

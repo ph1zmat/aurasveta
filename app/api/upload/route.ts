@@ -5,17 +5,10 @@ import { auth } from '@/lib/auth/auth'
 import { headers } from 'next/headers'
 import { uploadFile, deleteFile } from '@/lib/storage'
 import { getStorageFileUrl } from '@/shared/lib/storage-file-url'
+import { resolveCorsOrigin } from '@/lib/cors'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
-const PROD_ORIGINS = ['https://aurasveta.ru']
-const DEV_ORIGINS = [
-	'http://localhost:3000',
-	'http://localhost:5173',
-	'http://localhost:8081',
-	'http://127.0.0.1:5173',
-	'http://127.0.0.1:8081',
-]
 const EXT_TO_MIME: Record<string, string> = {
 	'.jpg': 'image/jpeg',
 	'.jpeg': 'image/jpeg',
@@ -58,17 +51,8 @@ function getFilesFromFormData(formData: FormData): File[] {
 	return files
 }
 
-function getCorsOrigin(origin: string | null): string {
-	if (!origin) return ''
-	const allowedOrigins =
-		process.env.NODE_ENV !== 'production'
-			? [...PROD_ORIGINS, ...DEV_ORIGINS]
-			: PROD_ORIGINS
-	return allowedOrigins.includes(origin) ? origin : ''
-}
-
 function withCors(response: NextResponse, origin: string | null): NextResponse {
-	const corsOrigin = getCorsOrigin(origin)
+	const corsOrigin = resolveCorsOrigin(origin)
 	if (!corsOrigin) return response
 
 	response.headers.set('Access-Control-Allow-Origin', corsOrigin)

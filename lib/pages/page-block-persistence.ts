@@ -23,7 +23,9 @@ export async function replacePageBlocks(
 	})
 }
 
-export function pageBlocksToSnapshot(blocks: PageBlockSaveItem[]): Prisma.InputJsonValue {
+export function pageBlocksToSnapshot(
+	blocks: PageBlockSaveItem[],
+): Prisma.InputJsonValue {
 	return blocks.map((block, index) => ({
 		type: block.type,
 		order: index,

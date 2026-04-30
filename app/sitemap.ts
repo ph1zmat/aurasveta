@@ -12,19 +12,30 @@ type SitemapEntity = {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	await connection()
 
-	const [products, categories, pages] = await Promise.all([
-		prisma.product.findMany({
-			where: { isActive: true },
-			select: { slug: true, updatedAt: true },
-		}),
-		prisma.category.findMany({
-			select: { slug: true, updatedAt: true },
-		}),
-		prisma.page.findMany({
-			where: { isPublished: true },
-			select: { slug: true, updatedAt: true },
-		}),
-	])
+	let products: SitemapEntity[] = []
+	let categories: SitemapEntity[] = []
+	let pages: SitemapEntity[] = []
+
+	try {
+		const [p, c, pg] = await Promise.all([
+			prisma.product.findMany({
+				where: { isActive: true },
+				select: { slug: true, updatedAt: true },
+			}),
+			prisma.category.findMany({
+				select: { slug: true, updatedAt: true },
+			}),
+			prisma.page.findMany({
+				where: { isPublished: true },
+				select: { slug: true, updatedAt: true },
+			}),
+		])
+		products = p
+		categories = c
+		pages = pg
+	} catch {
+		// БД недоступна — возвращаем только статические страницы
+	}
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{

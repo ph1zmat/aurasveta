@@ -13,7 +13,9 @@ import { ChevronDown, ChevronUp, Save } from 'lucide-react'
 export default function SeoClient() {
 	const [filter, setFilter] = useState('all')
 	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [editing, setEditing] = useState<Record<string, any>>({})
+	const [editing, setEditing] = useState<
+		Record<string, Record<string, unknown>>
+	>({})
 
 	const { data: seoList, refetch } = trpc.seo.listAll.useQuery()
 	const { mutate: updateSeo } = trpc.seo.update.useMutation({
@@ -23,7 +25,7 @@ export default function SeoClient() {
 		},
 	})
 
-	const filtered = (seoList ?? []).filter((item) => {
+	const filtered = (seoList ?? []).filter(item => {
 		if (filter === 'missing-title') return !item.title
 		if (filter === 'missing-desc') return !item.description
 		if (filter === 'noindex') return item.noIndex
@@ -31,7 +33,7 @@ export default function SeoClient() {
 	})
 
 	const handleEdit = (id: string, field: string, value: string | boolean) => {
-		setEditing((prev) => ({
+		setEditing(prev => ({
 			...prev,
 			[id]: { ...prev[id], [field]: value },
 		}))
@@ -43,12 +45,22 @@ export default function SeoClient() {
 			targetType: item.targetType,
 			targetId: item.targetId,
 			title: changes.title !== undefined ? changes.title : item.title,
-			description: changes.description !== undefined ? changes.description : item.description,
-			keywords: changes.keywords !== undefined ? changes.keywords : item.keywords,
+			description:
+				changes.description !== undefined
+					? changes.description
+					: item.description,
+			keywords:
+				changes.keywords !== undefined ? changes.keywords : item.keywords,
 			ogTitle: changes.ogTitle !== undefined ? changes.ogTitle : item.ogTitle,
-			ogDescription: changes.ogDescription !== undefined ? changes.ogDescription : item.ogDescription,
+			ogDescription:
+				changes.ogDescription !== undefined
+					? changes.ogDescription
+					: item.ogDescription,
 			ogImage: changes.ogImage !== undefined ? changes.ogImage : item.ogImage,
-			canonicalUrl: changes.canonicalUrl !== undefined ? changes.canonicalUrl : item.canonicalUrl,
+			canonicalUrl:
+				changes.canonicalUrl !== undefined
+					? changes.canonicalUrl
+					: item.canonicalUrl,
 			noIndex: changes.noIndex !== undefined ? changes.noIndex : item.noIndex,
 		})
 		setExpandedId(null)
@@ -59,12 +71,14 @@ export default function SeoClient() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h1 className='text-xl font-bold'>SEO Массовый редактор</h1>
-					<p className='text-sm text-muted-foreground'>Редактирование мета-тегов</p>
+					<p className='text-sm text-muted-foreground'>
+						Редактирование мета-тегов
+					</p>
 				</div>
 			</div>
 
 			<div className='flex gap-2 flex-wrap'>
-				{['all', 'missing-title', 'missing-desc', 'noindex'].map((f) => (
+				{['all', 'missing-title', 'missing-desc', 'noindex'].map(f => (
 					<Button
 						key={f}
 						variant={filter === f ? 'default' : 'outline'}
@@ -84,21 +98,34 @@ export default function SeoClient() {
 					<table className='w-full text-sm'>
 						<thead>
 							<tr className='border-b border-border bg-secondary/50'>
-								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Тип</th>
-								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>ID</th>
-								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Title</th>
-								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Description</th>
-								<th className='text-center p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>Noindex</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+									Тип
+								</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+									ID
+								</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+									Title
+								</th>
+								<th className='text-left p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+									Description
+								</th>
+								<th className='text-center p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+									Noindex
+								</th>
 								<th className='text-right p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground'></th>
 							</tr>
 						</thead>
 						<tbody>
-							{filtered.map((item) => {
+							{filtered.map(item => {
 								const isOpen = expandedId === item.id
 								const edit = editing[item.id] ?? {}
 								return (
 									<>
-										<tr key={item.id} className='border-b border-border hover:bg-secondary/30'>
+										<tr
+											key={item.id}
+											className='border-b border-border hover:bg-secondary/30'
+										>
 											<td className='p-3'>
 												<Badge variant='secondary' className='text-[10px]'>
 													{item.targetType}
@@ -108,20 +135,28 @@ export default function SeoClient() {
 												{item.targetId}
 											</td>
 											<td className='p-3'>
-												<div className={`text-xs ${!item.title ? 'text-destructive' : ''}`}>
+												<div
+													className={`text-xs ${!item.title ? 'text-destructive' : ''}`}
+												>
 													{item.title || '—'}
 												</div>
 											</td>
 											<td className='p-3'>
-												<div className={`text-xs ${!item.description ? 'text-destructive' : ''}`}>
+												<div
+													className={`text-xs ${!item.description ? 'text-destructive' : ''}`}
+												>
 													{item.description || '—'}
 												</div>
 											</td>
 											<td className='p-3 text-center'>
 												{item.noIndex ? (
-													<Badge className='bg-warning/15 text-warning text-[10px]'>No</Badge>
+													<Badge className='bg-warning/15 text-warning text-[10px]'>
+														No
+													</Badge>
 												) : (
-													<Badge className='bg-success/15 text-success text-[10px]'>Yes</Badge>
+													<Badge className='bg-success/15 text-success text-[10px]'>
+														Yes
+													</Badge>
 												)}
 											</td>
 											<td className='p-3 text-right'>
@@ -130,21 +165,25 @@ export default function SeoClient() {
 													size='sm'
 													onClick={() => {
 														setExpandedId(isOpen ? null : item.id)
-														setEditing((prev) => ({
+														setEditing(prev => ({
 															...prev,
 															[item.id]: {
-																	title: item.title,
-																	description: item.description,
-																	keywords: item.keywords,
-																	ogTitle: item.ogTitle,
-																	ogDescription: item.ogDescription,
-																	canonicalUrl: item.canonicalUrl,
-																	noIndex: item.noIndex,
+																title: item.title,
+																description: item.description,
+																keywords: item.keywords,
+																ogTitle: item.ogTitle,
+																ogDescription: item.ogDescription,
+																canonicalUrl: item.canonicalUrl,
+																noIndex: item.noIndex,
 															},
 														}))
 													}}
 												>
-													{isOpen ? <ChevronUp className='h-4 w-4' /> : <ChevronDown className='h-4 w-4' />}
+													{isOpen ? (
+														<ChevronUp className='h-4 w-4' />
+													) : (
+														<ChevronDown className='h-4 w-4' />
+													)}
 												</Button>
 											</td>
 										</tr>
@@ -153,61 +192,103 @@ export default function SeoClient() {
 												<td colSpan={6} className='p-4 space-y-3'>
 													<div className='grid grid-cols-2 gap-3'>
 														<div className='space-y-2'>
-															<label className='text-xs font-medium'>Meta Title</label>
+															<label className='text-xs font-medium'>
+																Meta Title
+															</label>
 															<Input
 																value={edit.title ?? ''}
-																onChange={(e) => handleEdit(item.id, 'title', e.target.value)}
+																onChange={e =>
+																	handleEdit(item.id, 'title', e.target.value)
+																}
 																className='text-xs'
 															/>
 														</div>
 														<div className='space-y-2'>
-															<label className='text-xs font-medium'>Keywords</label>
+															<label className='text-xs font-medium'>
+																Keywords
+															</label>
 															<Input
 																value={edit.keywords ?? ''}
-																onChange={(e) => handleEdit(item.id, 'keywords', e.target.value)}
+																onChange={e =>
+																	handleEdit(
+																		item.id,
+																		'keywords',
+																		e.target.value,
+																	)
+																}
 																className='text-xs'
 															/>
 														</div>
 													</div>
 													<div className='space-y-2'>
-														<label className='text-xs font-medium'>Meta Description</label>
+														<label className='text-xs font-medium'>
+															Meta Description
+														</label>
 														<textarea
-															className='w-full rounded-[var(--radius-md)] border border-input bg-background px-3 py-2 text-xs min-h-[60px]'
+															className='w-full rounded-(--radius-md) border border-input bg-background px-3 py-2 text-xs min-h-[60px]'
 															value={edit.description ?? ''}
-																onChange={(e) => handleEdit(item.id, 'description', e.target.value)}
+															onChange={e =>
+																handleEdit(
+																	item.id,
+																	'description',
+																	e.target.value,
+																)
+															}
 														/>
 													</div>
 													<div className='grid grid-cols-2 gap-3'>
 														<div className='space-y-2'>
-															<label className='text-xs font-medium'>OG Title</label>
+															<label className='text-xs font-medium'>
+																OG Title
+															</label>
 															<Input
 																value={edit.ogTitle ?? ''}
-																onChange={(e) => handleEdit(item.id, 'ogTitle', e.target.value)}
+																onChange={e =>
+																	handleEdit(item.id, 'ogTitle', e.target.value)
+																}
 																className='text-xs'
 															/>
 														</div>
 														<div className='space-y-2'>
-															<label className='text-xs font-medium'>OG Description</label>
+															<label className='text-xs font-medium'>
+																OG Description
+															</label>
 															<Input
 																value={edit.ogDescription ?? ''}
-																onChange={(e) => handleEdit(item.id, 'ogDescription', e.target.value)}
+																onChange={e =>
+																	handleEdit(
+																		item.id,
+																		'ogDescription',
+																		e.target.value,
+																	)
+																}
 																className='text-xs'
 															/>
 														</div>
 													</div>
 													<div className='space-y-2'>
-														<label className='text-xs font-medium'>Canonical URL</label>
+														<label className='text-xs font-medium'>
+															Canonical URL
+														</label>
 														<Input
 															value={edit.canonicalUrl ?? ''}
-																onChange={(e) => handleEdit(item.id, 'canonicalUrl', e.target.value)}
-																className='text-xs'
-															/>
+															onChange={e =>
+																handleEdit(
+																	item.id,
+																	'canonicalUrl',
+																	e.target.value,
+																)
+															}
+															className='text-xs'
+														/>
 													</div>
 													<div className='flex items-center justify-between py-1'>
 														<span className='text-xs font-medium'>Noindex</span>
 														<Switch
 															checked={!!edit.noIndex}
-															onCheckedChange={(v) => handleEdit(item.id, 'noIndex', v)}
+															onCheckedChange={v =>
+																handleEdit(item.id, 'noIndex', v)
+															}
 														/>
 													</div>
 													<Button size='sm' onClick={() => handleSave(item)}>
@@ -216,15 +297,21 @@ export default function SeoClient() {
 													</Button>
 													{/* Google Preview */}
 													<div className='rounded-lg border border-border bg-card p-4 space-y-1 mt-2'>
-														<div className='text-xs text-muted-foreground mb-2 font-medium'>Google Preview</div>
+														<div className='text-xs text-muted-foreground mb-2 font-medium'>
+															Google Preview
+														</div>
 														<div className='text-blue-600 text-sm font-medium truncate'>
 															{edit.title || item.title || 'Заголовок страницы'}
 														</div>
 														<div className='text-green-700 text-xs truncate'>
-															https://ваш-сайт.ru/{item.targetType?.toLowerCase()}/{item.targetId?.slice(0, 12)}
+															https://ваш-сайт.ru/
+															{item.targetType?.toLowerCase()}/
+															{item.targetId?.slice(0, 12)}
 														</div>
 														<div className='text-xs text-muted-foreground line-clamp-2'>
-															{edit.description || item.description || 'Описание страницы будет отображено в результатах поиска Google.'}
+															{edit.description ||
+																item.description ||
+																'Описание страницы будет отображено в результатах поиска Google.'}
 														</div>
 													</div>
 												</td>
@@ -235,7 +322,10 @@ export default function SeoClient() {
 							})}
 							{filtered.length === 0 && (
 								<tr>
-									<td colSpan={6} className='text-center py-12 text-muted-foreground text-sm'>
+									<td
+										colSpan={6}
+										className='text-center py-12 text-muted-foreground text-sm'
+									>
 										Нет записей
 									</td>
 								</tr>

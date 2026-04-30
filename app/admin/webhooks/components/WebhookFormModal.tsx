@@ -25,13 +25,22 @@ interface Props {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess: () => void
-	webhook?: any
+	webhook?: {
+		id?: string
+		url?: string
+		events?: string[]
+	} | null
 }
 
 export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhook }: Props) {
 	const isEdit = !!webhook
 	const [url, setUrl] = useState('')
 	const [events, setEvents] = useState<string[]>([])
+
+	const reset = () => {
+		setUrl('')
+		setEvents([])
+	}
 
 	const { mutate: create } = trpc.webhooks.create.useMutation({
 		onSuccess: () => {
@@ -52,17 +61,13 @@ export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhoo
 
 	useEffect(() => {
 		if (webhook) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setUrl(webhook.url ?? '')
 			setEvents(webhook.events ?? [])
 		} else {
 			reset()
 		}
 	}, [webhook, open])
-
-	const reset = () => {
-		setUrl('')
-		setEvents([])
-	}
 
 	const toggleEvent = (evt: string) => {
 		setEvents((prev) =>
@@ -76,7 +81,7 @@ export default function WebhookFormModal({ open, onOpenChange, onSuccess, webhoo
 			return
 		}
 		if (isEdit) {
-			update({ id: webhook.id, url, events })
+			update({ id: webhook.id as string, url, events })
 		} else {
 			create({ url, events })
 		}

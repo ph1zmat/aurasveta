@@ -1,7 +1,10 @@
 import * as LucideIcons from 'lucide-react'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 import type { PageBlockRecord } from '@/shared/types/page-builder'
-import { PAGE_BLOCK_TYPES, type PageBlockType } from '@/shared/types/page-builder'
+import {
+	PAGE_BLOCK_TYPES,
+	type PageBlockType,
+} from '@/shared/types/page-builder'
 
 interface Props {
 	blocks: PageBlockRecord[]
@@ -52,7 +55,7 @@ function TableBlock({ config }: { config: Record<string, unknown> }) {
 				) : null}
 				<thead>
 					<tr>
-						{columns.map((col) => (
+						{columns.map(col => (
 							<th
 								key={col.key}
 								className='border border-border bg-muted px-4 py-2 text-left font-medium'
@@ -79,11 +82,14 @@ function TableBlock({ config }: { config: Record<string, unknown> }) {
 }
 
 function ImageBlock({ config }: { config: Record<string, unknown> }) {
-	const storageKey = typeof config.storageKey === 'string' ? config.storageKey : ''
+	const storageKey =
+		typeof config.storageKey === 'string' ? config.storageKey : ''
 	const alt = typeof config.alt === 'string' ? config.alt : ''
 	const caption = typeof config.caption === 'string' ? config.caption : ''
-	const alignment = typeof config.alignment === 'string' ? config.alignment : 'center'
-	const widthMode = typeof config.widthMode === 'string' ? config.widthMode : 'normal'
+	const alignment =
+		typeof config.alignment === 'string' ? config.alignment : 'center'
+	const widthMode =
+		typeof config.widthMode === 'string' ? config.widthMode : 'normal'
 
 	if (!storageKey) return null
 
@@ -100,7 +106,11 @@ function ImageBlock({ config }: { config: Record<string, unknown> }) {
 					: 'max-w-xl'
 
 	const alignClass =
-		alignment === 'left' ? 'mr-auto' : alignment === 'right' ? 'ml-auto' : 'mx-auto'
+		alignment === 'left'
+			? 'mr-auto'
+			: alignment === 'right'
+				? 'ml-auto'
+				: 'mx-auto'
 
 	return (
 		<figure className={`${widthClass} ${alignClass}`}>
@@ -141,7 +151,8 @@ function IconLinkBlock({ config }: { config: Record<string, unknown> }) {
 	const label = typeof config.label === 'string' ? config.label : ''
 	const href = typeof config.href === 'string' ? config.href : '#'
 	const iconToken = typeof config.icon === 'string' ? config.icon : 'ArrowRight'
-	const description = typeof config.description === 'string' ? config.description : ''
+	const description =
+		typeof config.description === 'string' ? config.description : ''
 	const isExternal = config.isExternal === true
 
 	const IconComponent = (LucideIcons[iconToken as keyof typeof LucideIcons] ??
@@ -154,13 +165,18 @@ function IconLinkBlock({ config }: { config: Record<string, unknown> }) {
 			rel={isExternal ? 'noopener noreferrer' : undefined}
 			className='group flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:border-accent hover:bg-accent/5'
 		>
-			<IconComponent className='mt-0.5 h-5 w-5 shrink-0 text-accent' aria-hidden='true' />
+			<IconComponent
+				className='mt-0.5 h-5 w-5 shrink-0 text-accent'
+				aria-hidden='true'
+			/>
 			<div className='min-w-0'>
 				<span className='block font-medium text-foreground group-hover:text-accent transition-colors'>
 					{label}
 				</span>
 				{description ? (
-					<span className='block text-sm text-muted-foreground'>{description}</span>
+					<span className='block text-sm text-muted-foreground'>
+						{description}
+					</span>
 				) : null}
 			</div>
 		</a>
@@ -178,10 +194,14 @@ export default function PublicPageBlocksRenderer({ blocks }: Props) {
 
 	return (
 		<div className='space-y-6'>
-			{activeBlocks.map((block) => {
-				const cfg = (block.config && typeof block.config === 'object' && !Array.isArray(block.config)
-					? block.config
-					: {}) as Record<string, unknown>
+			{activeBlocks.map(block => {
+				const cfg = (
+					block.config &&
+					typeof block.config === 'object' &&
+					!Array.isArray(block.config)
+						? block.config
+						: {}
+				) as Record<string, unknown>
 
 				switch (block.type as PageBlockType) {
 					case 'heading':

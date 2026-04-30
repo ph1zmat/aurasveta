@@ -35,15 +35,16 @@ import AdminPagination from '../components/AdminPagination'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 function ExportButton() {
-	const { refetch } = trpc.admin.exportProducts.useQuery(
-		'csv',
-		{ enabled: false }
-	)
+	const { refetch } = trpc.admin.exportProducts.useQuery('csv', {
+		enabled: false,
+	})
 
 	const handleExport = async () => {
 		const result = await refetch()
 		if (result.data?.data) {
-			const blob = new Blob([result.data.data], { type: 'text/csv;charset=utf-8;' })
+			const blob = new Blob([result.data.data], {
+				type: 'text/csv;charset=utf-8;',
+			})
 			const link = document.createElement('a')
 			link.href = URL.createObjectURL(blob)
 			link.download = `products-${new Date().toISOString().slice(0, 10)}.csv`
@@ -66,27 +67,34 @@ export default function ProductsClient() {
 	const [page, setPage] = useState(1)
 	const [limit, setLimit] = useState(20)
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingProduct, setEditingProduct] = useState<any>(null)
+	const [editingProduct, setEditingProduct] = useState<Record<
+		string,
+		unknown
+	> | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 	const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 	const [rootCategoryFilter, setRootCategoryFilter] = useState('')
 	const [subcategoryFilter, setSubcategoryFilter] = useState('')
 	const [brandFilter, setBrandFilter] = useState('')
-	const [inStockFilter, setInStockFilter] = useState<boolean | undefined>(undefined)
+	const [inStockFilter, setInStockFilter] = useState<boolean | undefined>(
+		undefined,
+	)
 
-	const { selected, toggle, selectAll, clear, isSelected } = useSelection<string>()
+	const { selected, toggle, selectAll, clear, isSelected } =
+		useSelection<string>()
 	const utils = trpc.useUtils()
 	const { data: categories = [] } = trpc.categories.getAll.useQuery()
 	const rootCategories = categories.filter(c => !c.parentId)
 	const selectedRoot = rootCategories.find(c => c.slug === rootCategoryFilter)
-	const subcategories = selectedRoot ? categories.filter(c => c.parentId === selectedRoot.id) : []
+	const subcategories = selectedRoot
+		? categories.filter(c => c.parentId === selectedRoot.id)
+		: []
 
 	const { data, isLoading, refetch } = trpc.products.getMany.useQuery({
 		page,
 		limit,
 		search: search || undefined,
-		rootCategorySlug: rootCategoryFilter || undefined,
-		subcategorySlug: subcategoryFilter || undefined,
+		categorySlug: subcategoryFilter || rootCategoryFilter || undefined,
 		brand: brandFilter || undefined,
 		inStock: inStockFilter,
 	})
@@ -116,55 +124,75 @@ export default function ProductsClient() {
 	const products = useMemo(() => data?.items ?? [], [data?.items])
 	const totalPages = data?.totalPages ?? 1
 
-	const allIds = useMemo(() => products.map((p) => p.id), [products])
+	const allIds = useMemo(() => products.map(p => p.id), [products])
 
 	/** Optimistic update для остатка: меняем локально до ответа сервера */
-	const adjustStock = useCallback((product: any, delta: number) => {
-		const newStock = Math.max(0, (product.stock || 0) + delta)
-		// Оптимистичное обновление кэша
-		utils.products.getMany.setData(
-			{
-				page,
-				limit,
-				search: search || undefined,
-				rootCategorySlug: rootCategoryFilter || undefined,
-				subcategorySlug: subcategoryFilter || undefined,
-				brand: brandFilter || undefined,
-				inStock: inStockFilter,
-			},
-			(old) => {
-				if (!old) return old
-				return {
-					...old,
-					items: old.items.map((p) =>
-						p.id === product.id ? { ...p, stock: newStock } : p
-					),
-				}
-			}
-		)
-		updateProduct({
-			id: product.id,
-			name: product.name,
-			slug: product.slug,
-			description: product.description ?? '',
-			price: Number(product.price ?? 0),
-			compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-			stock: newStock,
-			sku: product.sku ?? '',
-			rootCategoryId: product.rootCategoryId ?? '',
-			subcategoryId: product.subcategoryId ?? '',
-			brand: product.brand ?? '',
-			brandCountry: product.brandCountry ?? '',
-			isActive: product.isActive ?? true,
-			images: product.images ?? [],
-			properties: product.properties ?? [],
-			seo: (product as any).seo ?? { title: '', description: '', keywords: '' },
-		})
-	}, [utils, page, limit, search, rootCategoryFilter, subcategoryFilter, brandFilter, inStockFilter, updateProduct])
+	const adjustStock = useCallback(
+		(product: any, delta: number) => {
+			const newStock = Math.max(0, (product.stock || 0) + delta)
+			// Оптимистичное обновление кэша
+			utils.products.getMany.setData(
+				{
+					page,
+					limit,
+					search: search || undefined,
+					categorySlug: subcategoryFilter || rootCategoryFilter || undefined,
+					brand: brandFilter || undefined,
+					inStock: inStockFilter,
+				},
+				old => {
+					if (!old) return old
+					return {
+						...old,
+						items: old.items.map(p =>
+							p.id === product.id ? { ...p, stock: newStock } : p,
+						),
+					}
+				},
+			)
+			updateProduct({
+				id: product.id,
+				name: product.name,
+				slug: product.slug,
+				description: product.description ?? '',
+				price: Number(product.price ?? 0),
+				compareAtPrice: product.compareAtPrice
+					? Number(product.compareAtPrice)
+					: null,
+				stock: newStock,
+				sku: product.sku ?? '',
+				brand: product.brand ?? '',
+				brandCountry: product.brandCountry ?? '',
+				isActive: product.isActive ?? true,
+				images: product.images ?? [],
+				properties: product.properties ?? [],
+				seo: (product as any).seo ?? {
+					title: '',
+					description: '',
+					keywords: '',
+				},
+			})
+		},
+		[
+			utils,
+			page,
+			limit,
+			search,
+			rootCategoryFilter,
+			subcategoryFilter,
+			brandFilter,
+			inStockFilter,
+			updateProduct,
+		],
+	)
 
 	const getStockBadge = (stock: number) => {
 		if (stock <= 0)
-			return <Badge className='bg-destructive/15 text-destructive'>Нет в наличии</Badge>
+			return (
+				<Badge className='bg-destructive/15 text-destructive'>
+					Нет в наличии
+				</Badge>
+			)
 		if (stock <= 20)
 			return <Badge className='bg-warning/15 text-warning'>Мало</Badge>
 		return <Badge className='bg-success/15 text-success'>Активен</Badge>
@@ -203,7 +231,7 @@ export default function ProductsClient() {
 						placeholder='Поиск по товарам...'
 						className='w-64 pl-9'
 						value={search}
-						onChange={(e) => {
+						onChange={e => {
 							setSearch(e.target.value)
 							setPage(1)
 						}}
@@ -212,14 +240,14 @@ export default function ProductsClient() {
 				<select
 					className='h-9 rounded-md border border-input bg-background px-3 text-sm'
 					value={rootCategoryFilter}
-					onChange={(e) => {
+					onChange={e => {
 						setRootCategoryFilter(e.target.value)
 						setSubcategoryFilter('')
 						setPage(1)
 					}}
 				>
 					<option value=''>Все категории</option>
-					{rootCategories.map((category) => (
+					{rootCategories.map(category => (
 						<option key={category.id} value={category.slug}>
 							{category.name}
 						</option>
@@ -229,13 +257,13 @@ export default function ProductsClient() {
 					<select
 						className='h-9 rounded-md border border-input bg-background px-3 text-sm'
 						value={subcategoryFilter}
-						onChange={(e) => {
+						onChange={e => {
 							setSubcategoryFilter(e.target.value)
 							setPage(1)
 						}}
 					>
 						<option value=''>Все подкатегории</option>
-						{subcategories.map((category) => (
+						{subcategories.map(category => (
 							<option key={category.id} value={category.slug}>
 								{category.name}
 							</option>
@@ -245,7 +273,7 @@ export default function ProductsClient() {
 				<Button
 					variant='outline'
 					size='sm'
-					onClick={() => setBrandFilter((b) => (b ? '' : 'Aura'))}
+					onClick={() => setBrandFilter(b => (b ? '' : 'Aura'))}
 					className={brandFilter ? 'border-accent text-accent' : ''}
 				>
 					<Filter className='h-4 w-4 mr-1' />
@@ -254,13 +282,26 @@ export default function ProductsClient() {
 				<Button
 					variant='outline'
 					size='sm'
-					onClick={() => setInStockFilter((v) => (v === undefined ? true : v ? false : undefined))}
-					className={inStockFilter !== undefined ? 'border-accent text-accent' : ''}
+					onClick={() =>
+						setInStockFilter(v =>
+							v === undefined ? true : v ? false : undefined,
+						)
+					}
+					className={
+						inStockFilter !== undefined ? 'border-accent text-accent' : ''
+					}
 				>
 					<Filter className='h-4 w-4 mr-1' />
-					{inStockFilter === undefined ? 'Наличие' : inStockFilter ? 'В наличии' : 'Нет в наличии'}
+					{inStockFilter === undefined
+						? 'Наличие'
+						: inStockFilter
+							? 'В наличии'
+							: 'Нет в наличии'}
 				</Button>
-				{(rootCategoryFilter || subcategoryFilter || brandFilter || inStockFilter !== undefined) && (
+				{(rootCategoryFilter ||
+					subcategoryFilter ||
+					brandFilter ||
+					inStockFilter !== undefined) && (
 					<Button
 						variant='ghost'
 						size='sm'
@@ -277,14 +318,14 @@ export default function ProductsClient() {
 					</Button>
 				)}
 				<div className='ml-auto text-xs text-muted-foreground'>
-					Показано {(page - 1) * limit + 1}-{Math.min(page * limit, data?.total ?? 0)} из{' '}
-					{data?.total ?? 0}
+					Показано {(page - 1) * limit + 1}-
+					{Math.min(page * limit, data?.total ?? 0)} из {data?.total ?? 0}
 				</div>
 			</div>
 
 			{/* Bulk bar */}
 			{selected.size > 0 && (
-				<div className='flex items-center gap-2 rounded-[var(--radius-lg)] border border-accent/20 bg-accent/5 px-4 py-2'>
+				<div className='flex items-center gap-2 rounded-(--radius-lg) border border-accent/20 bg-accent/5 px-4 py-2'>
 					<span className='text-sm font-semibold text-accent mr-auto'>
 						Выбрано {selected.size} товаров
 					</span>
@@ -292,8 +333,8 @@ export default function ProductsClient() {
 						variant='outline'
 						size='sm'
 						onClick={() => {
-							selected.forEach((id) => {
-								const prod = products.find((p) => p.id === id)
+							selected.forEach(id => {
+								const prod = products.find(p => p.id === id)
 								if (prod) {
 									updateProduct({
 										id: prod.id,
@@ -301,17 +342,22 @@ export default function ProductsClient() {
 										slug: prod.slug,
 										description: prod.description ?? '',
 										price: Number(prod.price ?? 0),
-										compareAtPrice: prod.compareAtPrice ? Number(prod.compareAtPrice) : null,
+										compareAtPrice: prod.compareAtPrice
+											? Number(prod.compareAtPrice)
+											: null,
 										stock: prod.stock ?? 0,
 										sku: prod.sku ?? '',
-									rootCategoryId: prod.rootCategoryId ?? '',
-									subcategoryId: prod.subcategoryId ?? '',
+
 										brand: prod.brand ?? '',
 										brandCountry: prod.brandCountry ?? '',
 										isActive: !prod.isActive,
 										images: prod.images ?? [],
 										properties: prod.properties ?? [],
-										seo: (prod as any).seo ?? { title: '', description: '', keywords: '' },
+										seo: (prod as any).seo ?? {
+											title: '',
+											description: '',
+											keywords: '',
+										},
 									})
 								}
 							})
@@ -341,180 +387,188 @@ export default function ProductsClient() {
 				<Card className='border-border overflow-hidden'>
 					<div className='overflow-x-auto'>
 						<Table>
-						<TableHeader>
-							<TableRow className='border-border hover:bg-transparent'>
-								<TableHead className='w-10'>
-									<Checkbox
-										checked={
-											allIds.length > 0 && selected.size === allIds.length
-										}
-										onCheckedChange={(checked) => {
-											if (checked) selectAll(allIds)
-											else clear()
-										}}
-									/>
-								</TableHead>
-								<TableHead>Товар</TableHead>
-								<TableHead>SKU</TableHead>
-								<TableHead>Цена</TableHead>
-								<TableHead>Остаток</TableHead>
-								<TableHead>Статус</TableHead>
-								<TableHead>Категория</TableHead>
-								<TableHead className='text-right'>Действия</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{products.map((p) => (
-								<TableRow
-									key={p.id}
-									className={`border-border cursor-pointer ${
-										isSelected(p.id) ? 'bg-accent/5' : ''
-									}`}
-								>
-									<TableCell>
+							<TableHeader>
+								<TableRow className='border-border hover:bg-transparent'>
+									<TableHead className='w-10'>
 										<Checkbox
-											checked={isSelected(p.id)}
-											onCheckedChange={() => toggle(p.id)}
+											checked={
+												allIds.length > 0 && selected.size === allIds.length
+											}
+											onCheckedChange={checked => {
+												if (checked) selectAll(allIds)
+												else clear()
+											}}
 										/>
-									</TableCell>
-									<TableCell>
-										<div className='flex items-center gap-3'>
-											{Array.isArray(p.images) && p.images.length > 0 ? (
-												<img
-													src={p.images[0].url || `/api/storage/file?key=${encodeURIComponent(p.images[0].key)}`}
-													alt=''
-													className='h-12 w-12 rounded-[var(--radius-md)] object-cover border border-border'
-												/>
-											) : (
-												<div className='h-12 w-12 rounded-[var(--radius-md)] bg-secondary border border-border flex items-center justify-center text-muted-foreground text-xs'>
-													—
-												</div>
-											)}
-											<div>
-												<div className='font-medium text-sm'>{p.name}</div>
-												<div className='text-xs text-muted-foreground'>
-													{p.brand || 'Без бренда'}
+									</TableHead>
+									<TableHead>Товар</TableHead>
+									<TableHead>SKU</TableHead>
+									<TableHead>Цена</TableHead>
+									<TableHead>Остаток</TableHead>
+									<TableHead>Статус</TableHead>
+									<TableHead>Категория</TableHead>
+									<TableHead className='text-right'>Действия</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{products.map(p => (
+									<TableRow
+										key={p.id}
+										className={`border-border cursor-pointer ${
+											isSelected(p.id) ? 'bg-accent/5' : ''
+										}`}
+									>
+										<TableCell>
+											<Checkbox
+												checked={isSelected(p.id)}
+												onCheckedChange={() => toggle(p.id)}
+											/>
+										</TableCell>
+										<TableCell>
+											<div className='flex items-center gap-3'>
+												{Array.isArray(p.images) && p.images.length > 0 ? (
+													<img
+														src={
+															p.images[0].url ||
+															`/api/storage/file?key=${encodeURIComponent(p.images[0].key)}`
+														}
+														alt=''
+														className='h-12 w-12 rounded-(--radius-md) object-cover border border-border'
+													/>
+												) : (
+													<div className='h-12 w-12 rounded-(--radius-md) bg-secondary border border-border flex items-center justify-center text-muted-foreground text-xs'>
+														—
+													</div>
+												)}
+												<div>
+													<div className='font-medium text-sm'>{p.name}</div>
+													<div className='text-xs text-muted-foreground'>
+														{p.brand || 'Без бренда'}
+													</div>
 												</div>
 											</div>
-										</div>
-									</TableCell>
-									<TableCell className='font-mono text-xs text-muted-foreground'>
-										{p.sku || '—'}
-									</TableCell>
-									<TableCell className='font-bold'>
-										₽ {p.price?.toLocaleString('ru-RU') ?? 0}
-									</TableCell>
-									<TableCell>
-										<div className='flex items-center gap-2'>
-											<span
-												className={`font-bold ${
-													p.stock <= 0
-														? 'text-destructive'
-														: p.stock <= 20
-															? 'text-warning'
-															: ''
-												}`}
-											>
-												{p.stock ?? 0}
-											</span>
+										</TableCell>
+										<TableCell className='font-mono text-xs text-muted-foreground'>
+											{p.sku || '—'}
+										</TableCell>
+										<TableCell className='font-bold'>
+											₽ {p.price?.toLocaleString('ru-RU') ?? 0}
+										</TableCell>
+										<TableCell>
+											<div className='flex items-center gap-2'>
+												<span
+													className={`font-bold ${
+														p.stock <= 0
+															? 'text-destructive'
+															: p.stock <= 20
+																? 'text-warning'
+																: ''
+													}`}
+												>
+													{p.stock ?? 0}
+												</span>
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-6 w-6'
+													onClick={() => adjustStock(p, -1)}
+													aria-label='Уменьшить остаток'
+												>
+													<Minus className='h-3 w-3' />
+												</Button>
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-6 w-6'
+													onClick={() => adjustStock(p, 1)}
+													aria-label='Увеличить остаток'
+												>
+													<PlusIcon className='h-3 w-3' />
+												</Button>
+											</div>
+										</TableCell>
+										<TableCell>{getStockBadge(p.stock ?? 0)}</TableCell>
+										<TableCell>
+											<Badge variant='secondary'>
+												{p.category?.name ?? '—'}
+											</Badge>
+										</TableCell>
+										<TableCell className='text-right'>
 											<Button
 												variant='ghost'
 												size='icon'
-												className='h-6 w-6'
-												onClick={() => adjustStock(p, -1)}
-												aria-label='Уменьшить остаток'
+												className='h-8 w-8'
+												onClick={() => {
+													setEditingProduct(p)
+													setModalOpen(true)
+												}}
+												aria-label='Редактировать товар'
 											>
-												<Minus className='h-3 w-3' />
+												<Pencil className='h-4 w-4' />
 											</Button>
 											<Button
 												variant='ghost'
 												size='icon'
-												className='h-6 w-6'
-												onClick={() => adjustStock(p, 1)}
-												aria-label='Увеличить остаток'
+												className='h-8 w-8'
+												onClick={() => {
+													createProduct({
+														name: `${p.name} (копия)`,
+														slug: `${p.slug}-copy-${Date.now()}`,
+														description: p.description ?? '',
+														price: Number(p.price ?? 0),
+														compareAtPrice: p.compareAtPrice
+															? Number(p.compareAtPrice)
+															: null,
+														stock: Number(p.stock ?? 0),
+														sku: '',
+														categoryId: p.categoryId ?? null,
+														brand: p.brand ?? '',
+														brandCountry: p.brandCountry ?? '',
+														isActive: p.isActive ?? true,
+														images: (p.images ?? []).map((img: any) => ({
+															key: img.key,
+															url: img.url,
+															originalName: img.originalName,
+															size: img.size,
+															mimeType: img.mimeType,
+															order: img.order,
+															isMain: img.isMain,
+														})),
+														properties: (p as any).properties ?? [],
+														seo: (p as any).seo ?? {
+															title: '',
+															description: '',
+															keywords: '',
+														},
+													})
+												}}
+												aria-label='Дублировать товар'
 											>
-												<PlusIcon className='h-3 w-3' />
+												<Copy className='h-4 w-4' />
 											</Button>
-										</div>
-									</TableCell>
-									<TableCell>{getStockBadge(p.stock ?? 0)}</TableCell>
-									<TableCell>
-										<Badge variant='secondary'>
-											{p.subcategory?.name ?? p.category?.name ?? '—'}
-										</Badge>
-									</TableCell>
-									<TableCell className='text-right'>
-										<Button
-											variant='ghost'
-											size='icon'
-											className='h-8 w-8'
-											onClick={() => {
-												setEditingProduct(p)
-												setModalOpen(true)
-											}}
-											aria-label='Редактировать товар'
+											<Button
+												variant='ghost'
+												size='icon'
+												className='h-8 w-8 text-destructive'
+												onClick={() => setConfirmDelete(p.id)}
+												aria-label='Удалить товар'
+											>
+												<Trash2 className='h-4 w-4' />
+											</Button>
+										</TableCell>
+									</TableRow>
+								))}
+								{products.length === 0 && (
+									<TableRow>
+										<TableCell
+											colSpan={8}
+											className='text-center py-12 text-muted-foreground'
 										>
-											<Pencil className='h-4 w-4' />
-										</Button>
-										<Button
-											variant='ghost'
-											size='icon'
-											className='h-8 w-8'
-											onClick={() => {
-												createProduct({
-													name: `${p.name} (копия)`,
-													slug: `${p.slug}-copy-${Date.now()}`,
-													description: p.description ?? '',
-													price: Number(p.price ?? 0),
-													compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
-													stock: Number(p.stock ?? 0),
-													sku: '',
-													rootCategoryId: p.rootCategoryId ?? '',
-													subcategoryId: p.subcategoryId ?? '',
-													brand: p.brand ?? '',
-													brandCountry: p.brandCountry ?? '',
-													isActive: p.isActive ?? true,
-													images: (p.images ?? []).map((img: any) => ({
-														key: img.key,
-														url: img.url,
-														originalName: img.originalName,
-														size: img.size,
-														mimeType: img.mimeType,
-														order: img.order,
-														isMain: img.isMain,
-													})),
-													properties: (p as any).properties ?? [],
-													seo: (p as any).seo ?? { title: '', description: '', keywords: '' },
-												})
-											}}
-											aria-label='Дублировать товар'
-										>
-											<Copy className='h-4 w-4' />
-										</Button>
-										<Button
-											variant='ghost'
-											size='icon'
-											className='h-8 w-8 text-destructive'
-											onClick={() => setConfirmDelete(p.id)}
-											aria-label='Удалить товар'
-										>
-											<Trash2 className='h-4 w-4' />
-										</Button>
-									</TableCell>
-								</TableRow>
-							))}
-							{products.length === 0 && (
-								<TableRow>
-									<TableCell
-										colSpan={8}
-										className='text-center py-12 text-muted-foreground'
-									>
-										Нет товаров
-									</TableCell>
-								</TableRow>
-							)}
-						</TableBody>
-					</Table>
+											Нет товаров
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
 					</div>
 				</Card>
 			)}
@@ -553,7 +607,7 @@ export default function ProductsClient() {
 				title='Подтвердите удаление'
 				description={`Вы уверены, что хотите удалить ${selected.size} товаров? Это действие нельзя отменить.`}
 				onConfirm={() => {
-					selected.forEach((id) => deleteProduct(id))
+					selected.forEach(id => deleteProduct(id))
 					clear()
 				}}
 			/>

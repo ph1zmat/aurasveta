@@ -5,7 +5,7 @@ import Footer from '@/widgets/footer/ui/Footer'
 import ChatButton from '@/shared/ui/ChatButton'
 import CategoryContent from './CategoryContent'
 import { Suspense } from 'react'
-import { trpc, HydrateClient } from '@/lib/trpc/server'
+import { trpc } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
 import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getMetadata'
 import { CategoryContentSkeleton } from '@/shared/ui/storefront-skeletons'
@@ -46,7 +46,7 @@ export default async function CategoryPage({
 	const search = (sp.search as string) || undefined
 	const sortBy =
 		(sp.sort as 'price-asc' | 'price-desc' | 'name' | 'newest' | 'rating') ??
-		undefined
+		'newest'
 	const minPrice = sp.minPrice ? Number(sp.minPrice) : undefined
 	const maxPrice = sp.maxPrice ? Number(sp.maxPrice) : undefined
 	const isNew = sp.isNew === '1' || undefined
@@ -68,8 +68,8 @@ export default async function CategoryPage({
 	}
 	const hasProperties = Object.keys(properties).length > 0
 
-	// Prefetch category, tree, filters, and products with actual URL params
-	void trpc.categories.getBySlug.prefetch(slug)
+	// Prefetch tree, filters, and products with actual URL params
+	// (category is already fetched in generateMetadata)
 	void trpc.categories.getTree.prefetch()
 	void trpc.products.getAvailableFilters.prefetch({
 		categorySlug: slug,
@@ -91,23 +91,21 @@ export default async function CategoryPage({
 	})
 
 	return (
-		<HydrateClient>
-			<div className='flex flex-col bg-background'>
-				<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
-					<TopBar />
-					<Header />
-					<CategoryNav />
+		<div className='flex flex-col bg-background'>
+			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
+				<TopBar />
+				<Header />
+				<CategoryNav />
 
-					<Suspense
-						fallback={<CategoryContentSkeleton />}
-					>
-						<CategoryContent slug={slug} />
-					</Suspense>
-				</main>
+				<Suspense
+					fallback={<CategoryContentSkeleton />}
+				>
+					<CategoryContent slug={slug} />
+				</Suspense>
+			</main>
 
-				<Footer />
-				<ChatButton />
-			</div>
-		</HydrateClient>
+			<Footer />
+			<ChatButton />
+		</div>
 	)
 }

@@ -63,7 +63,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 			>
 				{/* Logo */}
 				<div className='flex h-16 items-center gap-3 px-5 border-b border-border'>
-					<div className='flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-accent text-accent-foreground font-extrabold text-lg select-none'>
+					<div className='flex h-9 w-9 items-center justify-center rounded-(--radius-md) bg-accent text-accent-foreground font-extrabold text-lg select-none'>
 						A
 					</div>
 					<span className='text-lg font-bold tracking-tight'>Aura Admin</span>
@@ -98,7 +98,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 											key={item.href}
 											href={item.href}
 											onClick={onClose}
-											className={`flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2
+											className={`flex items-center gap-3 rounded-(--radius-md) px-3 py-2
 												text-sm font-medium transition-colors relative
 												${active
 													? 'bg-accent/10 text-accent before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-0.5 before:rounded-full before:bg-accent'
@@ -122,7 +122,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 
 				{/* User */}
 				<div className='p-3 border-t border-border'>
-					<div className='flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 hover:bg-secondary transition-colors cursor-pointer'>
+					<div className='flex items-center gap-3 rounded-(--radius-md) px-2 py-2 hover:bg-secondary transition-colors cursor-pointer'>
 						<div className='flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-bold text-sm select-none'>
 							{initials}
 						</div>

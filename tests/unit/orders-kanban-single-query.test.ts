@@ -6,6 +6,7 @@ describe('getAllByStatuses optimization', () => {
 			{ id: '1', status: 'PENDING', total: 100, user: { name: 'Test' }, items: [] },
 			{ id: '2', status: 'PAID', total: 200, user: { name: 'Test2' }, items: [] },
 		])
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const prisma = { order: { findMany } } as any
 
 		const statuses = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const

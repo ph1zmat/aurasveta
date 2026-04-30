@@ -9,21 +9,23 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Save, Loader2, Info } from 'lucide-react'
+import { Save, Loader2, Info, AlignJustify, LayoutPanelTop } from 'lucide-react'
 import ShopSettingsCard from './components/ShopSettingsCard'
+import LayoutNavEditor from './components/LayoutNavEditor'
 
 export default function SettingsClient() {
 	const { data: settings, refetch } = trpc.setting.getAll.useQuery()
-	const { mutate: bulkUpsert, isPending: isSaving } = trpc.setting.bulkUpsert.useMutation({
-		onSuccess: () => {
-			toast.success('Настройки сохранены')
-			refetch()
-		},
-		onError: (e) => toast.error(e.message),
-	})
+	const { mutate: bulkUpsert, isPending: isSaving } =
+		trpc.setting.bulkUpsert.useMutation({
+			onSuccess: () => {
+				toast.success('Настройки сохранены')
+				refetch()
+			},
+			onError: e => toast.error(e.message),
+		})
 
 	const getValue = (key: string, fallback: string) => {
-		const s = settings?.find((x) => x.key === key)
+		const s = settings?.find(x => x.key === key)
 		return s ? String(s.value) : fallback
 	}
 
@@ -32,9 +34,11 @@ export default function SettingsClient() {
 	const [shopEmail, setShopEmail] = useState('')
 	const [maintenance, setMaintenance] = useState(false)
 	const [hasChanges, setHasChanges] = useState(false)
+	const [activeTab, setActiveTab] = useState('general')
 
 	useEffect(() => {
 		if (settings) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setShopName(getValue('shopName', ''))
 			setShopUrl(getValue('shopUrl', ''))
 			setShopEmail(getValue('shopEmail', ''))
@@ -45,10 +49,34 @@ export default function SettingsClient() {
 
 	const handleSave = () => {
 		bulkUpsert([
-			{ key: 'shopName', value: shopName, type: 'string', isPublic: true, group: 'general' },
-			{ key: 'shopUrl', value: shopUrl, type: 'string', isPublic: true, group: 'general' },
-			{ key: 'shopEmail', value: shopEmail, type: 'string', isPublic: false, group: 'general' },
-			{ key: 'maintenance', value: String(maintenance), type: 'boolean', isPublic: false, group: 'general' },
+			{
+				key: 'shopName',
+				value: shopName,
+				type: 'string',
+				isPublic: true,
+				group: 'general',
+			},
+			{
+				key: 'shopUrl',
+				value: shopUrl,
+				type: 'string',
+				isPublic: true,
+				group: 'general',
+			},
+			{
+				key: 'shopEmail',
+				value: shopEmail,
+				type: 'string',
+				isPublic: false,
+				group: 'general',
+			},
+			{
+				key: 'maintenance',
+				value: String(maintenance),
+				type: 'boolean',
+				isPublic: false,
+				group: 'general',
+			},
 		])
 		setHasChanges(false)
 	}
@@ -60,14 +88,24 @@ export default function SettingsClient() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h1 className='text-xl font-bold'>Настройки</h1>
-					<p className='text-sm text-muted-foreground'>Управление магазином и доступами</p>
+					<p className='text-sm text-muted-foreground'>
+						Управление магазином и доступами
+					</p>
 				</div>
 			</div>
 
-			<Tabs defaultValue='general'>
-				<TabsList>
+			<Tabs value={activeTab} onValueChange={setActiveTab}>
+				<TabsList className='h-auto flex-wrap'>
 					<TabsTrigger value='general'>Общие</TabsTrigger>
 					<TabsTrigger value='shop'>Магазин</TabsTrigger>
+					<TabsTrigger value='header'>
+						<LayoutPanelTop className='h-3.5 w-3.5 mr-1.5' />
+						Хедер
+					</TabsTrigger>
+					<TabsTrigger value='footer'>
+						<AlignJustify className='h-3.5 w-3.5 mr-1.5' />
+						Футер
+					</TabsTrigger>
 					<TabsTrigger value='security'>Безопасность</TabsTrigger>
 					<TabsTrigger value='system'>Системные</TabsTrigger>
 				</TabsList>
@@ -82,35 +120,59 @@ export default function SettingsClient() {
 								<label className='text-sm font-medium'>Название магазина</label>
 								<Input
 									value={shopName}
-									onChange={(e) => { setShopName(e.target.value); markChanged() }}
+									onChange={e => {
+										setShopName(e.target.value)
+										markChanged()
+									}}
 								/>
 							</div>
 							<div className='space-y-2'>
 								<label className='text-sm font-medium'>URL сайта</label>
 								<Input
 									value={shopUrl}
-									onChange={(e) => { setShopUrl(e.target.value); markChanged() }}
+									onChange={e => {
+										setShopUrl(e.target.value)
+										markChanged()
+									}}
 								/>
 							</div>
 							<div className='space-y-2'>
-								<label className='text-sm font-medium'>Email администратора</label>
+								<label className='text-sm font-medium'>
+									Email администратора
+								</label>
 								<Input
 									value={shopEmail}
-									onChange={(e) => { setShopEmail(e.target.value); markChanged() }}
+									onChange={e => {
+										setShopEmail(e.target.value)
+										markChanged()
+									}}
 								/>
 							</div>
 							<div className='flex items-center justify-between py-2 border-t border-border'>
 								<div>
 									<div className='text-sm font-medium'>Режим обслуживания</div>
-									<div className='text-xs text-muted-foreground'>Сайт будет недоступен</div>
+									<div className='text-xs text-muted-foreground'>
+										Сайт будет недоступен
+									</div>
 								</div>
 								<Switch
 									checked={maintenance}
-									onCheckedChange={(v) => { setMaintenance(v); markChanged() }}
+									onCheckedChange={v => {
+										setMaintenance(v)
+										markChanged()
+									}}
 								/>
 							</div>
-							<Button className='w-full' onClick={handleSave} disabled={isSaving || !hasChanges}>
-								{isSaving ? <Loader2 className='h-4 w-4 mr-1 animate-spin' /> : <Save className='h-4 w-4 mr-1' />}
+							<Button
+								className='w-full'
+								onClick={handleSave}
+								disabled={isSaving || !hasChanges}
+							>
+								{isSaving ? (
+									<Loader2 className='h-4 w-4 mr-1 animate-spin' />
+								) : (
+									<Save className='h-4 w-4 mr-1' />
+								)}
 								Сохранить
 							</Button>
 						</CardContent>
@@ -121,10 +183,20 @@ export default function SettingsClient() {
 					<ShopSettingsCard />
 				</TabsContent>
 
+				<TabsContent value='header' className='mt-4'>
+					<LayoutNavEditor scope='header' />
+				</TabsContent>
+
+				<TabsContent value='footer' className='mt-4'>
+					<LayoutNavEditor scope='footer' />
+				</TabsContent>
+
 				<TabsContent value='security' className='mt-4'>
 					<Card className='border-border'>
 						<CardHeader>
-							<CardTitle className='text-base font-bold'>Безопасность</CardTitle>
+							<CardTitle className='text-base font-bold'>
+								Безопасность
+							</CardTitle>
 						</CardHeader>
 						<CardContent className='space-y-4'>
 							<div className='space-y-2'>
@@ -140,7 +212,9 @@ export default function SettingsClient() {
 								<div className='flex items-center gap-2'>
 									<div>
 										<div className='text-sm font-medium'>2FA</div>
-										<div className='text-xs text-muted-foreground'>Требуется настройка на сервере</div>
+										<div className='text-xs text-muted-foreground'>
+											Требуется настройка на сервере
+										</div>
 									</div>
 									<Info className='h-3.5 w-3.5 text-muted-foreground cursor-help' />
 								</div>
@@ -153,7 +227,9 @@ export default function SettingsClient() {
 				<TabsContent value='system' className='mt-4'>
 					<Card className='border-border'>
 						<CardHeader>
-							<CardTitle className='text-base font-bold'>Системные настройки</CardTitle>
+							<CardTitle className='text-base font-bold'>
+								Системные настройки
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							{!settings ? (
@@ -163,23 +239,30 @@ export default function SettingsClient() {
 								</div>
 							) : (
 								<div className='space-y-2'>
-									{settings.map((s) => (
-										<div key={s.key} className='flex items-center justify-between py-2 border-b border-border last:border-0'>
+									{settings.map(s => (
+										<div
+											key={s.key}
+											className='flex items-center justify-between py-2 border-b border-border last:border-0'
+										>
 											<div>
 												<div className='text-sm font-medium'>{s.key}</div>
-												{s.description && <div className='text-xs text-muted-foreground'>{s.description}</div>}
+												{s.description && (
+													<div className='text-xs text-muted-foreground'>
+														{s.description}
+													</div>
+												)}
 											</div>
 											<Badge variant='secondary' className='text-[10px]'>
 												{String(s.value).slice(0, 40)}
 											</Badge>
 										</div>
 									))}
-									</div>
-								)}
-							</CardContent>
-						</Card>
-					</TabsContent>
-				</Tabs>
-			</div>
-		)
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</TabsContent>
+			</Tabs>
+		</div>
+	)
 }

@@ -15,8 +15,7 @@ import {
 import { toast } from 'sonner'
 import { generateSlug } from '@/shared/lib/generateSlug'
 import { PageBlocksEditor } from '@/features/admin/page-blocks'
-import type { PageBlockDraft, PageBlockRecord, PageBlockType } from '@/shared/types/page-builder'
-import { PAGE_BLOCK_TYPES } from '@/shared/types/page-builder'
+import type { PageBlockDraft } from '@/shared/types/page-builder'
 
 interface Props {
 	open: boolean
@@ -33,20 +32,12 @@ interface Props {
 	}
 }
 
-function toBlockDraft(record: PageBlockRecord): PageBlockDraft | null {
-	if (!PAGE_BLOCK_TYPES.includes(record.type as PageBlockType)) return null
-	return {
-		draftId: record.id,
-		id: record.id,
-		type: record.type as PageBlockType,
-		isActive: record.isActive,
-		config: (record.config && typeof record.config === 'object' && !Array.isArray(record.config)
-			? record.config
-			: {}) as Record<string, unknown>,
-	}
-}
-
-export default function PageFormModal({ open, onOpenChange, onSuccess, page }: Props) {
+export default function PageFormModal({
+	open,
+	onOpenChange,
+	onSuccess,
+	page,
+}: Props) {
 	const isEdit = !!page
 
 	const [title, setTitle] = useState('')
@@ -57,54 +48,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 	const [blocks, setBlocks] = useState<PageBlockDraft[]>([])
 
 	// Загружаем полные данные страницы (включая блоки) при редактировании
-	const { data: fullPage } = trpc.pages.getById.useQuery(page?.id ?? '', {
-		enabled: isEdit && open && !!page?.id,
-	})
-
-	const { mutate: create, isPending: isCreating } = trpc.pages.create.useMutation({
-		onSuccess: () => {
-			toast.success('Страница создана')
-			onSuccess()
-			onOpenChange(false)
-			reset()
-		},
-		onError: (err) => {
-			toast.error(err.message ?? 'Ошибка при создании страницы')
-		},
-	})
-	const { mutate: update, isPending: isUpdating } = trpc.pages.update.useMutation({
-		onSuccess: () => {
-			toast.success('Страница обновлена')
-			onSuccess()
-			onOpenChange(false)
-			reset()
-		},
-		onError: (err) => {
-			toast.error(err.message ?? 'Ошибка при сохранении страницы')
-		},
-	})
-
-	useEffect(() => {
-		if (page && open) {
-			setTitle(page.title ?? '')
-			setSlug(page.slug ?? '')
-			setIsPublished(page.status === 'PUBLISHED')
-			setMetaTitle(page.metaTitle ?? '')
-			setMetaDesc(page.metaDesc ?? '')
-		} else if (!page) {
-			reset()
-		}
-	}, [page, open])
-
-	// Загружаем блоки из полных данных страницы
-	useEffect(() => {
-		if (fullPage?.blocks && open) {
-			const drafts = (fullPage.blocks as PageBlockRecord[])
-				.map(toBlockDraft)
-				.filter((d): d is PageBlockDraft => d !== null)
-			setBlocks(drafts)
-		}
-	}, [fullPage, open])
+	// (данные секций управляются через PageSectionsEditor)
 
 	const reset = () => {
 		setTitle('')
@@ -115,10 +59,52 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		setBlocks([])
 	}
 
+	const { mutate: create, isPending: isCreating } =
+		trpc.pages.create.useMutation({
+			onSuccess: () => {
+				toast.success('Страница создана')
+				onSuccess()
+				onOpenChange(false)
+				reset()
+			},
+			onError: err => {
+				toast.error(err.message ?? 'Ошибка при создании страницы')
+			},
+		})
+	const { mutate: update, isPending: isUpdating } =
+		trpc.pages.update.useMutation({
+			onSuccess: () => {
+				toast.success('Страница обновлена')
+				onSuccess()
+				onOpenChange(false)
+				reset()
+			},
+			onError: err => {
+				toast.error(err.message ?? 'Ошибка при сохранении страницы')
+			},
+		})
+
+	useEffect(() => {
+		if (page && open) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			setTitle(page.title ?? '')
+			setSlug(page.slug ?? '')
+			setIsPublished(page.status === 'PUBLISHED')
+			setMetaTitle(page.metaTitle ?? '')
+			setMetaDesc(page.metaDesc ?? '')
+		} else if (!page) {
+			reset()
+		}
+	}, [page, open])
+
+	// Блоки страницы управляются через новую систему sections (см. PageSectionsEditor)
+
 	const handleSave = () => {
 		const finalSlug = slug.trim() || generateSlug(title)
 		if (!/^[a-z0-9-_]+$/.test(finalSlug)) {
-			toast.error('Slug должен содержать только латинские буквы, цифры, дефис и подчёркивание')
+			toast.error(
+				'Slug должен содержать только латинские буквы, цифры, дефис и подчёркивание',
+			)
 			return
 		}
 		if (!title.trim()) {
@@ -155,7 +141,9 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Редактировать страницу' : 'Новая страница'}</DialogTitle>
+					<DialogTitle>
+						{isEdit ? 'Редактировать страницу' : 'Новая страница'}
+					</DialogTitle>
 				</DialogHeader>
 
 				<Tabs defaultValue='content' className='space-y-4'>
@@ -172,7 +160,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<label className='text-sm font-medium'>Заголовок *</label>
 							<Input
 								value={title}
-								onChange={(e) => setTitle(e.target.value)}
+								onChange={e => setTitle(e.target.value)}
 								placeholder='Введите заголовок'
 							/>
 						</div>
@@ -180,7 +168,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<label className='text-sm font-medium'>Slug</label>
 							<Input
 								value={slug}
-								onChange={(e) => setSlug(e.target.value)}
+								onChange={e => setSlug(e.target.value)}
 								placeholder='автоматически из заголовка'
 							/>
 						</div>
@@ -192,7 +180,8 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 
 					<TabsContent value='blocks' className='space-y-4'>
 						<p className='text-sm text-muted-foreground'>
-							Блоки отображаются на публичной странице вместо старого HTML-контента.
+							Блоки отображаются на публичной странице вместо старого
+							HTML-контента.
 						</p>
 						<PageBlocksEditor value={blocks} onChange={setBlocks} />
 					</TabsContent>
@@ -202,7 +191,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<label className='text-sm font-medium'>Meta Title</label>
 							<Input
 								value={metaTitle}
-								onChange={(e) => setMetaTitle(e.target.value)}
+								onChange={e => setMetaTitle(e.target.value)}
 								placeholder={title}
 							/>
 						</div>
@@ -211,7 +200,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<textarea
 								className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 								value={metaDesc}
-								onChange={(e) => setMetaDesc(e.target.value)}
+								onChange={e => setMetaDesc(e.target.value)}
 								placeholder='Краткое описание страницы для поисковиков'
 							/>
 						</div>
@@ -219,7 +208,11 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 				</Tabs>
 
 				<div className='flex justify-end gap-2 border-t border-border pt-4'>
-					<Button variant='outline' onClick={() => onOpenChange(false)} disabled={isPending}>
+					<Button
+						variant='outline'
+						onClick={() => onOpenChange(false)}
+						disabled={isPending}
+					>
 						Отмена
 					</Button>
 					<Button onClick={handleSave} disabled={isPending}>

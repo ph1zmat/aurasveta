@@ -26,8 +26,9 @@ export const productFormSchema = z
 		compareAtPrice: z.string(),
 		stock: z.string(),
 		sku: z.string(),
-		rootCategoryId: z.string(),
-		subcategoryId: z.string(),
+		categoryId: z.string(),
+		rootCategoryId: z.string().optional(),
+		subcategoryId: z.string().optional(),
 		brand: z.string(),
 		brandCountry: z.string(),
 		isActive: z.boolean(),
@@ -41,22 +42,6 @@ export const productFormSchema = z
 				code: z.ZodIssueCode.custom,
 				message: 'Введите название товара',
 				path: ['name'],
-			})
-		}
-
-		if (!value.rootCategoryId) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: 'Выберите корневую категорию',
-				path: ['rootCategoryId'],
-			})
-		}
-
-		if (!value.subcategoryId) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: 'Выберите подкатегорию',
-				path: ['subcategoryId'],
 			})
 		}
 

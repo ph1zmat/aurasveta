@@ -163,7 +163,7 @@ export default function PagesClient() {
 				open={modalOpen}
 				onOpenChange={setModalOpen}
 				onSuccess={() => refetch()}
-				page={editingPage}
+				page={editingPage ?? undefined}
 			/>
 
 			<ConfirmDialog

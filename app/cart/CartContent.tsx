@@ -6,7 +6,6 @@ import CartItem from '@/features/cart/ui/CartItem'
 import CartSummary from '@/features/cart/ui/CartSummary'
 import type { CartItemData } from '@/entities/cart/model/types'
 import { Button } from '@/shared/ui/Button'
-import { Link2 } from 'lucide-react'
 import { FaPhoneAlt, FaViber } from 'react-icons/fa'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
@@ -73,8 +72,11 @@ export default function CartContent() {
 		}
 
 		// Anon: use separately fetched product data
-		const anonProducts = (anonProductsData ?? []) as unknown as AnonCartProduct[]
-		const productMap = new Map(anonProducts.map(product => [product.id, product]))
+		const anonProducts = (anonProductsData ??
+			[]) as unknown as AnonCartProduct[]
+		const productMap = new Map(
+			anonProducts.map(product => [product.id, product]),
+		)
 		return rawItems
 			.map(item => {
 				const p = productMap.get(item.productId)
@@ -180,7 +182,6 @@ export default function CartContent() {
 		createOrderMut.mutate({
 			address,
 			phone,
-			contactMethod,
 			comment: comment || undefined,
 			items: rawItems,
 		})
@@ -213,10 +214,6 @@ export default function CartContent() {
 					В корзине {itemsCount} товара
 				</h1>
 				<div className='flex gap-2 self-start'>
-					<Button variant='ghost' className='gap-2'>
-						<Link2 className='h-4 w-4' strokeWidth={1.5} />
-						Поделиться корзиной
-					</Button>
 					<Button
 						variant='outline'
 						className='gap-2'

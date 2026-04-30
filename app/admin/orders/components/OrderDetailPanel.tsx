@@ -27,7 +27,11 @@ interface Order {
 	total: number
 	createdAt: Date | string
 	user?: { name?: string | null; email?: string | null } | null
-	items?: Array<{ product?: { name?: string | null } | null; quantity: number; price: number }>
+	items?: Array<{
+		product?: { name?: string | null } | null
+		quantity: number
+		price: number
+	}>
 	phone?: string | null
 	contactMethod?: 'PHONE' | 'VIBER' | null
 	address?: string | null
@@ -41,8 +45,12 @@ interface OrderDetailPanelProps {
 	onRefund: () => void
 }
 
-
-export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderDetailPanelProps) {
+export function OrderDetailPanel({
+	order,
+	onClose,
+	onMessage,
+	onRefund,
+}: OrderDetailPanelProps) {
 	const handlePrint = () => {
 		window.print()
 	}
@@ -64,10 +72,20 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 					>
 						{statusLabels[order.status] ?? order.status}
 					</Badge>
-					<Button variant='ghost' size='icon' className='h-7 w-7' onClick={handlePrint}>
+					<Button
+						variant='ghost'
+						size='icon'
+						className='h-7 w-7'
+						onClick={handlePrint}
+					>
 						<Printer className='h-4 w-4' />
 					</Button>
-					<Button variant='ghost' size='icon' className='h-7 w-7' onClick={onMessage}>
+					<Button
+						variant='ghost'
+						size='icon'
+						className='h-7 w-7'
+						onClick={onMessage}
+					>
 						<MessageCircle className='h-4 w-4' />
 					</Button>
 					<Button
@@ -78,7 +96,12 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 					>
 						<RefreshCw className='h-4 w-4' />
 					</Button>
-					<Button variant='ghost' size='icon' className='h-7 w-7' onClick={onClose}>
+					<Button
+						variant='ghost'
+						size='icon'
+						className='h-7 w-7'
+						onClick={onClose}
+					>
 						<X className='h-4 w-4' />
 					</Button>
 				</div>
@@ -93,11 +116,17 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 
 			{/* Customer */}
 			<div className='space-y-2'>
-				<div className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>Клиент</div>
+				<div className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+					Клиент
+				</div>
 				<div className='rounded-lg border border-border bg-card p-3 space-y-1'>
-					<div className='font-medium text-sm'>{order.user?.name ?? 'Гость'}</div>
+					<div className='font-medium text-sm'>
+						{order.user?.name ?? 'Гость'}
+					</div>
 					{order.user?.email && (
-						<div className='text-xs text-muted-foreground'>{order.user.email}</div>
+						<div className='text-xs text-muted-foreground'>
+							{order.user.email}
+						</div>
 					)}
 					{order.phone && (
 						<div className='text-xs text-muted-foreground'>
@@ -120,7 +149,9 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 						</div>
 					)}
 					{order.address && (
-						<div className='text-xs text-muted-foreground mt-1'>{order.address}</div>
+						<div className='text-xs text-muted-foreground mt-1'>
+							{order.address}
+						</div>
 					)}
 				</div>
 			</div>
@@ -128,16 +159,22 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 			{/* Items */}
 			{order.items && order.items.length > 0 && (
 				<div className='space-y-2'>
-					<div className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>Товары</div>
+					<div className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+						Товары
+					</div>
 					<div className='rounded-lg border border-border overflow-hidden'>
 						{order.items.map((item, i) => (
 							<div
 								key={i}
 								className='flex items-center justify-between px-3 py-2 border-b border-border last:border-0 text-sm'
 							>
-								<span className='truncate text-sm'>{item.product?.name ?? '—'}</span>
+								<span className='truncate text-sm'>
+									{item.product?.name ?? '—'}
+								</span>
 								<div className='flex items-center gap-3 shrink-0 ml-2'>
-									<span className='text-muted-foreground text-xs'>×{item.quantity}</span>
+									<span className='text-muted-foreground text-xs'>
+										×{item.quantity}
+									</span>
 									<span className='font-semibold'>
 										₽{(item.price * item.quantity).toLocaleString('ru-RU')}
 									</span>

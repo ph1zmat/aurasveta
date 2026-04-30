@@ -78,7 +78,6 @@ export const ordersRouter = createTRPCRouter({
 			z.object({
 				address: z.string().min(1),
 				phone: z.string().min(1),
-				contactMethod: z.enum(['PHONE', 'VIBER']).default('PHONE'),
 				comment: z.string().optional(),
 				items: z.array(
 					z.object({
@@ -137,7 +136,6 @@ export const ordersRouter = createTRPCRouter({
 						total,
 						address: input.address,
 						phone: input.phone,
-						contactMethod: input.contactMethod,
 						comment: input.comment,
 						items: {
 							create: input.items.map(item => ({
@@ -260,12 +258,14 @@ export const ordersRouter = createTRPCRouter({
 			}
 		}),
 
-	getAdminById: adminProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.order.findUnique({
-			where: { id: input },
-			include: adminOrderInclude,
-		})
-	}),
+	getAdminById: adminProcedure
+		.input(z.string())
+		.query(async ({ ctx, input }) => {
+			return ctx.prisma.order.findUnique({
+				where: { id: input },
+				include: adminOrderInclude,
+			})
+		}),
 
 	updateAdminOrder: adminProcedure
 		.input(AdminOrderUpdateInputSchema)
@@ -306,31 +306,4 @@ export const ordersRouter = createTRPCRouter({
 				data: { status: input.status },
 			})
 		}),
-
-	getAllByStatuses: adminProcedure.query(async ({ ctx }) => {
-		const statuses = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const
-		// Один запрос вместо 5 отдельных; группируем в JS
-		const orders = await ctx.prisma.order.findMany({
-			where: { status: { in: statuses as unknown as ('PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED')[] } },
-			include: {
-				user: { select: { name: true, email: true } },
-				items: { include: { product: { select: { name: true, slug: true } } } },
-			},
-			orderBy: { createdAt: 'desc' },
-			take: 250,
-		})
-
-		const result = Object.fromEntries(
-			statuses.map((s) => [s, [] as typeof orders]),
-		) as Record<(typeof statuses)[number], typeof orders>
-
-		for (const order of orders) {
-			const list = result[order.status as (typeof statuses)[number]]
-			if (list.length < 50) {
-				list.push(order)
-			}
-		}
-
-		return result
-	}),
 })

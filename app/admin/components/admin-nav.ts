@@ -7,7 +7,6 @@ import {
 	FileText,
 	Search,
 	Palette,
-	Zap,
 	Upload,
 	Settings,
 	Bell,

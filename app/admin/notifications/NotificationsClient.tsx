@@ -107,6 +107,7 @@ export default function NotificationsClient() {
 			if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
 				reconnectAttempts.current++
 				const delay = RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current - 1)
+				// eslint-disable-next-line react-hooks/immutability
 				setTimeout(connectSSE, delay)
 			} else {
 				toast.error('Потеряно соединение с сервером уведомлений')

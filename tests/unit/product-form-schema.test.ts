@@ -10,6 +10,7 @@ describe('productFormSchema', () => {
 		compareAtPrice: '',
 		stock: '10',
 		sku: 'LAMP-001',
+		categoryId: 'cat-1',
 		rootCategoryId: 'root-cat-1',
 		subcategoryId: 'sub-cat-1',
 		brand: 'Aura',
