@@ -1,21 +1,7 @@
 import Link from 'next/link'
 import { MapPin, Phone, Mail, Send } from 'lucide-react'
 import Image from 'next/image'
-
-const aboutLinks = [
-	{ label: 'Блог', href: '/blog' },
-	{ label: 'О нас', href: '/about' },
-	{ label: 'Наши магазины', href: '/stores' },
-	{ label: 'Доставка и оплата', href: '/delivery' },
-	{ label: 'Обмен и возврат', href: '/returns' },
-	{ label: 'Гарантия качества', href: '/warranty' },
-	{ label: 'Сборка и установка', href: '/assembly' },
-	{ label: 'Оптовикам', href: '/wholesale' },
-	{ label: 'Дизайнерам', href: '/designers' },
-	{ label: 'Контакты', href: '/contacts' },
-	{ label: 'Рекламации', href: '/complaints' },
-	{ label: 'Карта сайта', href: '/sitemap' },
-]
+import { getFooterAboutLinks } from '@/lib/navigation/site-nav'
 
 const catalogLinks = [
 	{ label: 'Все бренды', href: '/brands' },
@@ -42,7 +28,9 @@ const brandLinks = [
 	'Eglo',
 ]
 
-export default function Footer() {
+export default async function Footer() {
+	const aboutLinks = await getFooterAboutLinks()
+
 	return (
 		<footer className='bg-foreground text-card'>
 			<div className='mx-auto max-w-7xl px-4 py-12'>
