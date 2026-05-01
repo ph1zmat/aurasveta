@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/shared/ui/Button'
 import InteractiveCatalogCard from '@/entities/product/ui/InteractiveCatalogCard'
 import type { CatalogProductCardProps } from '@/entities/product/ui/CatalogProductCard'
+import { CATALOG_GRID } from '@/shared/config/catalog-grid'
 
 interface CategorySectionProps {
 	title: string
@@ -22,7 +23,7 @@ export default function CategorySection({
 				{title}
 			</h2>
 
-			<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4'>
+			<div className={CATALOG_GRID.wide}>
 				{products.map(product => (
 					<InteractiveCatalogCard key={product.href} {...product} />
 				))}

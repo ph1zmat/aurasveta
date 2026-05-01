@@ -1,8 +1,7 @@
 import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/Header'
+import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
-import ChatButton from '@/shared/ui/ChatButton'
 import FavoritesContent from './FavoritesContent'
 import { Suspense } from 'react'
 import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
@@ -19,15 +18,12 @@ export default function FavoritesPage() {
 				<Header />
 				<CategoryNav />
 
-				<Suspense
-					fallback={<FavoritesContentSkeleton />}
-				>
+				<Suspense fallback={<FavoritesContentSkeleton />}>
 					<FavoritesContent />
 				</Suspense>
 			</main>
 
 			<Footer />
-			<ChatButton />
 		</div>
 	)
 }

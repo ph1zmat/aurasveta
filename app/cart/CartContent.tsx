@@ -6,7 +6,6 @@ import CartItem from '@/features/cart/ui/CartItem'
 import CartSummary from '@/features/cart/ui/CartSummary'
 import type { CartItemData } from '@/entities/cart/model/types'
 import { Button } from '@/shared/ui/Button'
-import { Link2 } from 'lucide-react'
 import { FaPhoneAlt, FaViber } from 'react-icons/fa'
 import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/EmptyState'
@@ -23,6 +22,21 @@ type AnonCartProduct = {
 	compareAtPrice?: number | null
 	images?: ProductImage[] | null
 }
+
+const CONTACT_METHOD_OPTIONS = [
+	{
+		value: 'PHONE' as const,
+		label: 'По номеру телефона',
+		description: 'Позвоним по указанному номеру',
+		Icon: FaPhoneAlt,
+	},
+	{
+		value: 'VIBER' as const,
+		label: 'Через Viber',
+		description: 'Напишем в Viber на этот номер',
+		Icon: FaViber,
+	},
+] as const
 
 export default function CartContent() {
 	const {
@@ -73,8 +87,11 @@ export default function CartContent() {
 		}
 
 		// Anon: use separately fetched product data
-		const anonProducts = (anonProductsData ?? []) as unknown as AnonCartProduct[]
-		const productMap = new Map(anonProducts.map(product => [product.id, product]))
+		const anonProducts = (anonProductsData ??
+			[]) as unknown as AnonCartProduct[]
+		const productMap = new Map(
+			anonProducts.map(product => [product.id, product]),
+		)
 		return rawItems
 			.map(item => {
 				const p = productMap.get(item.productId)
@@ -213,10 +230,6 @@ export default function CartContent() {
 					В корзине {itemsCount} товара
 				</h1>
 				<div className='flex gap-2 self-start'>
-					<Button variant='ghost' className='gap-2'>
-						<Link2 className='h-4 w-4' strokeWidth={1.5} />
-						Поделиться корзиной
-					</Button>
 					<Button
 						variant='outline'
 						className='gap-2'
@@ -283,37 +296,47 @@ export default function CartContent() {
 									</p>
 								)}
 							</div>
-							<div className='space-y-1'>
-								<label className='text-sm font-medium'>Способ связи</label>
-								<div className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
-									<button
-										type='button'
-										onClick={() => setContactMethod('PHONE')}
-										className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors ${
-											contactMethod === 'PHONE'
-												? 'border-primary bg-primary/10 text-foreground'
-												: 'border-border bg-background text-muted-foreground hover:bg-muted/50'
-										}`}
-										aria-pressed={contactMethod === 'PHONE'}
-									>
-										<FaPhoneAlt className='h-4 w-4 shrink-0' />
-										<span>По номеру телефона</span>
-									</button>
-									<button
-										type='button'
-										onClick={() => setContactMethod('VIBER')}
-										className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors ${
-											contactMethod === 'VIBER'
-												? 'border-primary bg-primary/10 text-foreground'
-												: 'border-border bg-background text-muted-foreground hover:bg-muted/50'
-										}`}
-										aria-pressed={contactMethod === 'VIBER'}
-									>
-										<FaViber className='h-4 w-4 shrink-0' />
-										<span>Через Viber</span>
-									</button>
+							<fieldset className='space-y-2'>
+								<legend className='text-sm font-medium'>Способ связи</legend>
+								<div
+									className='grid grid-cols-1 gap-2 sm:grid-cols-2'
+									role='radiogroup'
+									aria-label='Выбор способа связи'
+								>
+									{CONTACT_METHOD_OPTIONS.map(
+										({ value, label, description, Icon }) => {
+											const isSelected = contactMethod === value
+											return (
+												<button
+													key={value}
+													type='button'
+													onClick={() => setContactMethod(value)}
+													className={`flex min-h-16 items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+														isSelected
+															? 'border-primary bg-primary/10 text-foreground shadow-sm'
+															: 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+													}`}
+													role='radio'
+													aria-checked={isSelected}
+												>
+													<Icon className='mt-0.5 h-4 w-4 shrink-0' />
+													<span className='flex flex-col'>
+														<span className='text-sm font-medium text-foreground'>
+															{label}
+														</span>
+														<span className='text-xs text-muted-foreground'>
+															{description}
+														</span>
+													</span>
+												</button>
+											)
+										},
+									)}
 								</div>
-							</div>
+								<p className='text-xs text-muted-foreground'>
+									Используем номер ниже для звонка или сообщения в Viber.
+								</p>
+							</fieldset>
 							<div className='space-y-1'>
 								<label className='text-sm font-medium'>Телефон</label>
 								<input

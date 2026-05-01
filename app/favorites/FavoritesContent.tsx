@@ -13,6 +13,7 @@ import FavoriteProductCard from '@/features/favorites/ui/FavoriteProductCard'
 import { Button } from '@/shared/ui/Button'
 import EmptyState from '@/shared/ui/EmptyState'
 import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import { CATALOG_GRID } from '@/shared/config/catalog-grid'
 
 type ServerFavorite = RouterOutputs['favorites']['getAll'][number]
 
@@ -92,7 +93,7 @@ export default function FavoritesContent() {
 				{products.length} товара
 			</p>
 
-			<div className='grid grid-cols-1 gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3'>
+			<div className={`${CATALOG_GRID.default} pb-8`}>
 				{products.map(product => (
 					<FavoriteProductCard
 						key={product.href}

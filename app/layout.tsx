@@ -6,6 +6,7 @@ import { TRPCProvider } from '@/lib/trpc/client'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import Toaster from '@/shared/ui/Toaster'
 import RootThemeProvider from '@/shared/ui/RootThemeProvider'
+import { getPublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://aurasveta.by'),
@@ -34,6 +35,8 @@ export default async function RootLayout({
 	void trpc.categories.getNav.prefetch()
 	void trpc.categories.getHeaderTree.prefetch()
 
+	const storeSettings = await getPublicStoreSettings()
+
 	return (
 		<html lang='ru' suppressHydrationWarning>
 			<head>
@@ -58,7 +61,7 @@ export default async function RootLayout({
 					<TRPCProvider>
 						<HydrateClient>
 							<Toaster />
-							<MobileHeader />
+							<MobileHeader phone={storeSettings?.phone} logoUrl={storeSettings?.logoUrl} />
 							<div className='mobile-content-offset'>{children}</div>
 							<MobileBottomNav />
 						</HydrateClient>

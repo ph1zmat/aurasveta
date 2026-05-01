@@ -74,19 +74,25 @@ function createDraft(pageId: string, order: number): DraftNavItem {
 function ZoneEditor({ zone }: { zone: NavZone }) {
 	const [draftItemsState, setDraftItemsState] = useState<DraftNavItem[] | null>(null)
 	const [selectedPageId, setSelectedPageId] = useState<string>('')
+	const utils = trpc.useUtils()
 
 	const {
 		data,
 		isLoading,
+		isError,
+		error,
 		refetch,
 		isFetching,
-	} = trpc.siteNav.getEditorState.useQuery({ zone })
+	} = trpc.siteNav.getEditorState.useQuery(
+		{ zone },
+		{ staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
+	)
 
 	const { mutate: saveZone, isPending: isSaving } = trpc.siteNav.replaceZone.useMutation({
 		onSuccess: async () => {
 			toast.success(`${zoneLabels[zone]}: изменения сохранены`)
 			setDraftItemsState(null)
-			await refetch()
+			await utils.siteNav.getEditorState.invalidate({ zone })
 		},
 		onError: error => {
 			toast.error(error.message)
@@ -105,7 +111,7 @@ function ZoneEditor({ zone }: { zone: NavZone }) {
 	}, [data?.items])
 
 	const draftItems = draftItemsState ?? sourceItems
-	const pages: PublishedPageOption[] = data?.pages ?? []
+	const pages: PublishedPageOption[] = useMemo(() => data?.pages ?? [], [data?.pages])
 	const pageById = useMemo(
 		() => new Map(pages.map(page => [page.id, page])),
 		[pages],
@@ -159,6 +165,21 @@ function ZoneEditor({ zone }: { zone: NavZone }) {
 			<Card className='border-border'>
 				<CardContent className='py-10 text-center text-sm text-muted-foreground'>
 					Загрузка навигации...
+				</CardContent>
+			</Card>
+		)
+	}
+
+	if (isError) {
+		return (
+			<Card className='border-border'>
+				<CardContent className='space-y-4 py-10'>
+					<p className='text-sm text-destructive'>
+						{error.message || 'Не удалось загрузить навигацию'}
+					</p>
+					<Button type='button' variant='outline' onClick={() => refetch()}>
+						Повторить
+					</Button>
 				</CardContent>
 			</Card>
 		)

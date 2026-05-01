@@ -1,8 +1,7 @@
 import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/Header'
+import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
-import ChatButton from '@/shared/ui/ChatButton'
 import CompareContent from './CompareContent'
 import { Suspense } from 'react'
 import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
@@ -19,15 +18,12 @@ export default function ComparePage() {
 				<Header />
 				<CategoryNav />
 
-				<Suspense
-					fallback={<CompareContentSkeleton />}
-				>
+				<Suspense fallback={<CompareContentSkeleton />}>
 					<CompareContent />
 				</Suspense>
 			</main>
 
 			<Footer />
-			<ChatButton />
 		</div>
 	)
 }

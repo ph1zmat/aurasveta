@@ -79,7 +79,7 @@ export default function CatalogProductCard({
 						))}
 					</div>
 				)}
-				<div className='relative h-56 w-full'>
+				<div className='relative h-40 w-full sm:h-56'>
 					<DeferredImage
 						src={image}
 						alt={name}

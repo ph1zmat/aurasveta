@@ -2,10 +2,9 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/Header'
+import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
-import ChatButton from '@/shared/ui/ChatButton'
 import ProductGallery from '@/features/product-details/ui/ProductGallery'
 import ProductPriceBlock from '@/features/product-details/ui/ProductPriceBlock'
 import QuickSpecs from '@/features/product-details/ui/QuickSpecs'
@@ -13,8 +12,12 @@ import DesignProjectBanner from '@/features/product-details/ui/DesignProjectBann
 import InterestCounter from '@/features/product-details/ui/InterestCounter'
 import DeliveryAdvantages from '@/features/product-details/ui/DeliveryAdvantages'
 // Ниже fold — загружаются после LCP
-const ProductTabs = dynamic(() => import('@/features/product-details/ui/ProductTabs'))
-const ProductCarousel = dynamic(() => import('@/widgets/product-carousel/ui/ProductCarousel'))
+const ProductTabs = dynamic(
+	() => import('@/features/product-details/ui/ProductTabs'),
+)
+const ProductCarousel = dynamic(
+	() => import('@/widgets/product-carousel/ui/ProductCarousel'),
+)
 // Только при скролле / нет SSR-HTML
 const StickyHeaderWithTrigger = dynamic(
 	() => import('@/features/product-details/ui/StickyHeaderWithTrigger'),
@@ -50,6 +53,7 @@ import {
 	normalizeProductImages,
 } from '@/shared/lib/product-utils'
 import { ProductCarouselSkeleton } from '@/shared/ui/storefront-skeletons'
+import RecentlyViewedProductCarousel from '@/widgets/product-carousel/ui/RecentlyViewedProductCarousel'
 
 /* ── Page ── */
 
@@ -137,7 +141,12 @@ export default async function ProductPage({
 					{ name: 'Главная', href: '/' },
 					{ name: 'Каталог', href: '/catalog' },
 					...(product.category && product.categorySlug
-						? [{ name: product.category, href: `/catalog/${product.categorySlug}` }]
+						? [
+								{
+									name: product.category,
+									href: `/catalog/${product.categorySlug}`,
+								},
+							]
 						: []),
 					{ name: product.name },
 				]}
@@ -244,10 +253,15 @@ export default async function ProductPage({
 				<Suspense fallback={<ProductCarouselSkeleton />}>
 					<CollectionProductsSection productId={productId} />
 				</Suspense>
+
+				<RecentlyViewedProductCarousel
+					excludeProductId={productId}
+					title='Вы смотрели'
+					limit={5}
+				/>
 			</main>
 
 			<Footer />
-			<ChatButton />
 		</div>
 	)
 }

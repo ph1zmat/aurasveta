@@ -1,7 +1,9 @@
 import Link from 'next/link'
-import { MapPin, Phone, Mail, Send } from 'lucide-react'
+import { MapPin, Phone, Mail } from 'lucide-react'
 import Image from 'next/image'
 import { getFooterAboutLinks } from '@/lib/navigation/site-nav'
+import { getPublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
+import SocialIcon from '@/shared/ui/SocialIcon'
 
 const catalogLinks = [
 	{ label: 'Все бренды', href: '/brands' },
@@ -29,7 +31,10 @@ const brandLinks = [
 ]
 
 export default async function Footer() {
-	const aboutLinks = await getFooterAboutLinks()
+	const [aboutLinks, settings] = await Promise.all([
+		getFooterAboutLinks(),
+		getPublicStoreSettings(),
+	])
 
 	return (
 		<footer className='bg-foreground text-card'>
@@ -51,44 +56,63 @@ export default async function Footer() {
 							<div className='font-normal uppercase tracking-widest text-card/80'>
 								Отдел продаж
 							</div>
-							<div className='flex items-start gap-2 text-card/70'>
-								<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
-								<span>г. Москва, Автомобильный проезд 10, строение 4</span>
-							</div>
+							{(settings?.city || settings?.address) && (
+								<div className='flex items-start gap-2 text-card/70'>
+									<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
+									<span>
+										{[settings.city, settings.address].filter(Boolean).join(', ')}
+									</span>
+								</div>
+							)}
 							<Link href='/stores' className='text-primary underline text-sm'>
 								Наши магазины
 							</Link>
 						</div>
 
 						<div className='space-y-2 text-sm'>
-							<a
-								href='tel:+74992292322'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Phone className='h-4 w-4' />
-								+7 (499) 229 23 22
-							</a>
-							<a
-								href='tel:+78001003384'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Phone className='h-4 w-4' />
-								+7 (800) 100-33-84
-							</a>
-							<a
-								href='mailto:buy@aurasveta.ru'
-								className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
-							>
-								<Mail className='h-4 w-4' />
-								buy@aurasveta.ru
-							</a>
+							{settings?.phone && (
+								<a
+									href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Phone className='h-4 w-4' />
+									{settings.phone}
+								</a>
+							)}
+							{settings?.additionalPhone && (
+								<a
+									href={`tel:${settings.additionalPhone.replace(/[^\d+]/g, '')}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Phone className='h-4 w-4' />
+									{settings.additionalPhone}
+								</a>
+							)}
+							{settings?.email && (
+								<a
+									href={`mailto:${settings.email}`}
+									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+								>
+									<Mail className='h-4 w-4' />
+									{settings.email}
+								</a>
+							)}
+							{settings?.workingHours && Object.keys(settings.workingHours).length > 0 && (
+								<div className='text-card/50 text-xs mt-1 space-y-0.5'>
+									{Object.entries(settings.workingHours).map(([days, hours]) => (
+										<div key={days}>
+											<span className='text-card/70'>{days}:</span> {hours}
+										</div>
+									))}
+								</div>
+							)}
 						</div>
 					</div>
 
 					{/* Column 2: About */}
 					<div>
 						<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
-							О AURASVETA.RU
+							О Ауре Света
 						</h3>
 						<ul className='space-y-2'>
 							{aboutLinks.map(link => (
@@ -147,15 +171,18 @@ export default async function Footer() {
 							<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
 								Мы в соцсетях
 							</h3>
-							<a
-								href='https://t.me/aurasveta'
-								target='_blank'
-								rel='noopener noreferrer'
-								className='inline-flex items-center gap-2 text-sm text-card/60 hover:text-card transition-colors'
-							>
-								<Send className='h-4 w-4' />
-								Telegram
-							</a>
+							{settings?.socialLinks && settings.socialLinks.length > 0 ? (
+								<div className='flex flex-wrap gap-1'>
+									{settings.socialLinks.map(link => (
+										<SocialIcon
+											key={link.platform}
+											platform={link.platform}
+											url={link.url}
+											className='text-card/70 hover:text-card'
+										/>
+									))}
+								</div>
+							) : null}
 						</div>
 					</div>
 				</div>
