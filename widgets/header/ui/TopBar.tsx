@@ -1,23 +1,10 @@
-'use client'
-
 import { MapPin, Phone } from 'lucide-react'
 import Link from 'next/link'
+import { getTopBarNavGroups } from '@/lib/navigation/site-nav'
 
-const serviceLinks = [
-	{ label: 'Сборка и установка', href: '/assembly' },
-	{ label: 'Контакты', href: '/contacts' },
-	{ label: 'Оплата и доставка', href: '/delivery' },
-]
+export default async function TopBar() {
+	const { serviceLinks, rightLinks } = await getTopBarNavGroups()
 
-const rightLinks = [
-	{ label: 'Наши магазины', href: '/stores' },
-	{ label: 'Оптовикам', href: '/wholesale' },
-	{ label: 'Дизайнерам', href: '/designers' },
-	{ label: 'Акции', href: '/sales' },
-	{ label: 'Распродажа', href: '/clearance' },
-]
-
-export default function TopBar() {
 	return (
 		<div className='hidden md:block text-sm'>
 			<div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-2'>

@@ -11,6 +11,7 @@ import {
 	Settings,
 	Bell,
 	SlidersHorizontal,
+	Navigation,
 } from 'lucide-react'
 
 export interface AdminNavItem {
@@ -46,6 +47,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 		label: 'Маркетинг',
 		items: [
 			{ href: '/admin/pages', label: 'CMS Страницы', icon: FileText },
+			{ href: '/admin/navigation', label: 'Навигация', icon: Navigation },
 			{ href: '/admin/seo', label: 'SEO', icon: Search },
 			{
 				href: '/admin/home-sections',
@@ -72,7 +74,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 export const EDITOR_NAV_GROUPS: AdminNavGroup[] = [
 	{
 		label: 'Редактор',
-		items: [{ href: '/admin/pages', label: 'Страницы', icon: FileText }],
+		items: [
+			{ href: '/admin/pages', label: 'Страницы', icon: FileText },
+			{ href: '/admin/navigation', label: 'Навигация', icon: Navigation },
+		],
 	},
 ]
 

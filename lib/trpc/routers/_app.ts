@@ -23,6 +23,7 @@ import { shopSettingsRouter } from './shopSettings'
 import { settingsBusinessRouter } from './admin/settings.business'
 import { notificationsRouter } from './notifications'
 import { importOperationsRouter } from './importOperations'
+import { siteNavRouter } from './siteNav'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -49,6 +50,7 @@ export const appRouter = createTRPCRouter({
 	settingsBusiness: settingsBusinessRouter,
 	notifications: notificationsRouter,
 	importOperations: importOperationsRouter,
+	siteNav: siteNavRouter,
 })
 
 export type AppRouter = typeof appRouter

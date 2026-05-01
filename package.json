@@ -13,6 +13,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"guardrails:web": "tsx scripts/check-guardrails.ts",
+		"site-nav:migrate": "tsx scripts/migrate-site-nav-items.ts",
+		"site-nav:migrate:apply": "tsx scripts/migrate-site-nav-items.ts --apply",
 		"check:web": "npm run guardrails:web && npm run prisma:generate && npm run lint && npm run test && npm run build"
 	},
 	"dependencies": {
