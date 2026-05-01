@@ -16,6 +16,7 @@ import { SettingsPage } from './pages/Settings'
 import { SeoPage } from './pages/Seo'
 import { SectionTypesPage } from './pages/SectionTypes'
 import { HomeSectionsPage } from './pages/HomeSections'
+import { NavigationPage } from './pages/Navigation'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="webhooks" element={<WebhooksPage />} />
         <Route path="import-export" element={<ImportExportPage />} />
         <Route path="seo" element={<SeoPage />} />
+        <Route path="navigation" element={<NavigationPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

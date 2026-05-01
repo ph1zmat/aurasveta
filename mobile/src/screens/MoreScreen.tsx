@@ -27,6 +27,7 @@ import {
 	FolderInput,
 	Search,
 	Settings,
+	Globe,
 	LogOut,
 	ChevronRight,
 	User,
@@ -67,6 +68,12 @@ const menuItems: {
 		color: colors.primary,
 	},
 	{ label: 'SEO настройки', icon: Search, route: 'Seo', color: colors.primary },
+	{
+		label: 'Навигация сайта',
+		icon: Globe,
+		route: 'Navigation',
+		color: colors.primary,
+	},
 	{
 		label: 'Настройки',
 		icon: Settings,

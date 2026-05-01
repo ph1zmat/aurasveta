@@ -28,7 +28,10 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 		undefined,
 		{ refetchInterval: 15000, refetchIntervalInBackground: false },
 	)
-	const { data: profile } = trpc.profile.get.useQuery()
+	const { data: profile } = trpc.profile.get.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
+	})
 	const pendingCount = pendingData?.total ?? 0
 	const unreadCount = unreadData?.count ?? 0
 

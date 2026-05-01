@@ -21,7 +21,7 @@ import { useCart } from '@/features/cart/useCart'
 import { useFavorites } from '@/features/favorites/useFavorites'
 import { useCompare } from '@/features/compare/useCompare'
 
-export default function Header() {
+export default function Header({ logoUrl }: { logoUrl?: string | null }) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const { data: session } = authClient.useSession()
@@ -113,7 +113,7 @@ export default function Header() {
 				{/* Logo */}
 				<Link href='/' className='flex items-center gap-2 shrink-0'>
 					<Image
-						src='/aura-logo-noline-primary.png'
+						src={logoUrl ?? '/aura-logo-noline-primary.png'}
 						alt='Logo'
 						width={128}
 						height={48}

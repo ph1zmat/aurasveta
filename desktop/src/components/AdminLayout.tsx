@@ -17,6 +17,7 @@ import {
 	X,
 	Shapes,
 	LayoutGrid,
+	Navigation,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
@@ -32,6 +33,7 @@ const navItems = [
 	{ href: '/import-export', label: 'Импорт/Экспорт', icon: Download },
 	{ href: '/webhooks', label: 'Вебхуки', icon: Webhook },
 	{ href: '/seo', label: 'SEO', icon: Search },
+	{ href: '/navigation', label: 'Навигация', icon: Navigation },
 	{ href: '/settings', label: 'Настройки', icon: Settings },
 ]
 

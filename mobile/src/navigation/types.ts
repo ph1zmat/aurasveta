@@ -65,6 +65,7 @@ export type MoreStackParamList = {
 	Webhooks: undefined
 	ImportExport: undefined
 	Settings: undefined
+	Navigation: undefined
 }
 
 // Screen props helpers

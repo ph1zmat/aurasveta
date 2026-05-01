@@ -1,16 +1,17 @@
 import type { Prisma } from '@prisma/client'
 import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/Header'
+import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
-import ChatButton from '@/shared/ui/ChatButton'
 import PublicSectionRenderer from '@/entities/section/ui/PublicSectionRenderer'
 import DynamicHomeSection from '@/widgets/home-sections/ui/DynamicHomeSection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/public-page-data'
 import { prisma } from '@/lib/prisma'
 
 const homeSectionsInclude = { sectionType: true } as const
-type HomeSectionWithType = Prisma.HomeSectionGetPayload<{ include: typeof homeSectionsInclude }>
+type HomeSectionWithType = Prisma.HomeSectionGetPayload<{
+	include: typeof homeSectionsInclude
+}>
 
 export default async function Home() {
 	let unifiedPage = null
@@ -60,8 +61,6 @@ export default async function Home() {
 			</main>
 
 			<Footer />
-			<ChatButton />
 		</div>
 	)
 }
-

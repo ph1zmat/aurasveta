@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,50 +12,130 @@ import { toast } from 'sonner'
 import { Save, Loader2, Info } from 'lucide-react'
 import ShopSettingsCard from './components/ShopSettingsCard'
 
+type GeneralSettingsForm = {
+	shopName: string
+	shopUrl: string
+	shopEmail: string
+	maintenance: boolean
+}
+
+function readStringValue(value: unknown, fallback = '') {
+	if (typeof value === 'string') return value
+	if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+	return fallback
+}
+
+function buildGeneralSettingsForm(
+	settings:
+		| Array<{
+				key: string
+				value: unknown
+		  }>
+		| undefined,
+): GeneralSettingsForm {
+	const map = new Map(settings?.map(item => [item.key, item.value]) ?? [])
+	return {
+		shopName: readStringValue(map.get('shopName')),
+		shopUrl: readStringValue(map.get('shopUrl')),
+		shopEmail: readStringValue(map.get('shopEmail')),
+		maintenance: readStringValue(map.get('maintenance'), 'false') === 'true',
+	}
+}
+
+function formatSettingValue(value: unknown) {
+	if (value == null) return '—'
+	if (typeof value === 'string') return value || '—'
+	if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+	try {
+		return JSON.stringify(value)
+	} catch {
+		return 'Невозможно отобразить значение'
+	}
+}
+
+function areFormsEqual(a: GeneralSettingsForm, b: GeneralSettingsForm) {
+	return (
+		a.shopName === b.shopName &&
+		a.shopUrl === b.shopUrl &&
+		a.shopEmail === b.shopEmail &&
+		a.maintenance === b.maintenance
+	)
+}
+
 export default function SettingsClient() {
-	const { data: settings, refetch } = trpc.setting.getAll.useQuery()
+	const utils = trpc.useUtils()
+	const {
+		data: settings,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = trpc.setting.getAll.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
+	})
+	const [draftForm, setDraftForm] = useState<GeneralSettingsForm | null>(null)
+
 	const { mutate: bulkUpsert, isPending: isSaving } = trpc.setting.bulkUpsert.useMutation({
-		onSuccess: () => {
+		onSuccess: async () => {
 			toast.success('Настройки сохранены')
-			refetch()
+			setDraftForm(null)
+			await utils.setting.getAll.invalidate()
 		},
 		onError: (e) => toast.error(e.message),
 	})
 
-	const getValue = (key: string, fallback: string) => {
-		const s = settings?.find((x) => x.key === key)
-		return s ? String(s.value) : fallback
-	}
+	const initialForm = useMemo(() => buildGeneralSettingsForm(settings), [settings])
+	const form = draftForm ?? initialForm
 
-	const [shopName, setShopName] = useState('')
-	const [shopUrl, setShopUrl] = useState('')
-	const [shopEmail, setShopEmail] = useState('')
-	const [maintenance, setMaintenance] = useState(false)
-	const [hasChanges, setHasChanges] = useState(false)
-
-	/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
-	useEffect(() => {
-		if (settings) {
-			setShopName(getValue('shopName', ''))
-			setShopUrl(getValue('shopUrl', ''))
-			setShopEmail(getValue('shopEmail', ''))
-			setMaintenance(getValue('maintenance', 'false') === 'true')
-			setHasChanges(false)
-		}
-	}, [settings])
-	/* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+	const hasChanges = useMemo(() => !areFormsEqual(form, initialForm), [form, initialForm])
 
 	const handleSave = () => {
 		bulkUpsert([
-			{ key: 'shopName', value: shopName, type: 'string', isPublic: true, group: 'general' },
-			{ key: 'shopUrl', value: shopUrl, type: 'string', isPublic: true, group: 'general' },
-			{ key: 'shopEmail', value: shopEmail, type: 'string', isPublic: false, group: 'general' },
-			{ key: 'maintenance', value: String(maintenance), type: 'boolean', isPublic: false, group: 'general' },
+			{ key: 'shopName', value: form.shopName, type: 'string', isPublic: true, group: 'general' },
+			{ key: 'shopUrl', value: form.shopUrl, type: 'string', isPublic: true, group: 'general' },
+			{ key: 'shopEmail', value: form.shopEmail, type: 'string', isPublic: false, group: 'general' },
+			{ key: 'maintenance', value: String(form.maintenance), type: 'boolean', isPublic: false, group: 'general' },
 		])
-		setHasChanges(false)
 	}
 
-	const markChanged = () => setHasChanges(true)
+	if (isLoading && !settings) {
+		return (
+			<div className='space-y-4'>
+				<div>
+					<h1 className='text-xl font-bold'>Настройки</h1>
+					<p className='text-sm text-muted-foreground'>Загружаем данные магазина…</p>
+				</div>
+				<Card className='border-border'>
+					<CardContent className='flex items-center gap-2 py-8 text-sm text-muted-foreground'>
+						<Loader2 className='h-4 w-4 animate-spin' />
+						Загрузка настроек...
+					</CardContent>
+				</Card>
+			</div>
+		)
+	}
+
+	if (isError) {
+		return (
+			<div className='space-y-4'>
+				<div>
+					<h1 className='text-xl font-bold'>Настройки</h1>
+					<p className='text-sm text-muted-foreground'>Не удалось загрузить данные настроек.</p>
+				</div>
+				<Card className='border-border'>
+					<CardContent className='space-y-4 py-8'>
+						<p className='text-sm text-destructive'>
+							{error.message || 'Ошибка загрузки настроек'}
+						</p>
+						<Button onClick={() => refetch()} variant='outline'>
+							Повторить
+						</Button>
+					</CardContent>
+				</Card>
+			</div>
+		)
+	}
 
 	return (
 		<div className='space-y-4'>
@@ -83,22 +163,37 @@ export default function SettingsClient() {
 							<div className='space-y-2'>
 								<label className='text-sm font-medium'>Название магазина</label>
 								<Input
-									value={shopName}
-									onChange={(e) => { setShopName(e.target.value); markChanged() }}
+									value={form.shopName}
+									onChange={(e) =>
+										setDraftForm(prev => ({
+											...(prev ?? initialForm),
+											shopName: e.target.value,
+										}))
+									}
 								/>
 							</div>
 							<div className='space-y-2'>
 								<label className='text-sm font-medium'>URL сайта</label>
 								<Input
-									value={shopUrl}
-									onChange={(e) => { setShopUrl(e.target.value); markChanged() }}
+									value={form.shopUrl}
+									onChange={(e) =>
+										setDraftForm(prev => ({
+											...(prev ?? initialForm),
+											shopUrl: e.target.value,
+										}))
+									}
 								/>
 							</div>
 							<div className='space-y-2'>
 								<label className='text-sm font-medium'>Email администратора</label>
 								<Input
-									value={shopEmail}
-									onChange={(e) => { setShopEmail(e.target.value); markChanged() }}
+									value={form.shopEmail}
+									onChange={(e) =>
+										setDraftForm(prev => ({
+											...(prev ?? initialForm),
+											shopEmail: e.target.value,
+										}))
+									}
 								/>
 							</div>
 							<div className='flex items-center justify-between py-2 border-t border-border'>
@@ -107,8 +202,13 @@ export default function SettingsClient() {
 									<div className='text-xs text-muted-foreground'>Сайт будет недоступен</div>
 								</div>
 								<Switch
-									checked={maintenance}
-									onCheckedChange={(v) => { setMaintenance(v); markChanged() }}
+									checked={form.maintenance}
+									onCheckedChange={(v) =>
+										setDraftForm(prev => ({
+											...(prev ?? initialForm),
+											maintenance: v,
+										}))
+									}
 								/>
 							</div>
 							<Button className='w-full' onClick={handleSave} disabled={isSaving || !hasChanges}>
@@ -172,7 +272,7 @@ export default function SettingsClient() {
 												{s.description && <div className='text-xs text-muted-foreground'>{s.description}</div>}
 											</div>
 											<Badge variant='secondary' className='text-[10px]'>
-												{String(s.value).slice(0, 40)}
+												{formatSettingValue(s.value).slice(0, 40)}
 											</Badge>
 										</div>
 									))}

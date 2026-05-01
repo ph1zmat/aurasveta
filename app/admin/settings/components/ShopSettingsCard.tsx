@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,17 +44,8 @@ const DEFAULT_WORKING_HOURS: WorkingHours = {
 const LOGO_INPUT_ID = 'shop-logo-upload'
 const FAVICON_INPUT_ID = 'shop-favicon-upload'
 
-export default function ShopSettingsCard() {
-	const { data: shopInfo, refetch, isLoading } = trpc.settingsBusiness.getInfo.useQuery()
-	const { mutate: updateInfo, isPending: isSaving } = trpc.settingsBusiness.updateInfo.useMutation({
-		onSuccess: () => {
-			toast.success('Настройки магазина сохранены')
-			refetch()
-		},
-		onError: (e) => toast.error(`Ошибка сохранения: ${e.message}`),
-	})
-
-	const [form, setForm] = useState<ShopFormState>({
+function createEmptyForm(): ShopFormState {
+	return {
 		phone: '',
 		additionalPhone: '',
 		email: '',
@@ -70,47 +61,90 @@ export default function ShopSettingsCard() {
 		aboutUs: '',
 		logoUrl: '',
 		faviconUrl: '',
+	}
+}
+
+function normalizeShopInfoToForm(shopInfo: unknown): ShopFormState {
+	if (!shopInfo || typeof shopInfo !== 'object') {
+		return createEmptyForm()
+	}
+
+	const typed = shopInfo as Record<string, unknown>
+	const legalInfo =
+		typed.legalInfo && typeof typed.legalInfo === 'object' && !Array.isArray(typed.legalInfo)
+			? (typed.legalInfo as Record<string, string>)
+			: {}
+
+	return {
+		phone: typeof typed.phone === 'string' ? typed.phone : '',
+		additionalPhone:
+			typeof typed.additionalPhone === 'string' ? typed.additionalPhone : '',
+		email: typeof typed.email === 'string' ? typed.email : '',
+		supportEmail: typeof typed.supportEmail === 'string' ? typed.supportEmail : '',
+		address: typeof typed.address === 'string' ? typed.address : '',
+		city: typeof typed.city === 'string' ? typed.city : '',
+		postalCode: typeof typed.postalCode === 'string' ? typed.postalCode : '',
+		workingHours:
+			typed.workingHours &&
+			typeof typed.workingHours === 'object' &&
+			!Array.isArray(typed.workingHours)
+				? (typed.workingHours as WorkingHours)
+				: DEFAULT_WORKING_HOURS,
+		socialLinks: Array.isArray(typed.socialLinks)
+			? (typed.socialLinks as SocialLink[])
+			: [],
+		legalInn: legalInfo.inn ?? '',
+		legalOgrn: legalInfo.ogrn ?? '',
+		legalKpp: legalInfo.kpp ?? '',
+		aboutUs: typeof typed.aboutUs === 'string' ? typed.aboutUs : '',
+		logoUrl: typeof typed.logoUrl === 'string' ? typed.logoUrl : '',
+		faviconUrl: typeof typed.faviconUrl === 'string' ? typed.faviconUrl : '',
+	}
+}
+
+export default function ShopSettingsCard() {
+	const utils = trpc.useUtils()
+	const [draftForm, setDraftForm] = useState<ShopFormState | null>(null)
+	const {
+		data: shopInfo,
+		refetch,
+		isLoading,
+		isError,
+		error,
+	} = trpc.settingsBusiness.getInfo.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
 	})
+	const { mutate: updateInfo, isPending: isSaving } = trpc.settingsBusiness.updateInfo.useMutation({
+		onSuccess: async () => {
+			toast.success('Настройки магазина сохранены')
+			setDraftForm(null)
+			await Promise.all([
+				utils.settingsBusiness.getInfo.invalidate(),
+				utils.setting.getAll.invalidate(),
+			])
+		},
+		onError: (e) => toast.error(`Ошибка сохранения: ${e.message}`),
+	})
+
+	const initialForm = useMemo(() => normalizeShopInfoToForm(shopInfo), [shopInfo])
+	const form = draftForm ?? initialForm
 
 	const [uploadingLogo, setUploadingLogo] = useState(false)
 	const [uploadingFavicon, setUploadingFavicon] = useState(false)
 
-	useEffect(() => {
-		if (shopInfo) {
-			const legalInfo =
-				shopInfo.legalInfo && typeof shopInfo.legalInfo === 'object'
-					? (shopInfo.legalInfo as Record<string, string>)
-					: {}
-			setForm({
-				phone: shopInfo.phone ?? '',
-				additionalPhone: shopInfo.additionalPhone ?? '',
-				email: shopInfo.email ?? '',
-				supportEmail: shopInfo.supportEmail ?? '',
-				address: shopInfo.address ?? '',
-				city: shopInfo.city ?? '',
-				postalCode: shopInfo.postalCode ?? '',
-				workingHours: (shopInfo.workingHours as WorkingHours | undefined) ?? DEFAULT_WORKING_HOURS,
-				socialLinks: (shopInfo.socialLinks as unknown as SocialLink[] | undefined) ?? [],
-				legalInn: legalInfo.inn ?? '',
-				legalOgrn: legalInfo.ogrn ?? '',
-				legalKpp: legalInfo.kpp ?? '',
-				aboutUs: shopInfo.aboutUs ?? '',
-				logoUrl: shopInfo.logoUrl ?? '',
-				faviconUrl: shopInfo.faviconUrl ?? '',
-			})
-		}
-	}, [shopInfo])
+	const hasChanges = useMemo(
+		() => JSON.stringify(form) !== JSON.stringify(initialForm),
+		[form, initialForm],
+	)
 
 	const setField = <K extends keyof ShopFormState>(key: K, value: ShopFormState[K]) => {
-		setForm((prev) => ({ ...prev, [key]: value }))
+		setDraftForm((prev) => ({ ...(prev ?? initialForm), [key]: value }))
 	}
 
 	// Социальные сети
 	const addSocialLink = () => {
-		setForm((prev) => ({
-			...prev,
-			socialLinks: [...prev.socialLinks, { platform: '', url: '' }],
-		}))
+		setField('socialLinks', [...form.socialLinks, { platform: '', url: '' }])
 	}
 
 	const updateSocialLink = (index: number, field: 'platform' | 'url', value: string) => {
@@ -208,6 +242,21 @@ export default function ShopSettingsCard() {
 			<Card className='border-border'>
 				<CardContent className='py-8 flex justify-center'>
 					<Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
+				</CardContent>
+			</Card>
+		)
+	}
+
+	if (isError) {
+		return (
+			<Card className='border-border'>
+				<CardContent className='space-y-4 py-8'>
+					<p className='text-sm text-destructive'>
+						{error.message || 'Не удалось загрузить настройки магазина'}
+					</p>
+					<Button variant='outline' onClick={() => refetch()}>
+						Повторить
+					</Button>
 				</CardContent>
 			</Card>
 		)
@@ -499,7 +548,7 @@ export default function ShopSettingsCard() {
 				</CardContent>
 			</Card>
 
-			<Button onClick={handleSave} disabled={isSaving} className='w-full sm:w-auto'>
+			<Button onClick={handleSave} disabled={isSaving || !hasChanges} className='w-full sm:w-auto'>
 				{isSaving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : <Save className='h-4 w-4 mr-2' />}
 				Сохранить настройки магазина
 			</Button>

@@ -9,7 +9,7 @@ import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import MobileCatalogMenu from '@/widgets/navigation/ui/MobileCatalogMenu'
 
-export default function MobileHeader() {
+export default function MobileHeader({ phone, logoUrl }: { phone?: string | null; logoUrl?: string | null }) {
 	const router = useRouter()
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [searchTerm, setSearchTerm] = useState('')
@@ -34,20 +34,22 @@ export default function MobileHeader() {
 					<div className='flex items-center justify-between gap-3 py-2'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
 						<Image
-							src='/aura-logo-noline-primary.png'
+							src={logoUrl ?? '/aura-logo-noline-primary.png'}
 							alt='Аура Света'
 							width={110}
 							height={40}
 							className='h-10 w-28 object-cover'
 						/>
 						</Link>
-						<a
-							href='tel:+74992292322'
-							className='flex items-center gap-1 rounded-md px-2 py-1 text-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-						>
-							<Phone className='h-4 w-4 shrink-0' />
-							<span className='text-xs font-normal sm:text-sm'>+7 (499) 229 23 22</span>
-						</a>
+						{phone && (
+							<a
+								href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+								className='flex items-center gap-1 rounded-md px-2 py-1 text-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
+							>
+								<Phone className='h-4 w-4 shrink-0' />
+								<span className='text-xs font-normal sm:text-sm'>{phone}</span>
+							</a>
+						)}
 					</div>
 
 					{/* Search row */}

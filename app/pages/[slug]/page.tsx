@@ -2,10 +2,9 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/Header'
+import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
-import ChatButton from '@/shared/ui/ChatButton'
 import Breadcrumbs from '@/shared/ui/Breadcrumbs'
 import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
 import { getMetadataForPage, seoToMetadata } from '@/lib/seo/getMetadata'
@@ -70,7 +69,7 @@ export default async function ContentPage({
 		? await prisma.pageBlock.findMany({
 				where: { pageId: page.id, isActive: true },
 				orderBy: { order: 'asc' },
-		  })
+			})
 		: []
 
 	if (!page) notFound()
@@ -100,7 +99,9 @@ export default async function ContentPage({
 					</div>
 				) : hasPageBlocks ? (
 					<article className='mx-auto max-w-3xl py-8'>
-						<h1 className='mb-6 text-3xl font-bold tracking-tight'>{page.title}</h1>
+						<h1 className='mb-6 text-3xl font-bold tracking-tight'>
+							{page.title}
+						</h1>
 						<PublicPageBlocksRenderer blocks={pageBlocks} />
 					</article>
 				) : (
@@ -127,7 +128,6 @@ export default async function ContentPage({
 			</main>
 
 			<Footer />
-			<ChatButton />
 		</div>
 	)
 }

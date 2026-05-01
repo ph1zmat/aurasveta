@@ -17,6 +17,7 @@ import { SeoScreen } from '../screens/SeoScreen'
 import { WebhooksScreen } from '../screens/WebhooksScreen'
 import { ImportExportScreen } from '../screens/ImportExportScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
+import { NavigationScreen } from '../screens/NavigationScreen'
 import { Platform, View, StyleSheet } from 'react-native'
 import { colors, fontFamily, elevation, borderRadius } from '../theme'
 import {
@@ -172,6 +173,11 @@ function MoreStackScreen() {
 			<MoreStack.Screen
 				name='Settings'
 				component={SettingsScreen}
+				options={{ headerShown: false }}
+			/>
+			<MoreStack.Screen
+				name='Navigation'
+				component={NavigationScreen}
 				options={{ headerShown: false }}
 			/>
 		</MoreStack.Navigator>

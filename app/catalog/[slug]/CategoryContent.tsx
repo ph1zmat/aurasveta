@@ -19,6 +19,7 @@ import {
 	toCatalogCardProps,
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
+import { CATALOG_GRID } from '@/shared/config/catalog-grid'
 
 const STATIC_FILTER_KEYS = {
 	isNew: 'isNew',
@@ -514,7 +515,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 								Товары не найдены
 							</div>
 						) : (
-							<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'>
+							<div className={CATALOG_GRID.sidebar}>
 								{products.map(product => (
 									<InteractiveCatalogCard
 										key={product.productId}

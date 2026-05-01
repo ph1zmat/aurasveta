@@ -26,7 +26,7 @@ export default function AdminHeader({ userRole, onMenuToggle }: AdminHeaderProps
 
 	const { data: unreadData } = trpc.notifications.countUnread.useQuery(
 		undefined,
-		{ refetchInterval: 15000 },
+		{ staleTime: 30_000, refetchOnWindowFocus: false },
 	)
 	const { data: profile } = trpc.profile.get.useQuery()
 	const unreadCount = unreadData?.count ?? 0
