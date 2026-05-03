@@ -1,0 +1,53 @@
+# Core
+.git
+.vercel
+node_modules
+.next
+out
+build
+coverage
+
+# Local env / logs
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# Desktop app artifacts
+/desktop/node_modules
+/desktop/release
+/desktop/dist
+/desktop/dist-electron
+/desktop/out
+/desktop/_extracted
+/desktop/stderr.log
+
+# Mobile app artifacts
+/mobile/node_modules
+/mobile/.expo
+/mobile/.idea
+/mobile/.watchmanconfig
+/mobile/android
+/mobile/ios
+
+# Auxiliary docs / audits not needed for Next.js deploy
+/__mobile_audit__
+/docs
+/tests
+
+# Temporary assets
+/public/download
+screenshots/
+emulator_*.png
+design-output.html
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+*.pem
+*.tsbuildinfo

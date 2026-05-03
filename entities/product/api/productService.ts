@@ -13,8 +13,6 @@ const productInclude = {
 	category: { select: { name: true, slug: true } },
 	rootCategory: { select: { name: true, slug: true } },
 	subcategory: { select: { name: true, slug: true } },
-	metaTitle: true,
-	metaDesc: true,
 	images: {
 		orderBy: { order: 'asc' },
 		select: productImageSelect,

@@ -58,7 +58,7 @@ export default function BrandsCarousel({
 					<Link
 						key={brand.slug}
 						href={brand.href ?? `/catalog?prop.brand=${brand.slug}`}
-						className='group flex h-full min-h-[144px] items-center justify-center rounded-2xl border border-border bg-card px-4 py-6 text-center text-sm font-semibold uppercase tracking-[0.24em] text-foreground/70 transition-colors hover:border-primary hover:text-primary'
+						className='group flex h-[144px] items-center justify-center rounded-2xl border border-border bg-card px-4 py-6 text-center text-sm font-semibold uppercase tracking-[0.24em] text-foreground/70 transition-colors hover:border-primary hover:text-primary'
 					>
 						{brand.name}
 					</Link>
