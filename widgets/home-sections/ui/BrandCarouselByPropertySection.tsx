@@ -104,9 +104,9 @@ export default async function BrandCarouselByPropertySection({
 					<Link
 						key={item.id}
 						href={item.href}
-						className='group flex max-h-64 max-w-64 flex-col items-center gap-3 rounded-2xl border border-border transition-colors hover:border-primary/40'
+						className='group flex max-h-64 max-w-64 flex-col items-center gap-3 rounded-2xl transition-colors'
 					>
-						<div className='flex h-[144px] w-full items-center justify-center overflow-hidden rounded-xl bg-muted/20'>
+						<div className='flex h-[72px] w-full items-center justify-center overflow-hidden rounded-xl '>
 							{item.photo ? (
 								// eslint-disable-next-line @next/next/no-img-element
 								<img
