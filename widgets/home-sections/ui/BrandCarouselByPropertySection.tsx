@@ -116,7 +116,7 @@ export default async function BrandCarouselByPropertySection({
 											: `/api/storage/file?key=${item.photo}`
 									}
 									alt={item.value}
-									className='h-full w-full object-cover'
+									className='h-full w-full object-contain group-hover:brightness-95 transition'
 								/>
 							) : (
 								<span className='px-3 text-center text-xs font-medium text-muted-foreground w-full h-full flex items-center justify-center'>
