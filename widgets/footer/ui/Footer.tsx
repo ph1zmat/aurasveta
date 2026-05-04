@@ -39,7 +39,7 @@ export default async function Footer() {
 				showInHeader: true,
 			},
 			select: { name: true, slug: true },
-			orderBy: [{ order: 'asc' }, { name: 'asc' }],
+			orderBy: { name: 'asc' },
 			take: CATEGORIES_LIMIT,
 		}),
 	])
