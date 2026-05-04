@@ -82,7 +82,7 @@ export default function CatalogProductCard({
 						{badges.map(badge => (
 							<span
 								key={badge}
-								className='rounded-sm border border-border px-2 py-0.5 text-[10px] font-medium text-white bg-accent'
+								className='rounded-sm px-2 py-0.5 text-[10px] font-medium text-white bg-accent'
 							>
 								{badge}
 							</span>
@@ -123,7 +123,7 @@ export default function CatalogProductCard({
 						<span className='font-semibold'>
 							{bonusAmount.toLocaleString('ru-RU')}
 						</span>
-						<span className='text-primary'>₽</span>
+						<span className='text-white'>₽</span>
 					</span>
 				) : null}
 			</div>

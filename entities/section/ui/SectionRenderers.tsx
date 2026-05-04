@@ -177,7 +177,7 @@ export const HeroSectionRenderer: SectionRendererComponent<'hero'> = ({
 							{config.badges.map(badge => (
 								<span
 									key={badge}
-									className='rounded-full border border-border bg-muted/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white bg-accent'
+									className='rounded-full  px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white bg-accent'
 								>
 									{badge}
 								</span>
