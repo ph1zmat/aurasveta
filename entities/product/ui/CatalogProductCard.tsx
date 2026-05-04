@@ -20,6 +20,7 @@ export interface CatalogProductCardProps {
 	productId?: string
 	isFavorite?: boolean
 	isCompare?: boolean
+	isInCart?: boolean
 	onToggleFavorite?: () => void
 	onToggleCompare?: () => void
 	onAddToCart?: () => void
@@ -39,17 +40,26 @@ export default function CatalogProductCard({
 	className,
 	isFavorite,
 	isCompare,
+	isInCart,
 	onToggleFavorite,
 	onToggleCompare,
 	onAddToCart,
 }: CatalogProductCardProps) {
+	const cartButtonLabel = isInCart ? 'В КОРЗИНЕ' : buttonLabel
+	const cartButtonDisabled = Boolean(isInCart)
+
 	return (
 		<div className={cn('group relative flex flex-col', className)}>
 			<div className='mb-1 flex items-center gap-1'>
 				<Button variant='icon' aria-label='Быстрый просмотр'>
 					<Eye className='h-4 w-4' />
 				</Button>
-				<Button variant='icon' aria-label='Сравнить' onClick={onToggleCompare}>
+				<Button
+					variant='icon'
+					aria-label='Сравнить'
+					onClick={onToggleCompare}
+					className='hidden sm:inline-flex'
+				>
 					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-primary')} />
 				</Button>
 				<Button
@@ -72,7 +82,7 @@ export default function CatalogProductCard({
 						{badges.map(badge => (
 							<span
 								key={badge}
-								className='rounded-sm border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-foreground'
+								className='rounded-sm border border-border px-2 py-0.5 text-[10px] font-medium text-white bg-accent'
 							>
 								{badge}
 							</span>
@@ -108,7 +118,7 @@ export default function CatalogProductCard({
 					{price.toLocaleString('ru-RU')} ₽
 				</span>
 				{discountPercent && bonusAmount ? (
-					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-foreground'>
+					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white'>
 						{discountPercent}%
 						<span className='font-semibold'>
 							{bonusAmount.toLocaleString('ru-RU')}
@@ -118,22 +128,25 @@ export default function CatalogProductCard({
 				) : null}
 			</div>
 
-			<div className='mt-auto flex items-center gap-3'>
+			<div className='mt-auto flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
 				{onAddToCart ? (
 					<Button
 						variant={buttonLabel === 'УТОЧНИТЬ' ? 'outline' : 'primary'}
 						size='xs'
+						className='w-full sm:w-auto'
 						onClick={onAddToCart}
+						disabled={cartButtonDisabled}
 					>
-						{buttonLabel}
+						{cartButtonLabel}
 					</Button>
 				) : (
 					<Button
 						asChild
 						variant={buttonLabel === 'УТОЧНИТЬ' ? 'outline' : 'primary'}
 						size='xs'
+						className='w-full sm:w-auto'
 					>
-						<Link href={href}>{buttonLabel}</Link>
+						<Link href={href}>{cartButtonLabel}</Link>
 					</Button>
 				)}
 				{inStock && <span className='text-xs text-primary'>{inStock}</span>}

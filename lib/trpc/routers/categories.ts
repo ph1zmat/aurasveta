@@ -17,6 +17,7 @@ import {
 	withResolvedImageAsset,
 	withResolvedProductImages,
 } from '@/lib/storage-image-assets'
+import { attachAutoBadges } from '@/lib/products/auto-badges'
 
 const categoryFilterInputSchema = z.object({
 	categoryMode: z.enum(['MANUAL', 'FILTER']).default('MANUAL'),
@@ -546,9 +547,13 @@ export const categoriesRouter = createTRPCRouter({
 			const enrichedItems = await Promise.all(
 				items.map(item => withResolvedProductImages(item, { cache })),
 			)
+			const itemsWithAutoBadges = await attachAutoBadges({
+				db: ctx.prisma,
+				products: enrichedItems,
+			})
 
 			return {
-				items: enrichedItems,
+				items: itemsWithAutoBadges,
 				total,
 				page,
 				limit,

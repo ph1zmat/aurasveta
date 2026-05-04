@@ -101,6 +101,7 @@ export default function FavoritesContent() {
 						onRemove={() => handleRemove(product.productId)}
 						onToggleCompare={() => compare.toggle(product.productId)}
 						isCompare={compare.has(product.productId)}
+						isInCart={cart.has(product.productId)}
 						onAddToCart={() => cart.add(product.productId)}
 					/>
 				))}

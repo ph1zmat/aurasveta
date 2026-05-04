@@ -125,15 +125,12 @@ export default async function CategoryPage({
 					<Header />
 					<CategoryNav />
 
-					<Suspense
-						fallback={<CategoryContentSkeleton />}
-					>
+					<Suspense fallback={<CategoryContentSkeleton />}>
 						<CategoryContent slug={slug} />
 					</Suspense>
 				</main>
 
 				<Footer />
-				<ChatButton />
 			</div>
 		</HydrateClient>
 	)

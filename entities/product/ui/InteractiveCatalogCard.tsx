@@ -55,6 +55,7 @@ export default function InteractiveCatalogCard({
 				productId={productId}
 				isFavorite={favorites.has(productId)}
 				isCompare={compare.has(productId)}
+				isInCart={cart.has(productId)}
 				onToggleFavorite={() => favorites.toggle(productId)}
 				onToggleCompare={() => compare.toggle(productId)}
 				onAddToCart={() => cart.add(productId)}

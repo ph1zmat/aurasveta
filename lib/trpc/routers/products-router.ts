@@ -17,6 +17,11 @@ import {
 	productImageSelect,
 	type ProductImageInput,
 } from '@/lib/products/product-images'
+import {
+	attachAutoBadges,
+	getAutoBadgeSettings,
+	getNewSinceDate,
+} from '@/lib/products/auto-badges'
 import { getMainImage } from '@/shared/lib/product-utils'
 
 const orderedProductImages = {
@@ -248,6 +253,9 @@ async function enrichProducts<T extends ProductWithImagesReadShape>(
 
 export const productsRouter = createTRPCRouter({
 	getMany: baseProcedure.input(productFilters).query(async ({ ctx, input }) => {
+		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+		const newSinceDate = getNewSinceDate(autoBadgeSettings)
+
 		const {
 			page,
 			limit,
@@ -341,7 +349,7 @@ export const productsRouter = createTRPCRouter({
 		if (brand) where.brand = brand
 		if (inStock !== undefined) where.stock = inStock ? { gt: 0 } : { equals: 0 }
 		if (isNew) {
-			andConditions.push({ badges: { array_contains: ['Новинка'] } })
+			andConditions.push({ createdAt: { gte: newSinceDate } })
 		}
 		if (onSale) {
 			andConditions.push({ compareAtPrice: { not: null } })
@@ -409,8 +417,15 @@ export const productsRouter = createTRPCRouter({
 			ctx.prisma.product.count({ where }),
 		])
 
+		const enrichedItems = await enrichProducts(items)
+		const itemsWithAutoBadges = await attachAutoBadges({
+			db: ctx.prisma,
+			products: enrichedItems,
+			settings: autoBadgeSettings,
+		})
+
 		return {
-			items: await enrichProducts(items),
+			items: itemsWithAutoBadges,
 			total,
 			page,
 			limit,
@@ -426,6 +441,9 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+			const newSinceDate = getNewSinceDate(autoBadgeSettings)
+
 			const { categorySlug, includeChildren } = input
 			const baseWhere: Prisma.ProductWhereInput = { isActive: true }
 
@@ -470,7 +488,7 @@ export const productsRouter = createTRPCRouter({
 					ctx.prisma.product.count({
 						where: {
 							...baseWhere,
-							badges: { array_contains: ['Новинка'] },
+							createdAt: { gte: newSinceDate },
 						},
 					}),
 					ctx.prisma.product.count({
@@ -581,21 +599,37 @@ export const productsRouter = createTRPCRouter({
 		}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
+		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
 		const product = await ctx.prisma.product.findUnique({
 			where: { slug: input },
 			include: productDetailInclude,
 		})
 
-		return product ? enrichProduct(product) : null
+		if (!product) return null
+		const enriched = await enrichProduct(product)
+		const [withBadges] = await attachAutoBadges({
+			db: ctx.prisma,
+			products: [enriched],
+			settings: autoBadgeSettings,
+		})
+		return withBadges ?? null
 	}),
 
 	getById: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
+		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
 		const product = await ctx.prisma.product.findUnique({
 			where: { id: input },
 			include: productDetailInclude,
 		})
 
-		return product ? enrichProduct(product) : null
+		if (!product) return null
+		const enriched = await enrichProduct(product)
+		const [withBadges] = await attachAutoBadges({
+			db: ctx.prisma,
+			products: [enriched],
+			settings: autoBadgeSettings,
+		})
+		return withBadges ?? null
 	}),
 
 	getAdminOptions: adminProcedure
@@ -958,22 +992,31 @@ export const productsRouter = createTRPCRouter({
 	getNew: baseProcedure
 		.input(z.number().min(1).max(50).default(8))
 		.query(async ({ ctx, input: limit }) => {
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+			const newSinceDate = getNewSinceDate(autoBadgeSettings)
+
 			const products = await ctx.prisma.product.findMany({
 				where: {
 					isActive: true,
-					badges: { array_contains: ['Новинка'] },
+					createdAt: { gte: newSinceDate },
 				},
 				orderBy: { createdAt: 'desc' },
 				take: limit,
 				select: productCardSelect,
 			})
 
-			return enrichProducts(products)
+			const enriched = await enrichProducts(products)
+			return attachAutoBadges({
+				db: ctx.prisma,
+				products: enriched,
+				settings: autoBadgeSettings,
+			})
 		}),
 
 	getSale: baseProcedure
 		.input(z.number().min(1).max(50).default(8))
 		.query(async ({ ctx, input: limit }) => {
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
 			const products = await ctx.prisma.product.findMany({
 				where: {
 					isActive: true,
@@ -984,20 +1027,31 @@ export const productsRouter = createTRPCRouter({
 				select: productCardSelect,
 			})
 
-			return enrichProducts(products)
+			const enriched = await enrichProducts(products)
+			return attachAutoBadges({
+				db: ctx.prisma,
+				products: enriched,
+				settings: autoBadgeSettings,
+			})
 		}),
 
 	getByIds: baseProcedure
 		.input(z.array(z.string()).max(50))
 		.query(async ({ ctx, input: ids }) => {
 			if (ids.length === 0) return []
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
 
 			const products = await ctx.prisma.product.findMany({
 				where: { id: { in: ids }, isActive: true },
 				select: productCatalogSelect,
 			})
 
-			return enrichProducts(products)
+			const enriched = await enrichProducts(products)
+			return attachAutoBadges({
+				db: ctx.prisma,
+				products: enriched,
+				settings: autoBadgeSettings,
+			})
 		}),
 
 	getByProperty: baseProcedure
@@ -1013,6 +1067,7 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
 			const { propertyId, propertyValueId, page, limit, sortBy } = input
 
 			const where: Prisma.ProductWhereInput = {
@@ -1055,8 +1110,15 @@ export const productsRouter = createTRPCRouter({
 				ctx.prisma.product.count({ where }),
 			])
 
+			const enrichedItems = await enrichProducts(items)
+			const itemsWithAutoBadges = await attachAutoBadges({
+				db: ctx.prisma,
+				products: enrichedItems,
+				settings: autoBadgeSettings,
+			})
+
 			return {
-				items: await enrichProducts(items),
+				items: itemsWithAutoBadges,
 				total,
 				page,
 				limit,
@@ -1199,6 +1261,9 @@ export const productsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+			const newSinceDate = getNewSinceDate(autoBadgeSettings)
+
 			const { source, propertyValueId, limit, sortBy } = input
 
 			const where: Prisma.ProductWhereInput = { isActive: true }
@@ -1208,7 +1273,7 @@ export const productsRouter = createTRPCRouter({
 					where.compareAtPrice = { not: null }
 					break
 				case 'novelty':
-					// newest sorted below
+						where.createdAt = { gte: newSinceDate }
 					break
 				case 'property':
 					if (propertyValueId) {
@@ -1248,7 +1313,12 @@ export const productsRouter = createTRPCRouter({
 				select: productCardSelect,
 			})
 
-			return enrichProducts(products)
+			const enriched = await enrichProducts(products)
+			return attachAutoBadges({
+				db: ctx.prisma,
+				products: enriched,
+				settings: autoBadgeSettings,
+			})
 		}),
 })
 

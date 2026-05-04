@@ -20,6 +20,7 @@ export interface FavoriteProductCardProps {
 	onRemove?: () => void
 	onToggleCompare?: () => void
 	isCompare?: boolean
+	isInCart?: boolean
 	onAddToCart?: () => void
 	[key: string]: unknown
 }
@@ -39,8 +40,12 @@ export default function FavoriteProductCard({
 	onRemove,
 	onToggleCompare,
 	isCompare,
+	isInCart,
 	onAddToCart,
 }: FavoriteProductCardProps) {
+	const cartButtonLabel = isInCart ? 'В КОРЗИНЕ' : 'В корзину'
+	const cartButtonDisabled = Boolean(isInCart)
+
 	return (
 		<div className={cn('group relative flex flex-col', className)}>
 			{/* Action icons row */}
@@ -128,12 +133,17 @@ export default function FavoriteProductCard({
 			{/* Button + Stock */}
 			<div className='mt-auto flex items-center gap-3'>
 				{onAddToCart ? (
-					<Button variant='primary' size='xs' onClick={onAddToCart}>
-						В корзину
+					<Button
+						variant='primary'
+						size='xs'
+						onClick={onAddToCart}
+						disabled={cartButtonDisabled}
+					>
+						{cartButtonLabel}
 					</Button>
 				) : (
 					<Button asChild variant='primary' size='xs'>
-						<Link href={href}>В корзину</Link>
+						<Link href={href}>{cartButtonLabel}</Link>
 					</Button>
 				)}
 				{inStock && <span className='text-xs text-primary'>{inStock}</span>}

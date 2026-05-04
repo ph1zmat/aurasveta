@@ -61,7 +61,9 @@ function resolveLinkHref(
 			return category ? resolveCategoryHref(category.slug) : null
 		}
 		case 'product': {
-			const product = section.products.find(item => item.id === target.productId)
+			const product = section.products.find(
+				item => item.id === target.productId,
+			)
 			return product ? resolveProductHref(product.slug) : null
 		}
 	}
@@ -76,13 +78,19 @@ function resolveLinkLabel(
 
 	switch (target.kind) {
 		case 'page':
-			return section.pages.find(item => item.id === target.pageId)?.title ?? fallback
+			return (
+				section.pages.find(item => item.id === target.pageId)?.title ?? fallback
+			)
 		case 'category':
 			return (
-				section.categories.find(item => item.id === target.categoryId)?.name ?? fallback
+				section.categories.find(item => item.id === target.categoryId)?.name ??
+				fallback
 			)
 		case 'product':
-			return section.products.find(item => item.id === target.productId)?.name ?? fallback
+			return (
+				section.products.find(item => item.id === target.productId)?.name ??
+				fallback
+			)
 		case 'external':
 			return fallback
 	}
@@ -99,7 +107,11 @@ function getProductGridClass({
 }) {
 	const mobileClass = mobile >= 2 ? 'grid-cols-2' : 'grid-cols-1'
 	const tabletClass =
-		tablet >= 3 ? 'md:grid-cols-3' : tablet >= 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'
+		tablet >= 3
+			? 'md:grid-cols-3'
+			: tablet >= 2
+				? 'md:grid-cols-2'
+				: 'md:grid-cols-1'
 	const desktopClass =
 		desktop >= 6
 			? 'xl:grid-cols-6'
@@ -165,7 +177,7 @@ export const HeroSectionRenderer: SectionRendererComponent<'hero'> = ({
 							{config.badges.map(badge => (
 								<span
 									key={badge}
-									className='rounded-full border border-border bg-muted/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground'
+									className='rounded-full border border-border bg-muted/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white bg-accent'
 								>
 									{badge}
 								</span>
@@ -223,11 +235,9 @@ export const HeroSectionRenderer: SectionRendererComponent<'hero'> = ({
 	)
 }
 
-export const ProductGridSectionRenderer: SectionRendererComponent<'product-grid'> = ({
-	title,
-	config,
-	section,
-}) => {
+export const ProductGridSectionRenderer: SectionRendererComponent<
+	'product-grid'
+> = ({ title, config, section }) => {
 	if (section.products.length === 0) return null
 
 	const cards = section.products.map(toFrontendProduct).map(toProductCardProps)
@@ -248,12 +258,7 @@ export const ProductGridSectionRenderer: SectionRendererComponent<'product-grid'
 					{heading}
 				</h2>
 			</div>
-			<div
-				className={cn(
-					'grid gap-4',
-					getProductGridClass(config.columns),
-				)}
-			>
+			<div className={cn('grid gap-4', getProductGridClass(config.columns))}>
 				{cards.map(product => (
 					<ProductCard key={product.href} {...product} />
 				))}
@@ -262,11 +267,9 @@ export const ProductGridSectionRenderer: SectionRendererComponent<'product-grid'
 	)
 }
 
-export const FeaturedCategoriesSectionRenderer: SectionRendererComponent<'featured-categories'> = ({
-	title,
-	config,
-	section,
-}) => {
+export const FeaturedCategoriesSectionRenderer: SectionRendererComponent<
+	'featured-categories'
+> = ({ title, config, section }) => {
 	if (section.categories.length === 0) return null
 
 	const categories = section.categories.map(category => ({
@@ -322,7 +325,9 @@ export const FeaturedCategoriesSectionRenderer: SectionRendererComponent<'featur
 						</div>
 						<div className='space-y-2 p-4'>
 							<div className='flex items-center justify-between gap-3'>
-								<h3 className='text-sm font-medium text-foreground'>{category.name}</h3>
+								<h3 className='text-sm font-medium text-foreground'>
+									{category.name}
+								</h3>
 								<ChevronRight className='h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5' />
 							</div>
 							{category.subcategories.length > 0 ? (
@@ -437,12 +442,18 @@ export const BenefitsSectionRenderer: SectionRendererComponent<'benefits'> = ({
 						<div className='mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary'>
 							{item.icon && /^(https?:\/\/|\/)/.test(item.icon) ? (
 								// eslint-disable-next-line @next/next/no-img-element
-								<img src={item.icon} alt='' className='h-6 w-6 object-contain' />
+								<img
+									src={item.icon}
+									alt=''
+									className='h-6 w-6 object-contain'
+								/>
 							) : (
 								<Sparkles className='h-5 w-5' />
 							)}
 						</div>
-						<h3 className='text-base font-medium text-foreground'>{item.title}</h3>
+						<h3 className='text-base font-medium text-foreground'>
+							{item.title}
+						</h3>
 						{item.description ? (
 							<p className='mt-2 text-sm leading-relaxed text-muted-foreground'>
 								{item.description}
@@ -485,12 +496,9 @@ export const FaqSectionRenderer: SectionRendererComponent<'faq'> = ({
 	)
 }
 
-export const CtaBannerSectionRenderer: SectionRendererComponent<'cta-banner'> = ({
-	title,
-	subtitle,
-	config,
-	section,
-}) => {
+export const CtaBannerSectionRenderer: SectionRendererComponent<
+	'cta-banner'
+> = ({ title, subtitle, config, section }) => {
 	const primaryHref = resolveLinkHref(config.primaryCta, section)
 	const secondaryHref = resolveLinkHref(config.secondaryCta, section)
 
@@ -522,7 +530,11 @@ export const CtaBannerSectionRenderer: SectionRendererComponent<'cta-banner'> = 
 								href={secondaryHref}
 								className='inline-flex items-center justify-center rounded-xl border border-border bg-background px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted'
 							>
-								{resolveLinkLabel(config.secondaryCta, section, 'Дополнительно')}
+								{resolveLinkLabel(
+									config.secondaryCta,
+									section,
+									'Дополнительно',
+								)}
 							</Link>
 						) : null}
 					</div>

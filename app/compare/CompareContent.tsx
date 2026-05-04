@@ -427,15 +427,21 @@ export default function CompareContent() {
 												</div>
 
 												{/* CTA */}
+													{(() => {
+														const inCart = cart.has(product.id)
+														return (
 												<Button
 													variant='primary'
 													size='xs'
 													fullWidth
 													className='mt-auto py-3'
 													onClick={() => cart.add(product.id)}
+														disabled={inCart}
 												>
-													В корзину
+														{inCart ? 'В КОРЗИНЕ' : 'В корзину'}
 												</Button>
+														)
+													})()}
 											</div>
 										</th>
 									)
