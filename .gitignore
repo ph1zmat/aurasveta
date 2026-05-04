@@ -56,6 +56,29 @@ design-output.html
 .idea/
 .vscode/
 
+# temporary / backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*~
+
+# temporary work directories
+temp/
+tmp/
+backup/
+drafts/
+wip/
+scratch/
+archive/
+
+# draft / planning artifacts
+**/*_plan.md
+**/draft*.md
+**/*wip*.md
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
@@ -65,6 +88,10 @@ design-output.html
 
 # local desktop runtime artifacts
 /desktop/stderr.log
+/dev-log.txt
+
+# local logs
+logs/
 
 # typescript
 *.tsbuildinfo
