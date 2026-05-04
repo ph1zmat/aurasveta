@@ -112,10 +112,15 @@ export default async function ProductPage({
 	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
 	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
 
-	const [quickSpecs, specGroups] = await Promise.all([
-		getQuickSpecs(product.id),
-		getProductSpecGroups(product.id),
-	])
+	const [quickSpecs, specGroups, productViews, deliveryAdvantagesSetting] =
+		await Promise.all([
+			getQuickSpecs(product.id),
+			getProductSpecGroups(product.id),
+			prisma.productView.count({ where: { productId } }).catch(() => 0),
+			prisma.setting
+				.findUnique({ where: { key: 'delivery.advantages' } })
+				.catch(() => null),
+		])
 
 	const allImages = normalizeProductImages(product.images).map(
 		image => image.url,
@@ -200,10 +205,10 @@ export default async function ProductPage({
 					<div className='lg:w-[55%]'>
 						<ProductGallery images={productImages} alt={product.name} />
 						{/* Interest counter */}
-						<InterestCounter views={24} />
+						{productViews >= 5 && <InterestCounter views={productViews} />}
 
 						{/* Delivery advantages */}
-						<DeliveryAdvantages />
+						<DeliveryAdvantages dbValue={deliveryAdvantagesSetting?.value} />
 
 						{/* Tabs + Specs (two-column layout with sticky sidebar) */}
 						<div id='product-tabs' className='flex gap-4 py-6 md:gap-8 md:py-8'>

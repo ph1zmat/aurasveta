@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Save, Loader2, Info } from 'lucide-react'
 import ShopSettingsCard from './components/ShopSettingsCard'
+import DeliveryAdvantagesCard from './components/DeliveryAdvantagesCard'
 
 type GeneralSettingsForm = {
 	shopName: string
@@ -258,6 +259,7 @@ export default function SettingsClient() {
 				<TabsList>
 					<TabsTrigger value='general'>Общие</TabsTrigger>
 					<TabsTrigger value='shop'>Магазин</TabsTrigger>
+					<TabsTrigger value='catalog'>Каталог</TabsTrigger>
 					<TabsTrigger value='security'>Безопасность</TabsTrigger>
 					<TabsTrigger value='system'>Системные</TabsTrigger>
 				</TabsList>
@@ -421,6 +423,10 @@ export default function SettingsClient() {
 
 				<TabsContent value='shop' className='mt-4'>
 					<ShopSettingsCard />
+				</TabsContent>
+
+				<TabsContent value='catalog' className='mt-4'>
+					<DeliveryAdvantagesCard />
 				</TabsContent>
 
 				<TabsContent value='security' className='mt-4'>
