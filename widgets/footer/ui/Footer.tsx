@@ -4,10 +4,9 @@ import Image from 'next/image'
 import { getFooterAboutLinks } from '@/lib/navigation/site-nav'
 import { getPublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
 import SocialIcon from '@/shared/ui/SocialIcon'
+import { prisma } from '@/lib/prisma'
 
-const catalogLinks = [
-	{ label: 'Все бренды', href: '/brands' },
-	{ label: 'Новинки', href: '/new' },
+const fallbackCategoryLinks = [
 	{ label: 'Светильники', href: '/catalog/svetilniki' },
 	{ label: 'Люстры', href: '/catalog/lyustry' },
 	{ label: 'Бра и подсветки', href: '/catalog/bra' },
@@ -17,24 +16,69 @@ const catalogLinks = [
 	{ label: 'Уличное освещение', href: '/catalog/ulichnoe-osveshenie' },
 ]
 
-const brandLinks = [
-	'Эра',
-	'Feron',
-	'Favourite',
-	'Maytoni',
-	'Arte Lamp',
-	'Odeon Light',
-	'Uniel',
-	'Citilux',
-	'ST Luce',
-	'Eglo',
-]
+const BRANDS_LIMIT = 10
+const CATEGORIES_LIMIT = 10
 
 export default async function Footer() {
-	const [aboutLinks, settings] = await Promise.all([
+	const [aboutLinks, settings, brandProperty, categories] = await Promise.all([
 		getFooterAboutLinks(),
 		getPublicStoreSettings(),
+		prisma.property.findUnique({
+			where: { slug: 'brand' },
+			select: {
+				values: {
+					orderBy: [{ order: 'asc' }, { value: 'asc' }],
+					select: { value: true, slug: true },
+					take: BRANDS_LIMIT,
+				},
+			},
+		}),
+		prisma.category.findMany({
+			where: {
+				parentId: null,
+				showInHeader: true,
+			},
+			select: { name: true, slug: true },
+			orderBy: [{ order: 'asc' }, { name: 'asc' }],
+			take: CATEGORIES_LIMIT,
+		}),
 	])
+
+	const catalogLinks =
+		categories.length > 0
+			? categories.map(category => ({
+					label: category.name,
+					href: `/catalog/${category.slug}`,
+				}))
+			: fallbackCategoryLinks
+
+	const brandLinks =
+		brandProperty?.values.length
+			? brandProperty.values
+					.filter((item): item is { value: string; slug: string } =>
+						Boolean(item.value && item.slug),
+					)
+					.map(item => ({
+						label: item.value,
+						href: `/catalog?prop.brand=${item.slug}`,
+					}))
+			: (
+					await prisma.product.findMany({
+						where: { isActive: true, brand: { not: null } },
+						select: { brand: true },
+						distinct: ['brand'],
+						orderBy: { brand: 'asc' },
+						take: BRANDS_LIMIT,
+					})
+				)
+					.map(row => row.brand)
+					.filter((brand): brand is string => Boolean(brand))
+					.map(brand => ({
+						label: brand,
+						href: `/catalog?prop.brand=${brand
+							.toLowerCase()
+							.replace(/\s+/g, '-')}`,
+					}))
 
 	return (
 		<footer className='bg-foreground text-card'>
@@ -155,12 +199,12 @@ export default async function Footer() {
 							</h3>
 							<ul className='space-y-2'>
 								{brandLinks.map(brand => (
-									<li key={brand}>
+									<li key={brand.href}>
 										<Link
-											href={`/brands/${brand.toLowerCase().replace(/\s/g, '-')}`}
+											href={brand.href}
 											className='text-sm text-card/60 hover:text-card transition-colors'
 										>
-											{brand}
+											{brand.label}
 										</Link>
 									</li>
 								))}

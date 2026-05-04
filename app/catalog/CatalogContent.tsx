@@ -101,7 +101,7 @@ export default function CatalogContent() {
 					<h2 className='mb-6 text-xl font-semibold uppercase tracking-widest text-foreground'>
 						Популярные товары
 					</h2>
-					<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4'>
+					<div className='grid grid-cols-2 gap-6 lg:grid-cols-4'>
 						{fallbackProducts.map(product => (
 							<InteractiveCatalogCard key={product.productId} {...product} />
 						))}

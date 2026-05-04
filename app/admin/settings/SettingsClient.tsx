@@ -17,11 +17,33 @@ type GeneralSettingsForm = {
 	shopUrl: string
 	shopEmail: string
 	maintenance: boolean
+	autoBadgesNewWindowDays: string
+	autoBadgesHitWindowDays: string
+	autoBadgesHitMinViews: string
+	autoBadgesHitMinOrders: string
+	autoBadgesEnableHit: boolean
+	autoBadgesEnableNew: boolean
+	autoBadgesEnableLed: boolean
+	autoBadgesEnableSmart: boolean
+	autoBadgesEnableSale: boolean
+}
+
+function readBooleanSetting(value: unknown, fallback = true): boolean {
+	if (typeof value === 'boolean') return value
+	if (value === 'false') return false
+	if (value === 'true') return true
+	return fallback
 }
 
 function readStringValue(value: unknown, fallback = '') {
 	if (typeof value === 'string') return value
 	if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+	return fallback
+}
+
+function readNumericString(value: unknown, fallback: string) {
+	if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+	if (typeof value === 'string' && value.trim().length > 0) return value
 	return fallback
 }
 
@@ -39,6 +61,27 @@ function buildGeneralSettingsForm(
 		shopUrl: readStringValue(map.get('shopUrl')),
 		shopEmail: readStringValue(map.get('shopEmail')),
 		maintenance: readStringValue(map.get('maintenance'), 'false') === 'true',
+		autoBadgesNewWindowDays: readNumericString(
+			map.get('autoBadges.newWindowDays'),
+			'2',
+		),
+		autoBadgesHitWindowDays: readNumericString(
+			map.get('autoBadges.hitWindowDays'),
+			'30',
+		),
+		autoBadgesHitMinViews: readNumericString(
+			map.get('autoBadges.hitMinViews'),
+			'20',
+		),
+		autoBadgesHitMinOrders: readNumericString(
+			map.get('autoBadges.hitMinOrders'),
+			'3',
+		),
+		autoBadgesEnableHit: readBooleanSetting(map.get('autoBadges.enableHit'), true),
+		autoBadgesEnableNew: readBooleanSetting(map.get('autoBadges.enableNew'), true),
+		autoBadgesEnableLed: readBooleanSetting(map.get('autoBadges.enableLed'), true),
+		autoBadgesEnableSmart: readBooleanSetting(map.get('autoBadges.enableSmart'), true),
+		autoBadgesEnableSale: readBooleanSetting(map.get('autoBadges.enableSale'), true),
 	}
 }
 
@@ -58,7 +101,16 @@ function areFormsEqual(a: GeneralSettingsForm, b: GeneralSettingsForm) {
 		a.shopName === b.shopName &&
 		a.shopUrl === b.shopUrl &&
 		a.shopEmail === b.shopEmail &&
-		a.maintenance === b.maintenance
+		a.maintenance === b.maintenance &&
+		a.autoBadgesNewWindowDays === b.autoBadgesNewWindowDays &&
+		a.autoBadgesHitWindowDays === b.autoBadgesHitWindowDays &&
+		a.autoBadgesHitMinViews === b.autoBadgesHitMinViews &&
+		a.autoBadgesHitMinOrders === b.autoBadgesHitMinOrders &&
+		a.autoBadgesEnableHit === b.autoBadgesEnableHit &&
+		a.autoBadgesEnableNew === b.autoBadgesEnableNew &&
+		a.autoBadgesEnableLed === b.autoBadgesEnableLed &&
+		a.autoBadgesEnableSmart === b.autoBadgesEnableSmart &&
+		a.autoBadgesEnableSale === b.autoBadgesEnableSale
 	)
 }
 
@@ -91,11 +143,67 @@ export default function SettingsClient() {
 	const hasChanges = useMemo(() => !areFormsEqual(form, initialForm), [form, initialForm])
 
 	const handleSave = () => {
+		const newWindowDays = Number(form.autoBadgesNewWindowDays)
+		const hitWindowDays = Number(form.autoBadgesHitWindowDays)
+		const hitMinViews = Number(form.autoBadgesHitMinViews)
+		const hitMinOrders = Number(form.autoBadgesHitMinOrders)
+
+		if (
+			!Number.isFinite(newWindowDays) ||
+			newWindowDays < 1 ||
+			!Number.isFinite(hitWindowDays) ||
+			hitWindowDays < 1 ||
+			!Number.isFinite(hitMinViews) ||
+			hitMinViews < 1 ||
+			!Number.isFinite(hitMinOrders) ||
+			hitMinOrders < 1
+		) {
+			toast.error('Проверьте значения порогов автобейджей: они должны быть больше 0')
+			return
+		}
+
 		bulkUpsert([
 			{ key: 'shopName', value: form.shopName, type: 'string', isPublic: true, group: 'general' },
 			{ key: 'shopUrl', value: form.shopUrl, type: 'string', isPublic: true, group: 'general' },
 			{ key: 'shopEmail', value: form.shopEmail, type: 'string', isPublic: false, group: 'general' },
 			{ key: 'maintenance', value: String(form.maintenance), type: 'boolean', isPublic: false, group: 'general' },
+			{
+				key: 'autoBadges.newWindowDays',
+				value: Math.trunc(newWindowDays),
+				type: 'number',
+				isPublic: false,
+				group: 'catalog',
+				description: 'Новинка: окно в днях от даты создания товара',
+			},
+			{
+				key: 'autoBadges.hitWindowDays',
+				value: Math.trunc(hitWindowDays),
+				type: 'number',
+				isPublic: false,
+				group: 'catalog',
+				description: 'Хит: окно анализа просмотров/заказов в днях',
+			},
+			{
+				key: 'autoBadges.hitMinViews',
+				value: Math.trunc(hitMinViews),
+				type: 'number',
+				isPublic: false,
+				group: 'catalog',
+				description: 'Хит: минимальное число просмотров за окно',
+			},
+			{
+				key: 'autoBadges.hitMinOrders',
+				value: Math.trunc(hitMinOrders),
+				type: 'number',
+				isPublic: false,
+				group: 'catalog',
+				description: 'Хит: минимальное число заказанных единиц за окно',
+			},
+			{ key: 'autoBadges.enableHit', value: String(form.autoBadgesEnableHit), type: 'boolean', isPublic: false, group: 'catalog', description: 'Включить автобейдж «Хит»' },
+			{ key: 'autoBadges.enableNew', value: String(form.autoBadgesEnableNew), type: 'boolean', isPublic: false, group: 'catalog', description: 'Включить автобейдж «Новинка»' },
+			{ key: 'autoBadges.enableLed', value: String(form.autoBadgesEnableLed), type: 'boolean', isPublic: false, group: 'catalog', description: 'Включить автобейдж «LED»' },
+			{ key: 'autoBadges.enableSmart', value: String(form.autoBadgesEnableSmart), type: 'boolean', isPublic: false, group: 'catalog', description: 'Включить автобейдж «Smart»' },
+			{ key: 'autoBadges.enableSale', value: String(form.autoBadgesEnableSale), type: 'boolean', isPublic: false, group: 'catalog', description: 'Включить автобейдж «Акция»' },
 		])
 	}
 
@@ -211,6 +319,98 @@ export default function SettingsClient() {
 									}
 								/>
 							</div>
+
+							<div className='space-y-3 border-t border-border pt-3'>
+								<div className='text-sm font-medium'>Автобейджи каталога</div>
+								<div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
+									<div className='space-y-2'>
+										<label className='text-xs text-muted-foreground'>Новинка: дней с даты создания</label>
+										<Input
+											type='number'
+											min={1}
+											value={form.autoBadgesNewWindowDays}
+											onChange={(e) =>
+												setDraftForm(prev => ({
+													...(prev ?? initialForm),
+													autoBadgesNewWindowDays: e.target.value,
+												}))
+											}
+										/>
+									</div>
+									<div className='space-y-2'>
+										<label className='text-xs text-muted-foreground'>Хит: окно анализа, дней</label>
+										<Input
+											type='number'
+											min={1}
+											value={form.autoBadgesHitWindowDays}
+											onChange={(e) =>
+												setDraftForm(prev => ({
+													...(prev ?? initialForm),
+													autoBadgesHitWindowDays: e.target.value,
+												}))
+											}
+										/>
+									</div>
+									<div className='space-y-2'>
+										<label className='text-xs text-muted-foreground'>Хит: минимум просмотров</label>
+										<Input
+											type='number'
+											min={1}
+											value={form.autoBadgesHitMinViews}
+											onChange={(e) =>
+												setDraftForm(prev => ({
+													...(prev ?? initialForm),
+													autoBadgesHitMinViews: e.target.value,
+												}))
+											}
+										/>
+									</div>
+									<div className='space-y-2'>
+										<label className='text-xs text-muted-foreground'>Хит: минимум заказанных единиц</label>
+										<Input
+											type='number'
+											min={1}
+											value={form.autoBadgesHitMinOrders}
+											onChange={(e) =>
+												setDraftForm(prev => ({
+													...(prev ?? initialForm),
+													autoBadgesHitMinOrders: e.target.value,
+												}))
+											}
+										/>
+									</div>
+								</div>
+							</div>
+
+							<div className='space-y-1 border-t border-border pt-3'>
+								<div className='text-xs font-medium text-muted-foreground mb-2'>Включить/выключить правила</div>
+								{(
+									[
+										{ key: 'autoBadgesEnableHit' as const, label: 'Хит', hint: 'по просмотрам / заказам' },
+										{ key: 'autoBadgesEnableNew' as const, label: 'Новинка', hint: 'по дате создания' },
+										{ key: 'autoBadgesEnableLed' as const, label: 'LED', hint: 'по свойствам товара' },
+										{ key: 'autoBadgesEnableSmart' as const, label: 'Smart', hint: 'по свойствам товара' },
+										{ key: 'autoBadgesEnableSale' as const, label: 'Акция', hint: 'если цена со скидкой > цены' },
+									] as const
+								).map(({ key, label, hint }) => (
+									<div key={key} className='flex items-center justify-between py-1.5'>
+										<div>
+											<span className='text-sm font-medium'>{label}</span>
+											<span className='ml-1.5 text-xs text-muted-foreground'>{hint}</span>
+										</div>
+										<Switch
+											checked={form[key]}
+											onCheckedChange={(v) =>
+												setDraftForm(prev => ({
+													...(prev ?? initialForm),
+													[key]: v,
+												}))
+											}
+										/>
+									</div>
+								))}
+							</div>
+
 							<Button className='w-full' onClick={handleSave} disabled={isSaving || !hasChanges}>
 								{isSaving ? <Loader2 className='h-4 w-4 mr-1 animate-spin' /> : <Save className='h-4 w-4 mr-1' />}
 								Сохранить

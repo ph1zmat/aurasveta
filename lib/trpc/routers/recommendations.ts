@@ -3,6 +3,7 @@ import { createTRPCRouter, baseProcedure } from '../init'
 import { productImageSelect } from '@/lib/products/product-images'
 import { withResolvedProductImages } from '@/lib/storage-image-assets'
 import type { StorageImageAsset } from '@/shared/types/storage'
+import { attachAutoBadges } from '@/lib/products/auto-badges'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' as const },
@@ -85,7 +86,8 @@ export const recommendationsRouter = createTRPCRouter({
 				select: productCardSelect,
 			})
 
-			return enrichRecommendationProducts(products)
+			const enriched = await enrichRecommendationProducts(products)
+			return attachAutoBadges({ db: ctx.prisma, products: enriched })
 		}),
 
 	/** 3.2 — Products from same brand (acts as "collection") */
@@ -114,7 +116,8 @@ export const recommendationsRouter = createTRPCRouter({
 				select: productCardSelect,
 			})
 
-			return enrichRecommendationProducts(products)
+			const enriched = await enrichRecommendationProducts(products)
+			return attachAutoBadges({ db: ctx.prisma, products: enriched })
 		}),
 
 	/** 3.3 — Popular in category (by order count + views) */
@@ -144,7 +147,8 @@ export const recommendationsRouter = createTRPCRouter({
 				select: productCardSelect,
 			})
 
-			return enrichRecommendationProducts(products)
+			const enriched = await enrichRecommendationProducts(products)
+			return attachAutoBadges({ db: ctx.prisma, products: enriched })
 		}),
 
 	/** 3.4 — Popular products globally (by views + orders last 30 days) */
@@ -172,7 +176,12 @@ export const recommendationsRouter = createTRPCRouter({
 					select: productCardSelect,
 				})
 
-				return enrichRecommendationProducts(fallbackProducts)
+				const enrichedFallback =
+					await enrichRecommendationProducts(fallbackProducts)
+				return attachAutoBadges({
+					db: ctx.prisma,
+					products: enrichedFallback,
+				})
 			}
 
 			const productIds = popularViews.map(v => v.productId)
@@ -183,11 +192,11 @@ export const recommendationsRouter = createTRPCRouter({
 
 			// Sort by view count order
 			const idOrder = new Map(productIds.map((id, i) => [id, i]))
-			return enrichRecommendationProducts(
-				products.sort(
+			const sortedProducts = products.sort(
 				(a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0),
-				),
 			)
+			const enriched = await enrichRecommendationProducts(sortedProducts)
+			return attachAutoBadges({ db: ctx.prisma, products: enriched })
 		}),
 
 	/** 3.5 — Recently viewed (server-side, from ProductView table) */
@@ -211,7 +220,8 @@ export const recommendationsRouter = createTRPCRouter({
 				},
 			})
 
-			return enrichRecommendationProducts(views.map(v => v.product))
+			const enriched = await enrichRecommendationProducts(views.map(v => v.product))
+			return attachAutoBadges({ db: ctx.prisma, products: enriched })
 		}),
 
 	/** 3.6 — Popular searches (last 7 days) */

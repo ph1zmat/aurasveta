@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { createTRPCRouter, baseProcedure } from '../init'
+import { attachAutoBadges } from '@/lib/products/auto-badges'
 
 const searchInput = z.object({
 	query: z.string().min(1, 'Поисковый запрос не может быть пустым'),
@@ -184,6 +185,21 @@ export const searchRouter = createTRPCRouter({
 
 		const total = Number(countResult[0]?.count ?? 0)
 
+		const searchProducts = resultItems.map(row => ({
+			id: row.id,
+			createdAt: row.created_at,
+			price: row.price,
+			compareAtPrice: row.compare_at_price,
+			badges: row.badges,
+		}))
+		const productsWithAutoBadges = await attachAutoBadges({
+			db: ctx.prisma,
+			products: searchProducts,
+		})
+		const autoBadgesById = new Map(
+			productsWithAutoBadges.map(product => [product.id, product.badges]),
+		)
+
 		return {
 			items: resultItems.map(row => ({
 				id: row.id,
@@ -199,7 +215,7 @@ export const searchRouter = createTRPCRouter({
 				brandCountry: row.brand_country,
 				rating: row.rating,
 				reviewsCount: row.reviews_count,
-				badges: row.badges,
+				badges: autoBadgesById.get(row.id) ?? [],
 				isActive: row.is_active,
 				categoryId: row.category_id,
 				rootCategoryId: row.root_category_id,

@@ -38,15 +38,12 @@ export default async function CatalogPage() {
 						</p>
 					</div>
 
-					<Suspense
-						fallback={<CatalogContentSkeleton />}
-					>
+					<Suspense fallback={<CatalogContentSkeleton />}>
 						<CatalogContent />
 					</Suspense>
 				</main>
 
 				<Footer />
-				<ChatButton />
 			</div>
 		</HydrateClient>
 	)

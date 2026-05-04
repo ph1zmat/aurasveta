@@ -24,15 +24,12 @@ export default async function CartPage() {
 					<Header />
 					<CategoryNav />
 
-					<Suspense
-						fallback={<CartContentSkeleton />}
-					>
+					<Suspense fallback={<CartContentSkeleton />}>
 						<CartContent />
 					</Suspense>
 				</main>
 
 				<Footer />
-				<ChatButton />
 			</div>
 		</HydrateClient>
 	)

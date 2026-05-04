@@ -40,6 +40,7 @@
 		"@trpc/next": "^11.16.0",
 		"@trpc/react-query": "^11.16.0",
 		"@trpc/server": "^11.16.0",
+		"autoskill": "^0.1.0",
 		"better-auth": "^1.5.6",
 		"chiron-go-round-tc-webfont": "^1.0.10",
 		"class-variance-authority": "^0.7.1",

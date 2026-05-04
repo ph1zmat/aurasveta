@@ -14,6 +14,7 @@ export interface CompareProductCardProps {
 	onRemove?: () => void
 	onToggleFavorite?: () => void
 	isFavorite?: boolean
+	isInCart?: boolean
 	onAddToCart?: () => void
 }
 
@@ -27,9 +28,12 @@ export default function CompareProductCard({
 	onRemove,
 	onToggleFavorite,
 	isFavorite,
+	isInCart,
 	onAddToCart,
 }: CompareProductCardProps) {
 	const hasDiscount = oldPrice !== undefined && oldPrice > price
+	const cartButtonLabel = isInCart ? 'В КОРЗИНЕ' : 'В корзину'
+	const cartButtonDisabled = Boolean(isInCart)
 
 	return (
 		<div className={cn('flex flex-col', className)}>
@@ -92,8 +96,9 @@ export default function CompareProductCard({
 				fullWidth
 				className='mt-auto py-3'
 				onClick={onAddToCart}
+				disabled={cartButtonDisabled}
 			>
-				В корзину
+				{cartButtonLabel}
 			</Button>
 		</div>
 	)
