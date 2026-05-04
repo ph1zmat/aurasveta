@@ -200,7 +200,7 @@ export default async function ProductPage({
 				</div>
 
 				{/* Main content: Gallery + Right sidebar */}
-				<div className='flex flex-col gap-8 lg:flex-row'>
+				<div className='flex flex-col gap-14 lg:flex-row'>
 					{/* Left: Gallery */}
 					<div className='lg:w-[55%]'>
 						<ProductGallery images={productImages} alt={product.name} />
