@@ -19,11 +19,34 @@ const fallbackCategoryLinks = [
 const BRANDS_LIMIT = 10
 const CATEGORIES_LIMIT = 10
 
-export default async function Footer() {
-	const [aboutLinks, settings, brandProperty, categories] = await Promise.all([
-		getFooterAboutLinks(),
-		getPublicStoreSettings(),
-		prisma.property.findUnique({
+async function getFooterCatalogLinks() {
+	try {
+		const categories = await prisma.category.findMany({
+			where: {
+				parentId: null,
+				showInHeader: true,
+			},
+			select: { name: true, slug: true },
+			orderBy: { name: 'asc' },
+			take: CATEGORIES_LIMIT,
+		})
+
+		if (categories.length === 0) {
+			return fallbackCategoryLinks
+		}
+
+		return categories.map(category => ({
+			label: category.name,
+			href: `/catalog/${category.slug}`,
+		}))
+	} catch {
+		return fallbackCategoryLinks
+	}
+}
+
+async function getFooterBrandLinks() {
+	try {
+		const brandProperty = await prisma.property.findUnique({
 			where: { slug: 'brand' },
 			select: {
 				values: {
@@ -32,53 +55,46 @@ export default async function Footer() {
 					take: BRANDS_LIMIT,
 				},
 			},
-		}),
-		prisma.category.findMany({
-			where: {
-				parentId: null,
-				showInHeader: true,
-			},
-			select: { name: true, slug: true },
-			orderBy: { name: 'asc' },
-			take: CATEGORIES_LIMIT,
-		}),
-	])
+		})
 
-	const catalogLinks =
-		categories.length > 0
-			? categories.map(category => ({
-					label: category.name,
-					href: `/catalog/${category.slug}`,
-				}))
-			: fallbackCategoryLinks
-
-	const brandLinks =
-		brandProperty?.values.length
-			? brandProperty.values
-					.filter((item): item is { value: string; slug: string } =>
-						Boolean(item.value && item.slug),
-					)
-					.map(item => ({
-						label: item.value,
-						href: `/catalog?prop.brand=${item.slug}`,
-					}))
-			: (
-					await prisma.product.findMany({
-						where: { isActive: true, brand: { not: null } },
-						select: { brand: true },
-						distinct: ['brand'],
-						orderBy: { brand: 'asc' },
-						take: BRANDS_LIMIT,
-					})
+		if (brandProperty?.values.length) {
+			return brandProperty.values
+				.filter((item): item is { value: string; slug: string } =>
+					Boolean(item.value && item.slug),
 				)
-					.map(row => row.brand)
-					.filter((brand): brand is string => Boolean(brand))
-					.map(brand => ({
-						label: brand,
-						href: `/catalog?prop.brand=${brand
-							.toLowerCase()
-							.replace(/\s+/g, '-')}`,
-					}))
+				.map(item => ({
+					label: item.value,
+					href: `/catalog?prop.brand=${item.slug}`,
+				}))
+		}
+
+		const brands = await prisma.product.findMany({
+			where: { isActive: true, brand: { not: null } },
+			select: { brand: true },
+			distinct: ['brand'],
+			orderBy: { brand: 'asc' },
+			take: BRANDS_LIMIT,
+		})
+
+		return brands
+			.map(row => row.brand)
+			.filter((brand): brand is string => Boolean(brand))
+			.map(brand => ({
+				label: brand,
+				href: `/catalog?prop.brand=${brand.toLowerCase().replace(/\s+/g, '-')}`,
+			}))
+	} catch {
+		return []
+	}
+}
+
+export default async function Footer() {
+	const [aboutLinks, settings, catalogLinks, brandLinks] = await Promise.all([
+		getFooterAboutLinks(),
+		getPublicStoreSettings(),
+		getFooterCatalogLinks(),
+		getFooterBrandLinks(),
+	])
 
 	return (
 		<footer className='bg-foreground text-card'>

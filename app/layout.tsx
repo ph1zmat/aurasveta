@@ -32,8 +32,8 @@ export default async function RootLayout({
 	children: React.ReactNode
 }>) {
 	// Prefetch categories for navigation components (CategoryNav, MobileCatalogMenu)
-	void trpc.categories.getNav.prefetch()
-	void trpc.categories.getHeaderTree.prefetch()
+	void trpc.categories.getNav.prefetch().catch(() => {})
+	void trpc.categories.getHeaderTree.prefetch().catch(() => {})
 
 	const storeSettings = await getPublicStoreSettings()
 
