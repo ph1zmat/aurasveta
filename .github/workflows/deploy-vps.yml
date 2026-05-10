@@ -44,7 +44,8 @@ jobs:
             set +a
 
             # Зависимости + Prisma типы
-            npm ci
+            rm -rf node_modules
+            NODE_OPTIONS=--max-old-space-size=1024 npm ci --no-audit --no-fund
             ./node_modules/.bin/prisma generate
 
             # Production build
