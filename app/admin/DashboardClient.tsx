@@ -360,7 +360,7 @@ export default function DashboardClient() {
 						) : (
 							<table className='w-full text-sm'>
 								<tbody>
-									{(topProducts ?? []).map((tp, i) => (
+									{(topProducts ?? []).map((tp: NonNullable<typeof topProducts>[number], i: number) => (
 										<tr
 											key={tp.productId}
 											className='border-t border-border hover:bg-secondary/50 transition-colors cursor-pointer'
@@ -438,7 +438,7 @@ export default function DashboardClient() {
 									</tr>
 								</thead>
 								<tbody>
-									{(recentOrders?.items ?? []).map((order) => {
+									{(recentOrders?.items ?? []).map((order: NonNullable<NonNullable<typeof recentOrders>['items']>[number]) => {
 										const initials = order.user?.name
 											? order.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 											: '??'

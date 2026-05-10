@@ -53,9 +53,9 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 			<div className='space-y-8'>
 				{leftGroups.map(group => (
 					<div key={group.title}>
-						<h4 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
+						<h3 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
 							{group.title}
-						</h4>
+						</h3>
 						<div>
 							{group.rows.map(row => (
 								<SpecRowCell key={row.label} row={row} />
@@ -67,9 +67,9 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 			<div className='space-y-8'>
 				{rightGroups.map(group => (
 					<div key={group.title}>
-						<h4 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
+						<h3 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
 							{group.title}
-						</h4>
+						</h3>
 						<div>
 							{group.rows.map(row => (
 								<SpecRowCell key={row.label} row={row} />

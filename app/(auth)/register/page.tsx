@@ -5,6 +5,7 @@ import RegisterForm from './RegisterForm'
 export const metadata: Metadata = {
 	title: 'Регистрация — Аура Света',
 	description: 'Создайте аккаунт в интернет-магазине Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default async function RegisterPage() {

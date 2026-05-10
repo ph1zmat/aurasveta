@@ -212,7 +212,8 @@ export default function SettingsClient() {
 		return (
 			<div className='space-y-4'>
 				<div>
-					<h1 className='text-xl font-bold'>Настройки</h1>
+					{/* h1 только в основном render — здесь переходное состояние (SEO-CLAIM-021) */}
+					<p className='text-xl font-bold'>Настройки</p>
 					<p className='text-sm text-muted-foreground'>Загружаем данные магазина…</p>
 				</div>
 				<Card className='border-border'>
@@ -229,7 +230,8 @@ export default function SettingsClient() {
 		return (
 			<div className='space-y-4'>
 				<div>
-					<h1 className='text-xl font-bold'>Настройки</h1>
+					{/* h1 только в основном render — здесь состояние ошибки (SEO-CLAIM-021) */}
+					<p className='text-xl font-bold'>Настройки</p>
 					<p className='text-sm text-muted-foreground'>Не удалось загрузить данные настроек.</p>
 				</div>
 				<Card className='border-border'>

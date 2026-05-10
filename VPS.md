@@ -3,6 +3,17 @@
 Этот документ объединяет все предыдущие инструкции в один пошаговый чек-лист.  
 Он охватывает начальную настройку сервера, базу данных, деплой приложения, безопасность, домен и HTTPS, а также объясняет нюансы с переменными окружения.
 
+## Актуализация (май 2026)
+
+После инцидента 500/502 и восстановления production зафиксированы отдельные runbook-документы:
+
+- `docs/operations/manual-build-deploy.md` — ручной деплой build-артефакта `.next` для low-memory VPS
+- `docs/operations/db-migration-neon-to-vps-postgres.md` — миграция БД Neon → VPS PostgreSQL
+- `docs/operations/storage-migration-s3.md` — миграция/переключение объектного хранилища S3
+- `docs/operations/incident-2026-05-07-vps-500-502.md` — postmortem инцидента и профилактика
+
+Для production используйте запуск через `next start` (systemd), а не `next dev`.
+
 ## 0. Предварительные требования
 
 - VPS с Ubuntu 22.04/24.04 (рекомендуется)
@@ -587,6 +598,48 @@ sudo systemctl restart aurasveta
 - [ ] Сайт открывается по IP и возвращает 200
 - [ ] Домен привязан, HTTPS работает, `certbot renew` проходит
 - [ ] После привязки домена обновлены публичные URL в .env.production
+
+---
+
+## 13. CI/CD: автоматический деплой при push в `main`
+
+В репозитории добавлен workflow: `.github/workflows/deploy-vps.yml`.
+
+Он делает следующее:
+
+1. Подключается к VPS по SSH.
+2. Синхронизирует код до `origin/main`.
+3. Выполняет `npm ci`.
+4. Загружает переменные из `.env.production`.
+5. Запускает `prisma generate`.
+6. Собирает production (`next build --webpack`).
+7. Перезапускает `aurasveta.service`.
+
+### 13.1. Какие GitHub Secrets нужно задать
+
+В настройках GitHub-репозитория добавьте:
+
+- `VPS_HOST` — IP сервера (например, `87.232.65.84`)
+- `VPS_PORT` — обычно `22`
+- `VPS_USER` — пользователь для SSH (рекомендуется не `root`, а `aurasveta` с нужными sudo-правами)
+- `VPS_SSH_KEY` — приватный SSH-ключ (например, ed25519), соответствующий публичному ключу в `~/.ssh/authorized_keys` на VPS
+
+### 13.2. Рекомендации по безопасности
+
+- Не используйте парольный SSH для CI; только ключи.
+- Для деплоя создайте отдельного пользователя с минимально необходимыми правами.
+- Ограничьте sudo-команды (например, только `systemctl restart aurasveta`).
+
+### 13.3. Проверка
+
+1. Сделайте test-push в `main`.
+2. Убедитесь, что workflow прошёл успешно в GitHub Actions.
+3. На сервере проверьте:
+
+```bash
+systemctl status aurasveta --no-pager
+curl -I https://aurasveta.by
+```
 
 ---
 

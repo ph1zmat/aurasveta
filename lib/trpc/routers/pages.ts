@@ -2,8 +2,13 @@ import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, editorProcedure } from '../init'
 import { deleteFile } from '@/lib/storage'
 import { withResolvedImageAsset } from '@/lib/storage-image-assets'
-import { pageLegacySeoToFields, upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
+import {
+	mergeSeoFields,
+	pageLegacySeoToFields,
+	upsertSeoMetadata,
+} from '@/lib/seo/metadata-persistence'
 import { SectionBackgroundSchema, SectionTypeSchema } from '@/shared/types/sections'
+import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
 	createPageVersionSnapshotInput,
 	replacePageSections,
@@ -207,13 +212,14 @@ export const pagesRouter = createTRPCRouter({
 				image: z.string().optional(),
 				metaTitle: z.string().optional(),
 				metaDesc: z.string().optional(),
+				seo: SeoFieldsInputSchema.optional(),
 				isPublished: z.boolean().default(false),
 				sections: z.array(pageSectionInputSchema).optional(),
 				blocks: z.array(pageBlockInputSchema).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { sections, blocks, ...pageInput } = input
+			const { sections, blocks, seo, ...pageInput } = input
 
 			return ctx.prisma.$transaction(async tx => {
 				const page = await tx.page.create({
@@ -236,10 +242,13 @@ export const pagesRouter = createTRPCRouter({
 				await upsertSeoMetadata(tx, {
 					targetType: 'page',
 					targetId: page.id,
-					fields: pageLegacySeoToFields({
-						metaTitle: page.metaTitle,
-						metaDesc: page.metaDesc,
-					}),
+					fields: mergeSeoFields(
+						pageLegacySeoToFields({
+							metaTitle: page.metaTitle,
+							metaDesc: page.metaDesc,
+						}),
+						seo,
+					),
 				})
 
 				await tx.pageVersion.create({

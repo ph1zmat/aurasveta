@@ -7,6 +7,7 @@ import { trpc, HydrateClient } from '@/lib/trpc/server'
 export const metadata: Metadata = {
 	title: 'Поиск товаров | Aura Sveta',
 	description: 'Поиск по каталогу товаров',
+	robots: { index: false, follow: false },
 }
 
 export default async function SearchPage({

@@ -1,119 +1,52 @@
-# Деплой Аура Света
+# Деплой Aurasveta
+
+Документ фиксирует рабочую production-стратегию после инцидента 500/502 (май 2026).
+
+## Ключевой вывод
+
+Для текущего VPS с ограниченной памятью нельзя рассчитывать на стабильный `next dev --webpack` на сервере.
+
+Рекомендуемый путь для production:
+
+1. Сборка `next build` локально или в CI.
+2. Доставка готового `.next` артефакта на VPS.
+3. Запуск только через `next start` (systemd-сервис `aurasveta.service`).
 
 ## Требования
 
 - Node.js 20+
-- PostgreSQL (рекомендуется NeonDB для serverless)
-- npm или pnpm
+- npm
+- PostgreSQL
+- настроенный `systemd` сервис `aurasveta`
+- корректный `.env.production` в `/var/www/aurasveta/current`
 
-## Vercel (рекомендуется)
+## Базовая схема деплоя на VPS
 
-### 1. Подключить репозиторий
+1. Обновить код и зависимости.
+2. Применить миграции БД (`prisma migrate deploy`).
+3. Получить production build (`.next`) — локально или в CI.
+4. Доставить артефакт на VPS.
+5. Заменить старый `.next`, проверить наличие `.next/BUILD_ID`.
+6. Перезапустить `aurasveta.service`.
+7. Проверить `LOCAL` и `DOMAIN` (коды 200).
 
-- Зайти на [vercel.com](https://vercel.com)
-- Импортировать Git-репозиторий
-- Framework Preset: Next.js (определится автоматически)
+Подробный пошаговый runbook: `docs/operations/manual-build-deploy.md`.
 
-### 2. Настроить переменные окружения
+## Важные production-ограничения
 
-В Settings → Environment Variables добавить:
+- Не запускать production через `next dev`.
+- Не смешивать Turbopack и webpack-режим без явного флага.
+- `NODE_ENV` должен быть стандартным (`production` для прода).
+- `DATABASE_URL` обязан быть доступен в окружении сервиса (`EnvironmentFile=.env.production`).
+- Если отсутствует `.next/BUILD_ID`, `next start` не поднимется.
 
-```
-DATABASE_URL=postgresql://...
-BETTER_AUTH_SECRET=<сгенерировать: openssl rand -hex 32>
-NEXT_PUBLIC_BETTER_AUTH_URL=https://your-domain.vercel.app
+## Миграции и переносы
 
-# Опционально: OAuth провайдеры
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-```
+- Миграции БД: `docs/operations/db-migration-neon-to-vps-postgres.md`
+- Миграции объектного хранилища: `docs/operations/storage-migration-s3.md`
 
-### 3. Настроить базу данных
+## Инцидент и разбор
 
-```bash
-# Применить миграции
-npx prisma migrate deploy
+Postmortem с симптомами/причинами/решением:
 
-# Заполнить тестовыми данными (опционально)
-npx prisma db seed
-```
-
-### 4. Деплой
-
-```bash
-vercel --prod
-```
-
-Или настроить автодеплой при пуше в main.
-
-## Docker (самостоятельный хостинг)
-
-```dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-
-FROM node:20-alpine AS runner
-WORKDIR /app
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-
-ENV NODE_ENV=production
-EXPOSE 3000
-CMD ["node", "server.js"]
-```
-
-```bash
-docker build -t aurasveta .
-docker run -p 3000:3000 --env-file .env aurasveta
-```
-
-## VPS / Linux
-
-```bash
-# Склонировать и установить
-git clone <repo-url> /opt/aurasveta
-cd /opt/aurasveta
-npm ci
-
-# Настроить .env
-cp .env.example .env
-nano .env
-
-# Подготовить БД
-npx prisma migrate deploy
-npx prisma db seed
-
-# Собрать и запустить
-npm run build
-npm run start
-```
-
-Для production рекомендуется использовать PM2:
-
-```bash
-npm install -g pm2
-pm2 start npm --name "aurasveta" -- start
-pm2 save
-pm2 startup
-```
-
-## Миграции БД при обновлении
-
-```bash
-# Перед каждым деплоем
-npx prisma migrate deploy
-```
-
-## Мониторинг
-
-- Vercel Analytics — встроено при деплое на Vercel
-- Prisma Studio — `npx prisma studio` для просмотра данных
-- PM2 Monitor — `pm2 monit` при использовании PM2
+- `docs/operations/incident-2026-05-07-vps-500-502.md`

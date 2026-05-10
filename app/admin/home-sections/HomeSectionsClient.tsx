@@ -60,8 +60,14 @@ function SortableCard({
 	onDelete: (id: string) => void
 	onToggle: (id: string, val: boolean) => void
 }) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-		useSortable({ id: section.id })
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: section.id })
 
 	const style: React.CSSProperties = {
 		transform: CSS.Transform.toString(transform),
@@ -92,7 +98,7 @@ function SortableCard({
 					<div className='flex items-center gap-1 shrink-0'>
 						<Switch
 							checked={section.isActive}
-							onCheckedChange={(v) => onToggle(section.id, v)}
+							onCheckedChange={v => onToggle(section.id, v)}
 						/>
 						<Button
 							variant='ghost'
@@ -157,19 +163,20 @@ export default function HomeSectionsClient() {
 			setLocalOrder(null)
 		},
 	})
-	const { mutate: reorder, isPending: reordering } = trpc.homeSection.reorder.useMutation({
-		onSuccess: () => {
-			toast.success('Порядок сохранён')
-			refetch()
-			setLocalOrder(null)
-			setDirty(false)
-		},
-	})
+	const { mutate: reorder, isPending: reordering } =
+		trpc.homeSection.reorder.useMutation({
+			onSuccess: () => {
+				toast.success('Порядок сохранён')
+				refetch()
+				setLocalOrder(null)
+				setDirty(false)
+			},
+		})
 
 	const sorted = [...(sections ?? [])].sort((a, b) => a.order - b.order)
-	const displayIds = localOrder ?? sorted.map((s) => s.id)
+	const displayIds = localOrder ?? sorted.map(s => s.id)
 	const displaySections = displayIds
-		.map((id) => sorted.find((s) => s.id === id))
+		.map(id => sorted.find(s => s.id === id))
 		.filter(Boolean) as Section[]
 
 	const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -194,7 +201,7 @@ export default function HomeSectionsClient() {
 	/* eslint-enable react-hooks/preserve-manual-memoization */
 
 	const handlePublish = () => {
-		const ids = localOrder ?? sorted.map((s) => s.id)
+		const ids = localOrder ?? sorted.map(s => s.id)
 		reorder(ids.map((id, i) => ({ id, order: i })))
 	}
 
@@ -206,7 +213,7 @@ export default function HomeSectionsClient() {
 		})
 	}
 
-	const activeSection = activeId ? sorted.find((s) => s.id === activeId) : null
+	const activeSection = activeId ? sorted.find(s => s.id === activeId) : null
 
 	return (
 		<div className='space-y-4'>
@@ -220,7 +227,9 @@ export default function HomeSectionsClient() {
 				</div>
 				<div className='flex items-center gap-2'>
 					{dirty && (
-						<span className='text-xs text-warning font-medium'>Несохранённые изменения</span>
+						<span className='text-xs text-warning font-medium'>
+							Несохранённые изменения
+						</span>
 					)}
 					{dirty && (
 						<Button size='sm' onClick={handlePublish} disabled={reordering}>
@@ -263,14 +272,16 @@ export default function HomeSectionsClient() {
 						<CardTitle className='text-base font-bold'>Типы секций</CardTitle>
 					</CardHeader>
 					<CardContent className='space-y-2 p-3'>
-						{(sectionTypes ?? []).map((st) => (
+						{(sectionTypes ?? []).map(st => (
 							<div
 								key={st.id}
 								className='flex items-center gap-2 p-2.5 rounded-md border border-border bg-card hover:border-accent hover:bg-accent/5 transition-colors'
 							>
 								<div className='flex-1 min-w-0'>
 									<div className='text-sm font-medium'>{st.name}</div>
-									<div className='text-xs text-muted-foreground'>{st.component}</div>
+									<div className='text-xs text-muted-foreground'>
+										{st.component}
+									</div>
 								</div>
 								<Button
 									size='icon'
@@ -283,7 +294,9 @@ export default function HomeSectionsClient() {
 							</div>
 						))}
 						{(sectionTypes ?? []).length === 0 && (
-							<div className='text-xs text-muted-foreground text-center py-4'>Нет типов секций</div>
+							<div className='text-xs text-muted-foreground text-center py-4'>
+								Нет типов секций
+							</div>
 						)}
 					</CardContent>
 				</Card>
@@ -296,7 +309,9 @@ export default function HomeSectionsClient() {
 						<span className='text-xs text-muted-foreground font-medium uppercase tracking-wider'>
 							{device === 'mobile' ? 'Мобильный вид · 390px' : 'Полный вид'}
 						</span>
-						<span className='text-xs text-muted-foreground'>{sorted.length} секций</span>
+						<span className='text-xs text-muted-foreground'>
+							{sorted.length} секций
+						</span>
 					</div>
 
 					<DndContext
@@ -305,13 +320,16 @@ export default function HomeSectionsClient() {
 						onDragStart={handleDragStart}
 						onDragEnd={handleDragEnd}
 					>
-						<SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
-							{displaySections.map((section) => (
+						<SortableContext
+							items={displayIds}
+							strategy={verticalListSortingStrategy}
+						>
+							{displaySections.map(section => (
 								<SortableCard
 									key={section.id}
 									section={section}
-									onEdit={(s) => setEditingSection(s)}
-									onDelete={(id) => deleteSection(id)}
+									onEdit={s => setEditingSection(s)}
+									onDelete={id => deleteSection(id)}
 									onToggle={(id, val) => updateSection({ id, isActive: val })}
 								/>
 							))}
@@ -323,9 +341,12 @@ export default function HomeSectionsClient() {
 									<CardHeader className='flex flex-row items-center gap-2 py-3 px-4'>
 										<GripVertical className='h-4 w-4 text-muted-foreground' />
 										<Badge variant='secondary' className='text-[10px]'>
-											{activeSection.sectionType?.name ?? activeSection.sectionTypeId}
+											{activeSection.sectionType?.name ??
+												activeSection.sectionTypeId}
 										</Badge>
-										<span className='text-sm font-medium'>{activeSection.title ?? '—'}</span>
+										<span className='text-sm font-medium'>
+											{activeSection.title ?? '—'}
+										</span>
 									</CardHeader>
 								</Card>
 							)}

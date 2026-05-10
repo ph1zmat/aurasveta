@@ -31,20 +31,10 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # desktop
-/desktop/node_modules
-/desktop/release
-/desktop/dist
-/desktop/dist-electron
-/desktop/out
-/desktop/_extracted
+/desktop
 
 # mobile
-/mobile/node_modules
-/mobile/.expo
-/mobile/.idea
-/mobile/.watchmanconfig
-/mobile/android
-/mobile/ios
+/mobile
 
 # screenshots / temp images
 emulator_*.png
@@ -99,3 +89,11 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# Исключить файлы с реальными секретами
+VPS_PROD_ENV.md
+HOSTER_API.md
+
+# исключить всю документацию кроме README
+docs/**
+!docs/README.md

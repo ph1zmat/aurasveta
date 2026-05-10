@@ -8,6 +8,7 @@ import { CompareContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 export const metadata = {
 	title: 'Сравнение — Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default function ComparePage() {

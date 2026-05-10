@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import type { Prisma } from '@prisma/client'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/HeaderServer'
@@ -6,6 +7,20 @@ import Footer from '@/widgets/footer/ui/Footer'
 import PublicSectionRenderer from '@/entities/section/ui/PublicSectionRenderer'
 import DynamicHomeSection from '@/widgets/home-sections/ui/DynamicHomeSection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/public-page-data'
+
+export const metadata: Metadata = {
+	title: 'Интернет-магазин люстр и светильников в Мозыре — Аура Света',
+	description:
+		'Аура Света — купить люстры, бра, потолочные светильники и декор в Мозыре. Широкий ассортимент, доставка по Беларуси.',
+	openGraph: {
+		url: 'https://aurasveta.by',
+		type: 'website',
+		images: [{ url: '/images/og-home.jpg', width: 1200, height: 630, alt: 'Аура Света' }],
+	},
+	alternates: {
+		canonical: 'https://aurasveta.by',
+	},
+}
 import { prisma } from '@/lib/prisma'
 
 const homeSectionsInclude = { sectionType: true } as const

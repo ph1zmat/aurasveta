@@ -24,7 +24,7 @@ import {
 import dynamic from 'next/dynamic'
 
 const CategoryFormModal = dynamic(() => import('./components/CategoryFormModal'))
-import { MediaPicker } from '@/packages/shared-admin/src/ui/admin/MediaPicker'
+import { MediaPicker, SeoEditor } from '@/packages/shared-admin/src/ui/admin'
 
 type CategoryEditorValue = {
 	id: string
@@ -67,25 +67,12 @@ export default function CategoriesClient() {
 
 	const selected = categories?.find(c => c.id === selectedId)
 
-	const { data: seoData } = trpc.seo.getByTarget.useQuery(
-		{ targetType: 'category', targetId: selected?.id ?? '' },
-		{ enabled: !!selected },
-	)
-
-	const { mutate: updateSeo } = trpc.seo.update.useMutation({
-		onSuccess: () => {
-			toast.success('SEO сохранено')
-		},
-	})
-
 	const [editName, setEditName] = useState('')
 	const [editSlug, setEditSlug] = useState('')
 	const [editDescription, setEditDescription] = useState('')
 	const [editShowInHeader, setEditShowInHeader] = useState(true)
 	const [editImagePath, setEditImagePath] = useState<string | null>(null)
 	const [, setEditImageOriginalName] = useState<string | null>(null)
-	const [editMetaTitle, setEditMetaTitle] = useState('')
-	const [editMetaDesc, setEditMetaDesc] = useState('')
 
 	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
@@ -100,15 +87,6 @@ export default function CategoriesClient() {
 	}, [selected])
 	/* eslint-enable react-hooks/set-state-in-effect */
 
-	/* eslint-disable react-hooks/set-state-in-effect */
-	useEffect(() => {
-		if (seoData) {
-			setEditMetaTitle(seoData.title ?? '')
-			setEditMetaDesc(seoData.description ?? '')
-		}
-	}, [seoData])
-	/* eslint-enable react-hooks/set-state-in-effect */
-
 	const handleSaveDetail = () => {
 		if (!selected) return
 		updateCategory({
@@ -119,20 +97,6 @@ export default function CategoriesClient() {
 			showInHeader: editShowInHeader,
 			imagePath: editImagePath ?? undefined,
 		})
-		if (editMetaTitle || editMetaDesc) {
-			updateSeo({
-				targetType: 'category',
-				targetId: selected.id,
-				title: editMetaTitle || null,
-				description: editMetaDesc || null,
-				keywords: null,
-				ogTitle: null,
-				ogDescription: null,
-				ogImage: null,
-				canonicalUrl: null,
-				noIndex: false,
-			})
-		}
 	}
 
 	const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -206,22 +170,6 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 		{ categorySlug: selected?.slug ?? '', page: 1, limit: 20 },
 		{ enabled: !!selectedId && !!selected?.slug },
 	)
-
-	const seoScore = (() => {
-		const t =
-			editMetaTitle.length >= 10 && editMetaTitle.length <= 60
-				? 50
-				: editMetaTitle.length > 0
-					? 25
-					: 0
-		const d =
-			editMetaDesc.length >= 50 && editMetaDesc.length <= 160
-				? 50
-				: editMetaDesc.length > 0
-					? 25
-					: 0
-		return t + d
-	})()
 
 	return (
 		<div className='space-y-4'>
@@ -349,65 +297,8 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 
 								{/* SEO tab */}
 								<TabsContent value='seo' className='space-y-4'>
-									<div className='space-y-2'>
-										<label className='text-sm font-medium'>Meta Title</label>
-										<Input
-											value={editMetaTitle}
-											onChange={e => setEditMetaTitle(e.target.value)}
-										/>
-										<div className='text-xs text-muted-foreground text-right'>
-											{editMetaTitle.length}/60
-										</div>
-									</div>
-									<div className='space-y-2'>
-										<label className='text-sm font-medium'>
-											Meta Description
-										</label>
-										<textarea
-											className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-none'
-											value={editMetaDesc}
-											onChange={e => setEditMetaDesc(e.target.value)}
-										/>
-										<div className='text-xs text-muted-foreground text-right'>
-											{editMetaDesc.length}/160
-										</div>
-									</div>
-									{/* SEO Score */}
-									<div className='space-y-1.5'>
-										<div className='flex items-center justify-between text-xs'>
-											<span className='font-medium'>SEO Score</span>
-											<span
-												className={`font-bold ${seoScore >= 80 ? 'text-success' : seoScore >= 50 ? 'text-warning' : 'text-destructive'}`}
-											>
-												{seoScore}/100
-											</span>
-										</div>
-										<div className='h-2 w-full rounded-full bg-secondary overflow-hidden'>
-											<div
-												className={`h-full rounded-full transition-all duration-300 ${seoScore >= 80 ? 'bg-success' : seoScore >= 50 ? 'bg-warning' : 'bg-destructive'}`}
-												style={{ width: `${seoScore}%` }}
-											/>
-										</div>
-									</div>
-									{/* Google Preview */}
-									<div className='rounded-lg border border-border bg-card p-4 space-y-1'>
-										<div className='text-xs text-muted-foreground mb-2 font-medium'>
-											Google Preview
-										</div>
-										<div className='text-blue-600 text-sm font-medium truncate'>
-											{editMetaTitle || selected.name || 'Заголовок страницы'}
-										</div>
-										<div className='text-green-700 text-xs'>
-											https://ваш-сайт.ru/catalog/{selected.slug}
-										</div>
-										<div className='text-xs text-muted-foreground line-clamp-2'>
-											{editMetaDesc ||
-												selected.description ||
-												'Описание страницы будет отображено в результатах поиска.'}
-										</div>
-									</div>
+									<SeoEditor mode='managed' targetType='category' targetId={selected.id} />
 								</TabsContent>
-
 								{/* Image tab */}
 								<TabsContent
 									value='image'

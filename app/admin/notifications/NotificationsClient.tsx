@@ -35,40 +35,49 @@ export default function NotificationsClient() {
 	const reconnectAttempts = useRef(0)
 	const eventSourceRef = useRef<EventSource | null>(null)
 
-	const filterType = activeFilter === 'all' ? 'all' : (activeFilter as 'order' | 'system')
+	const filterType =
+		activeFilter === 'all' ? 'all' : (activeFilter as 'order' | 'system')
 	const utils = trpc.useUtils()
-	const { data: rawItems, isLoading, error, refetch } = trpc.notifications.list.useQuery({ type: filterType, limit: 100 })
-	const { mutate: createFromEvent } = trpc.notifications.createFromEvent.useMutation({
-		onSuccess: () => {
-			void refetch()
-			void utils.notifications.countUnread.invalidate()
-		},
-	})
+	const {
+		data: rawItems,
+		isLoading,
+		error,
+		refetch,
+	} = trpc.notifications.list.useQuery({ type: filterType, limit: 100 })
+	const { mutate: createFromEvent } =
+		trpc.notifications.createFromEvent.useMutation({
+			onSuccess: () => {
+				void refetch()
+				void utils.notifications.countUnread.invalidate()
+			},
+		})
 	const { mutate: markReadMut } = trpc.notifications.markRead.useMutation({
 		onSuccess: () => {
 			void refetch()
 			void utils.notifications.countUnread.invalidate()
 		},
 	})
-	const { mutate: markAllReadMut } = trpc.notifications.markAllRead.useMutation({
-		onSuccess: () => {
-			toast.success('Все уведомления прочитаны')
-			void refetch()
-			void utils.notifications.countUnread.invalidate()
+	const { mutate: markAllReadMut } = trpc.notifications.markAllRead.useMutation(
+		{
+			onSuccess: () => {
+				toast.success('Все уведомления прочитаны')
+				void refetch()
+				void utils.notifications.countUnread.invalidate()
+			},
+			onError: e => toast.error(e.message),
 		},
-		onError: (e) => toast.error(e.message),
-	})
+	)
 	const { mutate: clearAllMut } = trpc.notifications.clearAll.useMutation({
 		onSuccess: () => {
 			toast.success('Уведомления очищены')
 			void refetch()
 			void utils.notifications.countUnread.invalidate()
 		},
-		onError: (e) => toast.error(e.message),
+		onError: e => toast.error(e.message),
 	})
 
 	const items: NotificationItem[] =
-		rawItems?.map((n) => ({
+		rawItems?.map(n => ({
 			id: n.id,
 			type: n.type as 'order' | 'system',
 			title: n.title,
@@ -78,45 +87,49 @@ export default function NotificationsClient() {
 		})) ?? []
 
 	/** Подключение SSE с exponential backoff и reconnect при возврате на вкладку */
-	const connectSSE = useCallback(function connectSSEInner() {
-		if (typeof window === 'undefined') return
-		if (eventSourceRef.current) {
-			eventSourceRef.current.close()
-		}
-
-		const source = new EventSource('/api/admin/events')
-		eventSourceRef.current = source
-
-		source.addEventListener('order.created', (evt) => {
-			try {
-				const data = JSON.parse(evt.data)
-				createFromEvent({
-					type: 'order',
-					title: 'Новый заказ',
-					desc:
-						`Заказ #${data.orderId?.slice(-6) ?? '??????'}` +
-						(data.total ? ` на ₽${data.total}` : ''),
-					meta: data,
-				})
-				toast.success('Новый заказ')
-				reconnectAttempts.current = 0
-			} catch {
-				// ignore
+	const connectSSE = useCallback(
+		function connectSSEInner() {
+			if (typeof window === 'undefined') return
+			if (eventSourceRef.current) {
+				eventSourceRef.current.close()
 			}
-		})
 
-		source.onerror = () => {
-			source.close()
-			eventSourceRef.current = null
-			if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-				reconnectAttempts.current++
-				const delay = RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current - 1)
-				setTimeout(connectSSEInner, delay)
-			} else {
-				toast.error('Потеряно соединение с сервером уведомлений')
+			const source = new EventSource('/api/admin/events')
+			eventSourceRef.current = source
+
+			source.addEventListener('order.created', evt => {
+				try {
+					const data = JSON.parse(evt.data)
+					createFromEvent({
+						type: 'order',
+						title: 'Новый заказ',
+						desc:
+							`Заказ #${data.orderId?.slice(-6) ?? '??????'}` +
+							(data.total ? ` на ₽${data.total}` : ''),
+						meta: data,
+					})
+					toast.success('Новый заказ')
+					reconnectAttempts.current = 0
+				} catch {
+					// ignore
+				}
+			})
+
+			source.onerror = () => {
+				source.close()
+				eventSourceRef.current = null
+				if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+					reconnectAttempts.current++
+					const delay =
+						RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current - 1)
+					setTimeout(connectSSEInner, delay)
+				} else {
+					toast.error('Потеряно соединение с сервером уведомлений')
+				}
 			}
-		}
-	}, [createFromEvent])
+		},
+		[createFromEvent],
+	)
 
 	useEffect(() => {
 		connectSSE()
@@ -137,8 +150,9 @@ export default function NotificationsClient() {
 		}
 	}, [connectSSE, refetch])
 
-	const filtered = activeFilter === 'all' ? items : items.filter((n) => n.type === activeFilter)
-	const unreadCount = items.filter((n) => n.unread).length
+	const filtered =
+		activeFilter === 'all' ? items : items.filter(n => n.type === activeFilter)
+	const unreadCount = items.filter(n => n.unread).length
 
 	const markAllRead = () => {
 		markAllReadMut()
@@ -162,11 +176,21 @@ export default function NotificationsClient() {
 					</p>
 				</div>
 				<div className='flex gap-2'>
-					<Button variant='outline' size='sm' onClick={markAllRead} disabled={unreadCount === 0}>
+					<Button
+						variant='outline'
+						size='sm'
+						onClick={markAllRead}
+						disabled={unreadCount === 0}
+					>
 						<CheckCheck className='h-4 w-4 mr-1' />
 						Прочитать все
 					</Button>
-					<Button variant='ghost' size='sm' onClick={clearAll} disabled={items.length === 0}>
+					<Button
+						variant='ghost'
+						size='sm'
+						onClick={clearAll}
+						disabled={items.length === 0}
+					>
 						Очистить
 					</Button>
 				</div>
@@ -180,9 +204,17 @@ export default function NotificationsClient() {
 					<CardContent className='space-y-1'>
 						{[
 							{ id: 'all', label: 'Все', count: items.length },
-							{ id: 'order', label: 'Заказы', count: items.filter((n) => n.type === 'order').length },
-							{ id: 'system', label: 'Система', count: items.filter((n) => n.type === 'system').length },
-						].map((f) => (
+							{
+								id: 'order',
+								label: 'Заказы',
+								count: items.filter(n => n.type === 'order').length,
+							},
+							{
+								id: 'system',
+								label: 'Система',
+								count: items.filter(n => n.type === 'system').length,
+							},
+						].map(f => (
 							<div
 								key={f.id}
 								className={`flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer transition-colors
@@ -214,33 +246,51 @@ export default function NotificationsClient() {
 						)}
 						{error && (
 							<div className='p-4 flex items-center justify-between gap-3'>
-								<span className='text-sm text-destructive'>Ошибка загрузки: {error.message}</span>
-								<Button variant='outline' size='sm' onClick={() => void refetch()}>Повторить</Button>
+								<span className='text-sm text-destructive'>
+									Ошибка загрузки: {error.message}
+								</span>
+								<Button
+									variant='outline'
+									size='sm'
+									onClick={() => void refetch()}
+								>
+									Повторить
+								</Button>
 							</div>
 						)}
-						{!isLoading && filtered.map((n) => (
-							<div
-								key={n.id}
-								className={`flex gap-3 p-4 border-b border-border cursor-pointer transition-colors
+						{!isLoading &&
+							filtered.map(n => (
+								<div
+									key={n.id}
+									className={`flex gap-3 p-4 border-b border-border cursor-pointer transition-colors
 									${n.unread ? 'bg-accent/5' : 'hover:bg-secondary/30'}
 								`}
-								onClick={() => markRead(n.id)}
-							>
-								<div className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 ${getColor(n.type)}`}>
-									{getIcon(n.type)}
+									onClick={() => markRead(n.id)}
+								>
+									<div
+										className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 ${getColor(n.type)}`}
+									>
+										{getIcon(n.type)}
+									</div>
+									<div className='flex-1 min-w-0'>
+										<div className='text-sm font-medium'>{n.title}</div>
+										<div className='text-xs text-muted-foreground'>
+											{n.desc}
+										</div>
+									</div>
+									<div className='flex flex-col items-end gap-1'>
+										<span className='text-xs text-muted-foreground'>
+											{new Date(n.createdAt).toLocaleTimeString('ru-RU', {
+												hour: '2-digit',
+												minute: '2-digit',
+											})}
+										</span>
+										{n.unread && (
+											<span className='h-2 w-2 rounded-full bg-accent' />
+										)}
+									</div>
 								</div>
-								<div className='flex-1 min-w-0'>
-									<div className='text-sm font-medium'>{n.title}</div>
-									<div className='text-xs text-muted-foreground'>{n.desc}</div>
-								</div>
-								<div className='flex flex-col items-end gap-1'>
-									<span className='text-xs text-muted-foreground'>
-										{new Date(n.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-									</span>
-									{n.unread && <span className='h-2 w-2 rounded-full bg-accent' />}
-								</div>
-							</div>
-						))}
+							))}
 						{!isLoading && filtered.length === 0 && (
 							<div className='text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2'>
 								<AlertCircle className='h-8 w-8 text-muted-foreground/50' />

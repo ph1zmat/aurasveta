@@ -8,6 +8,7 @@ import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 export const metadata = {
 	title: 'Избранное — Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default function FavoritesPage() {

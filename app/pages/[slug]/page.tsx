@@ -13,6 +13,8 @@ import PageRenderer from '@/widgets/page-renderer/PageRenderer'
 import PublicSectionRenderer from '@/entities/section/ui/PublicSectionRenderer'
 import PublicPageBlocksRenderer from '@/entities/page-block/ui/PublicPageBlocksRenderer'
 import { getPublishedPageRenderDataBySlug } from '@/lib/sections/public-page-data'
+import { buildFaqSchema } from '@/lib/seo/schema/builders/faq'
+import type { FaqSectionConfig } from '@/shared/types/sections'
 
 export const revalidate = 3600
 
@@ -80,8 +82,21 @@ export default async function ContentPage({
 	const hasContentBlocks =
 		Array.isArray(page.contentBlocks) && page.contentBlocks.length > 0
 
+	// Собираем FAQ-пары из FAQ-секций для JSON-LD (SEO-CLAIM-035 / E6)
+	const faqItems = unifiedSections
+		.filter(s => s.type === 'faq')
+		.flatMap(s => (s.config as FaqSectionConfig).items)
+	const faqSchema = buildFaqSchema(faqItems)
+
 	return (
 		<div className='flex flex-col bg-background'>
+			{/* JSON-LD: FAQPage — только если на странице есть FAQ-секции (SEO-CLAIM-035) */}
+			{faqSchema && (
+				<script
+					type='application/ld+json'
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+				/>
+			)}
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
 				<TopBar />
 				<Header />
@@ -93,6 +108,8 @@ export default async function ContentPage({
 
 				{hasUnifiedSections ? (
 					<div className='py-6 md:py-8'>
+						{/* Семантический h1 для поисковиков — секции могут не включать заголовок */}
+						<h1 className='sr-only'>{page.title}</h1>
 						{unifiedSections.map(section => (
 							<PublicSectionRenderer key={section.id} section={section} />
 						))}

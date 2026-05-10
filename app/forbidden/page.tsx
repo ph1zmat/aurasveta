@@ -1,8 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Button } from '@/shared/ui/Button'
 
-export const metadata = {
+export const metadata: Metadata = {
 	title: 'Нет доступа — Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default function ForbiddenPage() {

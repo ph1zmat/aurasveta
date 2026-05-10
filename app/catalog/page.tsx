@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import TopBar from '@/widgets/header/ui/TopBar'
 import Header from '@/widgets/header/ui/HeaderServer'
 import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
@@ -6,13 +7,21 @@ import CatalogContent from './CatalogContent'
 import { Suspense } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import { CatalogContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
 
 export const revalidate = 300 // 5 мин ISR
 
-export const metadata = {
+export const metadata: Metadata = {
 	title: 'Каталог — Аура Света',
 	description:
 		'Каталог люстр и светильников. Широкий ассортимент от ведущих производителей.',
+	openGraph: {
+		url: 'https://aurasveta.by/catalog',
+		type: 'website',
+	},
+	alternates: {
+		canonical: 'https://aurasveta.by/catalog',
+	},
 }
 
 export default async function CatalogPage() {
@@ -22,6 +31,10 @@ export default async function CatalogPage() {
 
 	return (
 		<HydrateClient>
+			{/* JSON-LD: BreadcrumbList для корневого каталога (SEO-CLAIM-034) */}
+			<BreadcrumbStructuredData
+				items={[{ name: 'Главная', href: '/' }, { name: 'Каталог' }]}
+			/>
 			<div className='flex flex-col bg-background'>
 				<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
 					<TopBar />

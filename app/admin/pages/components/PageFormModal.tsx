@@ -14,9 +14,11 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { generateSlug } from '@/shared/lib/generateSlug'
+import { SeoEditor } from '@aurasveta/shared-admin'
 import { PageBlocksEditor } from '@/features/admin/page-blocks'
 import type { PageBlockDraft, PageBlockRecord, PageBlockType } from '@/shared/types/page-builder'
 import { PAGE_BLOCK_TYPES } from '@/shared/types/page-builder'
+import type { SeoFormValues } from '@/shared/types/seo'
 
 interface Props {
 	open: boolean
@@ -46,6 +48,24 @@ function toBlockDraft(record: PageBlockRecord): PageBlockDraft | null {
 	}
 }
 
+function createEmptySeoForm(): SeoFormValues {
+	return {
+		title: '',
+		description: '',
+		keywords: '',
+		ogTitle: '',
+		ogDescription: '',
+		ogImage: '',
+		canonicalUrl: '',
+		noIndex: false,
+	}
+}
+
+function toNullableSeoValue(value: string) {
+	const trimmed = value.trim()
+	return trimmed.length > 0 ? trimmed : null
+}
+
 export default function PageFormModal({ open, onOpenChange, onSuccess, page }: Props) {
 	const isEdit = !!page
 
@@ -55,6 +75,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 	const [metaTitle, setMetaTitle] = useState('')
 	const [metaDesc, setMetaDesc] = useState('')
 	const [blocks, setBlocks] = useState<PageBlockDraft[]>([])
+	const [seoDraft, setSeoDraft] = useState<SeoFormValues>(createEmptySeoForm())
 
 	const reset = () => {
 		setTitle('')
@@ -63,6 +84,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		setMetaTitle('')
 		setMetaDesc('')
 		setBlocks([])
+		setSeoDraft(createEmptySeoForm())
 	}
 
 	// Загружаем полные данные страницы (включая блоки) при редактировании
@@ -139,8 +161,20 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 			title: title.trim(),
 			slug: finalSlug,
 			isPublished,
-			metaTitle: metaTitle || undefined,
-			metaDesc: metaDesc || undefined,
+			metaTitle: isEdit ? metaTitle || undefined : toNullableSeoValue(seoDraft.title) ?? undefined,
+			metaDesc: isEdit ? metaDesc || undefined : toNullableSeoValue(seoDraft.description) ?? undefined,
+			seo: !isEdit
+				? {
+					title: toNullableSeoValue(seoDraft.title),
+					description: toNullableSeoValue(seoDraft.description),
+					keywords: toNullableSeoValue(seoDraft.keywords),
+					ogTitle: toNullableSeoValue(seoDraft.ogTitle),
+					ogDescription: toNullableSeoValue(seoDraft.ogDescription),
+					ogImage: toNullableSeoValue(seoDraft.ogImage),
+					canonicalUrl: toNullableSeoValue(seoDraft.canonicalUrl),
+					noIndex: seoDraft.noIndex,
+				}
+				: undefined,
 			blocks: blocksSave,
 		}
 
@@ -200,23 +234,17 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 					</TabsContent>
 
 					<TabsContent value='seo' className='space-y-4'>
-						<div className='space-y-2'>
-							<label className='text-sm font-medium'>Meta Title</label>
-							<Input
-								value={metaTitle}
-								onChange={(e) => setMetaTitle(e.target.value)}
-								placeholder={title}
+						{isEdit && page?.id ? (
+							<SeoEditor mode='managed' targetType='page' targetId={page.id} />
+						) : (
+							<SeoEditor
+								mode='controlled'
+								value={seoDraft}
+								onChange={setSeoDraft}
+								title={title || undefined}
+								description='SEO-поля будут сохранены сразу после создания страницы.'
 							/>
-						</div>
-						<div className='space-y-2'>
-							<label className='text-sm font-medium'>Meta Description</label>
-							<textarea
-								className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-								value={metaDesc}
-								onChange={(e) => setMetaDesc(e.target.value)}
-								placeholder='Краткое описание страницы для поисковиков'
-							/>
-						</div>
+						)}
 					</TabsContent>
 				</Tabs>
 

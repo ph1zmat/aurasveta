@@ -17,9 +17,9 @@ export default function QuickSpecs({
 }: QuickSpecsProps) {
 	return (
 		<div className='mt-4'>
-			<h3 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
+			<h2 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
 				Характеристики
-			</h3>
+			</h2>
 			<Card padding='compact' className='bg-muted border-0 rounded-[20px]'>
 				<div className='grid grid-cols-1 gap-x-6 sm:grid-cols-2'>
 					{specs.map((spec, i) => (

@@ -82,6 +82,34 @@ const nextConfig: NextConfig = {
 	async headers() {
 		return [
 			{
+				source: '/cart',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/favorites',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/compare',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/search',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/login',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/register',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
+				source: '/forbidden',
+				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+			},
+			{
 				source: '/(.*)',
 				headers: [
 					{ key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -91,6 +119,11 @@ const nextConfig: NextConfig = {
 					{
 						key: 'Permissions-Policy',
 						value: 'camera=(), microphone=(), geolocation=()',
+					},
+					{
+						// HSTS: 1 год, includeSubDomains, preload (SEO-CLAIM-044)
+						key: 'Strict-Transport-Security',
+						value: 'max-age=31536000; includeSubDomains; preload',
 					},
 				],
 			},

@@ -5,6 +5,7 @@ import LoginForm from './LoginForm'
 export const metadata: Metadata = {
 	title: 'Вход — Аура Света',
 	description: 'Войдите в свой аккаунт интернет-магазина Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default async function LoginPage() {

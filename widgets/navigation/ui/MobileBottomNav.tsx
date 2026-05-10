@@ -42,7 +42,10 @@ export default function MobileBottomNav() {
 	]
 
 	return (
-		<nav className='fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/85 md:hidden'>
+		<nav
+			aria-label='Основная навигация'
+			className='fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/85 md:hidden'
+		>
 			<div className='mobile-edge-padding pb-[calc(env(safe-area-inset-bottom)+0.25rem)]'>
 				<ul className='flex items-stretch'>
 				{tabs

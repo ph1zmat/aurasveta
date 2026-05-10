@@ -39,7 +39,10 @@ export default function CategoryNav() {
 	}, [])
 
 	return (
-		<nav className='hidden md:block relative border-t border-b border-foreground'>
+		<nav
+			aria-label='Категории товаров'
+			className='hidden md:block relative border-t border-b border-foreground'
+		>
 			<div className='mx-auto max-w-7xl px-4'>
 				<ul className='flex items-stretch overflow-x-auto scrollbar-hide'>
 					{categories.map(cat => (

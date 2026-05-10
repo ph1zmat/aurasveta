@@ -91,6 +91,13 @@ npx prisma db seed   # Заполнить БД тестовыми данными
 
 См. [docs/deployment.md](docs/deployment.md).
 
+### Production runbook'и
+
+- [Ручной деплой build-артефакта на VPS](docs/operations/manual-build-deploy.md)
+- [Миграция БД Neon → VPS PostgreSQL](docs/operations/db-migration-neon-to-vps-postgres.md)
+- [Миграция объектного хранилища S3](docs/operations/storage-migration-s3.md)
+- [Postmortem инцидента 500/502 (2026-05-07)](docs/operations/incident-2026-05-07-vps-500-502.md)
+
 ## Документация по новой админке
 
 - [Старт миграции на TanStack-first admin (Фазы 0–1)](docs/admin-tanstack-migration.md)

@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
 import './globals.css'
+
+// Принудительный SSR для всего приложения — layout использует headers() через tRPC
+export const dynamic = 'force-dynamic'
+
 import MobileHeader from '@/widgets/header/ui/MobileHeader'
 import MobileBottomNav from '@/widgets/navigation/ui/MobileBottomNav'
 import { TRPCProvider } from '@/lib/trpc/client'
-import { trpc, HydrateClient } from '@/lib/trpc/server'
+import { HydrateClient } from '@/lib/trpc/server'
 import Toaster from '@/shared/ui/Toaster'
 import RootThemeProvider from '@/shared/ui/RootThemeProvider'
 import { getPublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
+import { buildOrganizationSchema } from '@/lib/seo/schema/builders/organization'
+import { buildWebSiteSchema } from '@/lib/seo/schema/builders/website'
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://aurasveta.by'),
@@ -31,15 +37,25 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode
 }>) {
-	// Prefetch categories for navigation components (CategoryNav, MobileCatalogMenu)
-	void trpc.categories.getNav.prefetch().catch(() => {})
-	void trpc.categories.getHeaderTree.prefetch().catch(() => {})
-
 	const storeSettings = await getPublicStoreSettings()
+	const organizationSchema = buildOrganizationSchema(storeSettings)
+	const webSiteSchema = buildWebSiteSchema()
 
 	return (
 		<html lang='ru' suppressHydrationWarning>
 			<head>
+				{/* JSON-LD: Organization (SEO-CLAIM-032) */}
+				<script
+					type='application/ld+json'
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(organizationSchema),
+					}}
+				/>
+				{/* JSON-LD: WebSite + SearchAction (SEO-CLAIM-033) */}
+				<script
+					type='application/ld+json'
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }}
+				/>
 				<link
 					rel='icon'
 					type='image/png'

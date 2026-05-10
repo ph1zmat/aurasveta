@@ -8,7 +8,11 @@ export default function GlobalError({
 	reset: () => void
 }) {
 	return (
-		<div className='flex min-h-screen flex-col items-center justify-center bg-background px-4'>
+		<div
+			className='flex min-h-screen flex-col items-center justify-center bg-background px-4'
+			role='alert'
+			aria-live='assertive'
+		>
 			<h1 className='text-2xl font-semibold text-foreground'>
 				Что-то пошло не так
 			</h1>

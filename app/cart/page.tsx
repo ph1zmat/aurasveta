@@ -9,6 +9,7 @@ import { CartContentSkeleton } from '@/shared/ui/storefront-skeletons'
 
 export const metadata = {
 	title: 'Корзина — Аура Света',
+	robots: { index: false, follow: true },
 }
 
 export default async function CartPage() {

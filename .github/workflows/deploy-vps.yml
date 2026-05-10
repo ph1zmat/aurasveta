@@ -1,0 +1,53 @@
+name: Deploy to VPS
+
+"on":
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+
+            APP_DIR="/var/www/aurasveta/current"
+            SERVICE_NAME="aurasveta"
+
+            cd "$APP_DIR"
+
+            # Берем точное состояние main из GitHub
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            # Зависимости + Prisma типы
+            npm ci
+            set -a
+            . ./.env.production
+            set +a
+            ./node_modules/.bin/prisma generate
+
+            # Production build
+            rm -rf .next
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --webpack
+
+            # Перезапуск приложения
+            systemctl restart "$SERVICE_NAME"
+            systemctl is-active "$SERVICE_NAME"
