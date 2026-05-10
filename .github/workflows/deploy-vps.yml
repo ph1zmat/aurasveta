@@ -37,11 +37,14 @@ jobs:
             git fetch --all --prune
             git reset --hard origin/main
 
-            # Зависимости + Prisma типы
-            npm ci
+            # Загружаем production env до npm ci,
+            # так как postinstall запускает prisma generate
             set -a
             . ./.env.production
             set +a
+
+            # Зависимости + Prisma типы
+            npm ci
             ./node_modules/.bin/prisma generate
 
             # Production build
