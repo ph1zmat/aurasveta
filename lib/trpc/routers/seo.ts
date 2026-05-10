@@ -72,7 +72,7 @@ const BulkGenerateInputSchema = z.object({
 	onlyMissing: z.boolean().default(false),
 	/** Ограниченный список ID (опционально) */
 	ids: z.array(z.string()).optional(),
-	limit: z.number().min(1).max(BULK_BATCH_SIZE).default(50),
+	limit: z.number().min(1).max(BULK_BATCH_SIZE).default(BULK_BATCH_SIZE),
 	cursor: z.string().optional(),
 })
 
@@ -1911,7 +1911,7 @@ export const seoRouter = createTRPCRouter({
 	bulkGenerateApply: adminProcedure
 		.input(BulkGenerateInputSchema)
 		.mutation(async ({ ctx, input }) => {
-			const { targetType, mode, onlyMissing, ids, limit } = input
+			const { targetType, mode, onlyMissing, ids, limit, cursor } = input
 
 			const existingRecords = await ctx.prisma.seoMetadata.findMany({
 				where: { targetType },
@@ -1944,15 +1944,22 @@ export const seoRouter = createTRPCRouter({
 			)
 
 			const existingIds = new Set(existingMap.keys())
-			const idFilter = ids?.length ? { id: { in: ids } } : undefined
+			const pageIdFilter = {
+				...(ids?.length ? { in: ids } : {}),
+				...(onlyMissing ? { notIn: [...existingIds] } : {}),
+				...(cursor ? { gt: cursor } : {}),
+			}
+			const pageWhere = Object.keys(pageIdFilter).length ? { id: pageIdFilter } : undefined
+			const pageTake = limit + 1
 
 			let results
+			let hasMore = false
+			let nextCursor: string | null = null
 
 			if (targetType === 'product') {
 				const entities = await ctx.prisma.product.findMany({
 					where: {
-						...idFilter,
-						...(onlyMissing ? { id: { notIn: [...existingIds] } } : {}),
+						...(pageWhere ?? {}),
 					},
 					select: {
 						id: true,
@@ -1965,31 +1972,35 @@ export const seoRouter = createTRPCRouter({
 						images: { select: { url: true }, orderBy: { order: 'asc' }, take: 1 },
 					},
 					orderBy: { id: 'asc' },
-					take: limit,
+					take: pageTake,
 				})
 
-				results = entities.map(e =>
+				const pageEntities = entities.slice(0, limit)
+				hasMore = entities.length > limit
+				nextCursor = hasMore ? pageEntities.at(-1)?.id ?? null : null
+				results = pageEntities.map(e =>
 					generateProductResult(e, existingMap.get(e.id) ?? null, mode),
 				)
 			} else if (targetType === 'category') {
 				const entities = await ctx.prisma.category.findMany({
 					where: {
-						...idFilter,
-						...(onlyMissing ? { id: { notIn: [...existingIds] } } : {}),
+						...(pageWhere ?? {}),
 					},
 					select: { id: true, name: true, description: true },
 					orderBy: { id: 'asc' },
-					take: limit,
+					take: pageTake,
 				})
 
-				results = entities.map(e =>
+				const pageEntities = entities.slice(0, limit)
+				hasMore = entities.length > limit
+				nextCursor = hasMore ? pageEntities.at(-1)?.id ?? null : null
+				results = pageEntities.map(e =>
 					generateCategoryResult(e, existingMap.get(e.id) ?? null, mode),
 				)
 			} else {
 				const entities = await ctx.prisma.page.findMany({
 					where: {
-						...idFilter,
-						...(onlyMissing ? { id: { notIn: [...existingIds] } } : {}),
+						...(pageWhere ?? {}),
 					},
 					select: {
 						id: true,
@@ -2001,10 +2012,13 @@ export const seoRouter = createTRPCRouter({
 						image: true,
 					},
 					orderBy: { id: 'asc' },
-					take: limit,
+					take: pageTake,
 				})
 
-				results = entities.map(e =>
+				const pageEntities = entities.slice(0, limit)
+				hasMore = entities.length > limit
+				nextCursor = hasMore ? pageEntities.at(-1)?.id ?? null : null
+				results = pageEntities.map(e =>
 					generatePageResult(e, existingMap.get(e.id) ?? null, mode),
 				)
 			}
@@ -2041,11 +2055,14 @@ export const seoRouter = createTRPCRouter({
 					mode,
 					onlyMissing,
 					limit,
+					cursor: cursor ?? null,
+					nextCursor,
+					hasMore,
 					skipped,
 					errors,
 				},
 			})
 
-			return { applied, skipped, errors } satisfies BulkApplyResult
+			return { applied, skipped, errors, nextCursor, hasMore, processed: results.length } satisfies BulkApplyResult
 		}),
 })

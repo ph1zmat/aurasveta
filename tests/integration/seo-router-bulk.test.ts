@@ -222,6 +222,87 @@ describe('seoRouter bulk integration', () => {
 		expect(store.seoRows.length).toBe(firstCount)
 	})
 
+	it('bulk apply возвращает cursor и обрабатывает несколько батчей', async () => {
+		const { createCallerFactory, seoRouter } = await loadCallerTools()
+		const productRows = [
+			{
+				id: 'p-1',
+				name: 'Люстра 1',
+				description: 'Описание 1',
+				price: 100,
+				brand: 'Brand',
+				metaTitle: null,
+				metaDesc: null,
+				images: [{ url: 'https://aurasveta.by/img/p-1.jpg' }],
+			},
+			{
+				id: 'p-2',
+				name: 'Люстра 2',
+				description: 'Описание 2',
+				price: 200,
+				brand: 'Brand',
+				metaTitle: null,
+				metaDesc: null,
+				images: [{ url: 'https://aurasveta.by/img/p-2.jpg' }],
+			},
+			{
+				id: 'p-3',
+				name: 'Люстра 3',
+				description: 'Описание 3',
+				price: 300,
+				brand: 'Brand',
+				metaTitle: null,
+				metaDesc: null,
+				images: [{ url: 'https://aurasveta.by/img/p-3.jpg' }],
+			},
+		]
+		const { ctx, store } = createAdminCtx({
+			product: {
+				findMany: vi.fn(
+					async ({
+						where,
+						take,
+					}: {
+						where?: { id?: { gt?: string; in?: string[]; notIn?: string[] } }
+						take?: number
+					} = {}) => {
+					const sorted = [...productRows].sort((a, b) => a.id.localeCompare(b.id))
+					let rows = sorted
+					const idFilter = where?.id
+					if (idFilter?.gt) {
+						rows = rows.filter((item) => item.id > idFilter.gt!)
+					}
+					if (idFilter?.in?.length) {
+						rows = rows.filter((item) => idFilter.in?.includes(item.id))
+					}
+					if (idFilter?.notIn?.length) {
+						rows = rows.filter((item) => !idFilter.notIn?.includes(item.id))
+					}
+					return rows.slice(0, take ?? rows.length)
+					},
+				),
+			},
+		})
+		const caller = createCallerFactory(seoRouter)(ctx as never)
+
+		const first = await caller.bulkGenerateApply({ targetType: 'product', mode: 'strict', limit: 2 })
+		expect(first.applied).toBe(2)
+		expect(first.hasMore).toBe(true)
+		expect(first.nextCursor).toBe('p-2')
+
+		const second = await caller.bulkGenerateApply({
+			targetType: 'product',
+			mode: 'strict',
+			limit: 2,
+			cursor: first.nextCursor ?? undefined,
+		})
+
+		expect(second.applied).toBe(1)
+		expect(second.hasMore).toBe(false)
+		expect(second.nextCursor).toBeNull()
+		expect(store.seoRows.length).toBe(3)
+	})
+
 	it('ограничение ролей соблюдается (non-admin forbidden)', async () => {
 		const { createCallerFactory, seoRouter } = await loadCallerTools()
 		const { ctx } = createAdminCtx()

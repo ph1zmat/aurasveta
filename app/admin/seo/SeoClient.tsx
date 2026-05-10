@@ -54,10 +54,18 @@ type SnippetTrialOutcome = (typeof SNIPPET_TRIAL_OUTCOMES)[number]
 const SNIPPET_TRIAL_TARGET_TYPES = ['all', 'product', 'category', 'page'] as const
 type SnippetTrialTargetType = (typeof SNIPPET_TRIAL_TARGET_TYPES)[number]
 
+const BULK_UI_LIMIT = 100 as const
+
+const BULK_TARGET_LABELS: Record<SeoTargetType, string> = {
+	product: 'Товары',
+	category: 'Категории',
+	page: 'Страницы',
+}
+
 const BULK_MODE_LABELS: Record<BulkMode, string> = {
-	'strict': 'strict — только пустые',
-	'safe-overwrite': 'safe — не изменённые вручную',
-	'force': 'force — полная перезапись',
+	'strict': 'Строгий — только пустые поля',
+	'safe-overwrite': 'Безопасный — без ручных правок',
+	'force': 'Полный — перезаписать всё',
 }
 
 function computeScore(item: {
@@ -118,6 +126,7 @@ export default function SeoClient() {
 	const [bulkMode, setBulkMode] = useState<BulkMode>('strict')
 	const [bulkOnlyMissing, setBulkOnlyMissing] = useState(true)
 	const [bulkPreviewDone, setBulkPreviewDone] = useState(false)
+	const [isApplyingAll, setIsApplyingAll] = useState(false)
 	const [externalProvider, setExternalProvider] =
 		useState<ExternalProvider>('google-search-console')
 	const [externalDateFrom, setExternalDateFrom] = useState('')
@@ -253,19 +262,11 @@ export default function SeoClient() {
 		isFetching: isPreviewing,
 		refetch: runPreview,
 	} = trpc.seo.bulkGeneratePreview.useQuery(
-		{ targetType: bulkTargetType, mode: bulkMode, onlyMissing: bulkOnlyMissing, limit: 50 },
+		{ targetType: bulkTargetType, mode: bulkMode, onlyMissing: bulkOnlyMissing, limit: BULK_UI_LIMIT },
 		{ enabled: false },
 	)
 
-	const { mutate: applyBulk, isPending: isApplying } = trpc.seo.bulkGenerateApply.useMutation({
-		onSuccess: (result) => {
-			toast.success(`Применено: ${result.applied}. Без изменений: ${result.skipped}. Ошибок: ${result.errors}.`)
-			setBulkPreviewDone(false)
-			refetch()
-			refetchWeeklyActionJournal()
-		},
-		onError: (err) => toast.error(err.message ?? 'Ошибка при применении'),
-	})
+	const { mutateAsync: applyBulk, isPending: isApplying } = trpc.seo.bulkGenerateApply.useMutation()
 
 	const { mutateAsync: logWeeklyTriageDecision, isPending: isLoggingWeeklyDecision } =
 		trpc.seo.logWeeklyTriageDecision.useMutation({
@@ -305,6 +306,61 @@ export default function SeoClient() {
 	const handlePreview = async () => {
 		await runPreview()
 		setBulkPreviewDone(true)
+	}
+
+	const getBulkApplyInput = (cursor?: string) => ({
+		targetType: bulkTargetType,
+		mode: bulkMode,
+		onlyMissing: bulkOnlyMissing,
+		limit: BULK_UI_LIMIT,
+		...(cursor ? { cursor } : {}),
+	})
+
+	const finishBulkApply = () => {
+		setBulkPreviewDone(false)
+		refetch()
+		refetchWeeklyActionJournal()
+	}
+
+	const handleApplyCurrentBatch = async () => {
+		try {
+			const result = await applyBulk(getBulkApplyInput())
+			finishBulkApply()
+			toast.success(
+				`Обработан батч: ${result.applied} изменений, ${result.skipped} пропусков, ${result.errors} ошибок.`,
+			)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Не удалось применить батч')
+		}
+	}
+
+	const handleApplyAll = async () => {
+		if (isApplyingAll) return
+		setIsApplyingAll(true)
+		try {
+			let cursor: string | undefined
+			let batches = 0
+			let applied = 0
+			let skipped = 0
+			let errors = 0
+
+			do {
+				const result = await applyBulk(getBulkApplyInput(cursor))
+				batches += 1
+				applied += result.applied
+				skipped += result.skipped
+				errors += result.errors
+				cursor = result.nextCursor ?? undefined
+			} while (cursor)
+
+			finishBulkApply()
+			const message = `Обработано всё: ${applied} изменений за ${batches} батчей. Пропущено: ${skipped}. Ошибок: ${errors}.`
+			errors > 0 ? toast.error(message) : toast.success(message)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Не удалось обработать весь список')
+		} finally {
+			setIsApplyingAll(false)
+		}
 	}
 
 	const handleExportCsv = async () => {
@@ -1359,6 +1415,9 @@ export default function SeoClient() {
 				<Card className='border-border'>
 					<CardContent className='p-4 space-y-4'>
 						<div className='text-sm font-medium'>Массовая генерация SEO</div>
+						<div className='text-xs text-muted-foreground'>
+							Предпросмотр показывает первые {BULK_UI_LIMIT} записей, а кнопка «Обработать всё» проходит по всем батчам автоматически.
+						</div>
 						<div className='grid grid-cols-3 gap-3'>
 							<div className='space-y-1'>
 								<label className='text-xs text-muted-foreground'>Тип</label>
@@ -1371,7 +1430,7 @@ export default function SeoClient() {
 											onClick={() => { setBulkTargetType(t); setBulkPreviewDone(false) }}
 											className='text-xs h-7'
 										>
-											{t}
+											{BULK_TARGET_LABELS[t]}
 										</Button>
 									))}
 								</div>
@@ -1407,16 +1466,19 @@ export default function SeoClient() {
 								</div>
 								<div className='flex gap-2 pt-2'>
 									<Button size='sm' variant='outline' onClick={handlePreview} disabled={isPreviewing} className='flex-1 text-xs'>
-										{isPreviewing ? 'Расчёт…' : 'Preview'}
+										{isPreviewing ? 'Считаем…' : 'Предпросмотр'}
 									</Button>
-									<Button size='sm' onClick={() => applyBulk({ targetType: bulkTargetType, mode: bulkMode, onlyMissing: bulkOnlyMissing, limit: 50 })} disabled={!bulkPreviewDone || isApplying} className='flex-1 text-xs'>
-										{isApplying ? 'Применение…' : 'Apply'}
+									<Button size='sm' onClick={handleApplyCurrentBatch} disabled={!bulkPreviewDone || isApplying || isApplyingAll} className='flex-1 text-xs'>
+										{isApplying ? 'Применяем…' : 'Применить батч'}
+									</Button>
+									<Button size='sm' variant='secondary' onClick={handleApplyAll} disabled={isApplying || isApplyingAll} className='flex-1 text-xs'>
+										{isApplyingAll ? 'Обрабатываем всё…' : 'Обработать всё'}
 									</Button>
 								</div>
 								{bulkMode === 'force' && (
 									<div className='flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive'>
 										<AlertTriangle className='h-3.5 w-3.5 shrink-0' />
-										force перезапишет все поля
+										Полный режим перезапишет все поля
 									</div>
 								)}
 							</div>
@@ -1425,7 +1487,7 @@ export default function SeoClient() {
 							<div className='rounded-lg border border-border bg-secondary/30 p-3 space-y-2'>
 								<div className='flex items-center gap-2 text-sm font-medium'>
 									<CheckCircle2 className='h-4 w-4 text-success' />
-									Результат preview
+									Результат предпросмотра
 								</div>
 								<div className='grid grid-cols-3 gap-3 text-center text-xs'>
 									<div><div className='text-lg font-bold'>{previewData.total}</div><div className='text-muted-foreground'>всего</div></div>

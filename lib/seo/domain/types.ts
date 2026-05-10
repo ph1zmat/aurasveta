@@ -78,4 +78,10 @@ export interface BulkApplyResult {
 	applied: number
 	skipped: number
 	errors: number
+	/** Следующий курсор для продолжения батчевой обработки, если она ещё не завершена */
+	nextCursor?: string | null
+	/** Есть ли ещё батчи после текущего */
+	hasMore?: boolean
+	/** Сколько записей было обработано в текущем батче */
+	processed?: number
 }
