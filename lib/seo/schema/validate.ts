@@ -111,7 +111,7 @@ export function validateSchema(
 	if (!result.success) {
 		return {
 			ok: false,
-			errors: result.error.errors.map(e => ({
+			errors: result.error.issues.map((e) => ({
 				code: e.code,
 				path: e.path.join('.') || '<root>',
 				message: e.message,

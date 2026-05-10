@@ -45,6 +45,11 @@ const WeeklyTriageDecisionSchema = z.enum([
 	'tech-check',
 ])
 const WeeklyFollowUpOutcomeSchema = z.enum(['reviewed', 'deferred'])
+type SeoTargetType = z.infer<typeof SeoTargetTypeSchema>
+
+function isSeoTargetType(value: string): value is SeoTargetType {
+	return value === 'product' || value === 'category' || value === 'page'
+}
 
 const ExternalSignalInputSchema = z.object({
 	targetType: SeoTargetTypeSchema,
@@ -72,7 +77,7 @@ const BulkGenerateInputSchema = z.object({
 })
 
 function buildPublicUrl(
-	targetType: 'product' | 'category' | 'page',
+	targetType: string,
 	slug: string | null | undefined,
 	targetId: string,
 ) {
@@ -548,6 +553,8 @@ export const seoRouter = createTRPCRouter({
 
 			const ruleSuggestions = limitedRows
 				.map(item => {
+					if (!isSeoTargetType(item.targetType)) return null
+
 					const entity =
 						item.targetType === 'product'
 							? productMap.get(item.targetId)
@@ -566,12 +573,12 @@ export const seoRouter = createTRPCRouter({
 					})
 
 					const entityName =
-						item.targetType === 'page'
+						'title' in entity
 							? entity.title
 							: entity.name
 
 					const entityDescription =
-						item.targetType === 'page'
+						'content' in entity
 							? entity.content
 							: entity.description
 
@@ -582,7 +589,10 @@ export const seoRouter = createTRPCRouter({
 						url: buildPublicUrl(item.targetType, entity.slug, item.targetId),
 						currentTitle: item.title,
 						currentDescription: item.description,
-						brand: item.targetType === 'product' ? entity.brand : null,
+						brand:
+							'brand' in entity && typeof entity.brand === 'string'
+								? entity.brand
+								: null,
 						entityDescription,
 						noIndex: item.noIndex,
 						priority,
@@ -816,9 +826,11 @@ export const seoRouter = createTRPCRouter({
 						targetType: signal.targetType,
 						targetId: signal.targetId,
 						entityName:
-							signal.targetType === 'page'
-								? (entity?.title ?? signal.targetId)
-								: (entity?.name ?? signal.targetId),
+							entity
+								? 'title' in entity
+									? entity.title
+									: entity.name
+								: signal.targetId,
 						url:
 							entity?.slug
 								? buildPublicUrl(signal.targetType, entity.slug, signal.targetId)
@@ -917,8 +929,13 @@ export const seoRouter = createTRPCRouter({
 			d => (d._count.canonicalUrl ?? 0) > 1,
 		).length
 
+		const triageSeoRows = seoRows.filter(
+			(row): row is (typeof seoRows)[number] & { targetType: SeoTargetType } =>
+				isSeoTargetType(row.targetType),
+		)
+
 		const board = buildWeeklyTriageBoard({
-			seoRows,
+			seoRows: triageSeoRows,
 			duplicateCanonicalCount,
 			weeklyBulkErrors,
 		})
@@ -982,8 +999,13 @@ export const seoRouter = createTRPCRouter({
 				d => (d._count.canonicalUrl ?? 0) > 1,
 			).length
 
+			const triageSeoRows = seoRows.filter(
+				(row): row is (typeof seoRows)[number] & { targetType: SeoTargetType } =>
+					isSeoTargetType(row.targetType),
+			)
+
 			const board = buildWeeklyTriageBoard({
-				seoRows,
+				seoRows: triageSeoRows,
 				duplicateCanonicalCount,
 				weeklyBulkErrors,
 			})

@@ -102,19 +102,8 @@ type SeoEditFields = {
 
 type SeoEditState = Record<string, SeoEditFields>
 
-type SeoListItem = {
-	id: string
-	targetType: SeoTargetType
-	targetId: string
-	title?: string | null
-	description?: string | null
-	keywords?: string | null
-	ogTitle?: string | null
-	ogDescription?: string | null
-	ogImage?: string | null
-	canonicalUrl?: string | null
-	noIndex?: boolean
-	updatedAt?: string
+function isSeoTargetType(value: string): value is SeoTargetType {
+	return TARGET_TYPE_OPTIONS.includes(value as SeoTargetType)
 }
 
 export default function SeoClient() {
@@ -457,7 +446,7 @@ export default function SeoClient() {
 		toast.success(`Trial CSV выгружен (${result.data?.count ?? 0} строк)`) 
 	}
 
-	const filtered = ((seoList ?? []) as SeoListItem[]).filter((item) => {
+	const filtered = (seoList ?? []).filter((item) => {
 		if (filter === 'missing-title') return !item.title
 		if (filter === 'missing-desc') return !item.description
 		if (filter === 'noindex') return item.noIndex
@@ -478,7 +467,12 @@ export default function SeoClient() {
 		}))
 	}
 
-	const handleSave = (item: SeoListItem) => {
+	const handleSave = (item: (typeof filtered)[number]) => {
+		if (!isSeoTargetType(item.targetType)) {
+			toast.error('Некорректный тип SEO-цели')
+			return
+		}
+
 		const changes: SeoEditFields = editing[item.id] ?? {}
 		updateSeo({
 			targetType: item.targetType,
