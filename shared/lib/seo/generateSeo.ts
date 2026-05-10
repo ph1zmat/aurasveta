@@ -13,6 +13,7 @@ interface ProductSeoInput {
 interface CategorySeoInput {
 	name: string
 	description?: string | null
+	images?: Array<string | Pick<ProductImage, 'url'> | { url?: string | null }>
 }
 
 interface PageSeoInput {
@@ -79,7 +80,7 @@ export function generateCategorySeo(category: CategorySeoInput) {
 		description,
 		ogTitle: category.name,
 		ogDescription: description,
-		ogImage: null,
+		ogImage: getFirstImage(category.images),
 	}
 }
 

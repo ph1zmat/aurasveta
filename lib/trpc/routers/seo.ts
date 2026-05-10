@@ -1838,7 +1838,7 @@ export const seoRouter = createTRPCRouter({
 						...(onlyMissing ? { id: { notIn: [...existingIds] } } : {}),
 						...cursorClause,
 					},
-					select: { id: true, name: true, description: true },
+					select: { id: true, name: true, description: true, image: true, imagePath: true },
 					orderBy: { id: 'asc' },
 					take: limit,
 				})
@@ -1986,7 +1986,7 @@ export const seoRouter = createTRPCRouter({
 					where: {
 						...(pageWhere ?? {}),
 					},
-					select: { id: true, name: true, description: true },
+					select: { id: true, name: true, description: true, image: true, imagePath: true },
 					orderBy: { id: 'asc' },
 					take: pageTake,
 				})

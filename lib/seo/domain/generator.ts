@@ -31,6 +31,8 @@ export interface CategoryEntityInput {
 	id: string
 	name: string
 	description?: string | null
+	image?: string | null
+	imagePath?: string | null
 }
 
 export interface PageEntityInput {
@@ -113,6 +115,7 @@ export function generateCategoryResult(
 	const auto = generateCategorySeo({
 		name: category.name,
 		description: category.description,
+		images: category.imagePath || category.image ? [{ url: category.imagePath ?? category.image }] : undefined,
 	})
 
 	const after = mergeWithMode(auto, existing, mode)
