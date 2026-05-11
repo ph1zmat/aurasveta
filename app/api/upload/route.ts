@@ -1,10 +1,10 @@
-import path from 'path'
+﻿import path from 'path'
 import { randomBytes, randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/auth'
 import { headers } from 'next/headers'
 import { uploadFile, deleteFile } from '@/lib/storage'
-import { getStorageFileUrl } from '@/shared/lib/storage-file-url'
+import { getStorageFileUrl } from '@/shared/lib/storagefileurl'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
@@ -239,3 +239,4 @@ export async function DELETE(req: Request) {
 		)
 	}
 }
+

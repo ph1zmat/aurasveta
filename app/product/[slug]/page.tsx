@@ -1,42 +1,42 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import ProductGallery from '@/features/product-details/ui/ProductGallery'
-import ProductPriceBlock from '@/features/product-details/ui/ProductPriceBlock'
-import InterestCounter from '@/features/product-details/ui/InterestCounter'
-import DeliveryAdvantages from '@/features/product-details/ui/DeliveryAdvantages'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import ProductGallery from '@/features/product-details/ui/productgallery'
+import ProductPriceBlock from '@/features/product-details/ui/productpriceblock'
+import InterestCounter from '@/features/product-details/ui/interestcounter'
+import DeliveryAdvantages from '@/features/product-details/ui/deliveryadvantages'
 // Ниже fold — загружаются после LCP
 const ProductTabs = dynamic(
-	() => import('@/features/product-details/ui/ProductTabs'),
+	() => import('@/features/product-details/ui/producttabs'),
 )
 const ProductCarousel = dynamic(
-	() => import('@/widgets/product-carousel/ui/ProductCarousel'),
+	() => import('@/widgets/product-carousel/ui/productcarousel'),
 )
 // Только при скролле / нет SSR-HTML
 const StickyHeaderWithTrigger = dynamic(
-	() => import('@/features/product-details/ui/StickyHeaderWithTrigger'),
+	() => import('@/features/product-details/ui/stickyheaderwithtrigger'),
 )
 // Чисто client-side аналитика, нет HTML
 const TrackRecentlyViewed = dynamic(
-	() => import('@/features/product-details/ui/TrackRecentlyViewed'),
+	() => import('@/features/product-details/ui/trackrecentlyviewed'),
 )
-import ProductStructuredData from '@/shared/ui/ProductStructuredData'
-import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
-import BackToListLink from '@/shared/ui/BackToListLink'
-import ProductBreadcrumbs from '@/features/product-details/ui/ProductBreadcrumbs'
+import ProductStructuredData from '@/shared/ui/productstructureddata'
+import BreadcrumbStructuredData from '@/shared/ui/breadcrumbstructureddata'
+import BackToListLink from '@/shared/ui/backtolistlink'
+import ProductBreadcrumbs from '@/features/product-details/ui/productbreadcrumbs'
 import {
 	CompareButton,
 	AddToCartButton,
-} from '@/features/product-details/ui/ProductActions'
+} from '@/features/product-details/ui/productactions'
 import { prisma } from '@/lib/prisma'
 import {
 	getProductBySlug,
 	getProductSpecGroups,
-} from '@/entities/product/api/productService'
+} from '@/entities/product/api/productservice'
 import {
 	type DbProduct,
 	toCatalogCardProps,
@@ -44,13 +44,13 @@ import {
 } from '@/entities/product/model/adapters'
 import { notFound } from 'next/navigation'
 import { trpc } from '@/lib/trpc/server'
-import { getMetadataForProduct, seoToMetadata } from '@/lib/seo/getMetadata'
+import { getMetadataForProduct, seoToMetadata } from '@/lib/seo/getmetadata'
 import {
 	getProductImageUrl,
 	normalizeProductImages,
-} from '@/shared/lib/product-utils'
-import { ProductCarouselSkeleton } from '@/shared/ui/storefront-skeletons'
-import RecentlyViewedProductCarousel from '@/widgets/product-carousel/ui/RecentlyViewedProductCarousel'
+} from '@/shared/lib/productutils'
+import { ProductCarouselSkeleton } from '@/shared/ui/storefrontskeletons'
+import RecentlyViewedProductCarousel from '@/widgets/product-carousel/ui/recentlyviewedproductcarousel'
 
 /* ── Page ── */
 

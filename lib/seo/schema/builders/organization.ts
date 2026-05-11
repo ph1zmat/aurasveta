@@ -1,4 +1,4 @@
-import type { PublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
+import type { PublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 
 const BASE_URL = 'https://aurasveta.by'
 

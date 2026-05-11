@@ -1,8 +1,8 @@
-export { useCompare } from './useCompare'
+export { useCompare } from './usecompare'
 export {
 	default as CompareProductCard,
 	type CompareProductCardProps,
-} from './ui/CompareProductCard'
-export { default as CompareSpecsTable } from './ui/CompareSpecsTable'
-export { default as CompareFilterRadio } from './ui/CompareFilterRadio'
+} from './ui/compareproductcard'
+export { default as CompareSpecsTable } from './ui/comparespecstable'
+export { default as CompareFilterRadio } from './ui/comparefilterradio'
 export { toCompareCardProps } from './model/adapters'

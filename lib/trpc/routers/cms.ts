@@ -1,6 +1,6 @@
 import { createTRPCRouter } from '../init'
-import { sectionTypeRouter } from './sectionType'
-import { homeSectionRouter } from './homeSection'
+import { sectionTypeRouter } from './sectiontype'
+import { homeSectionRouter } from './homesection'
 import { propertiesRouter } from './properties'
 import { pagesRouter } from './pages'
 import { settingRouter } from './setting'

@@ -1,4 +1,4 @@
-import type { NormalizedSeoFields } from '../metadata-persistence'
+import type { NormalizedSeoFields } from '../metadatapersistence'
 
 // ---------- Базовые перечисления ----------
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { requireUnauth } from '@/lib/auth/auth-utils'
-import RegisterForm from './RegisterForm'
+import { requireUnauth } from '@/lib/auth/authutils'
+import RegisterForm from './registerform'
 
 export const metadata: Metadata = {
 	title: 'Регистрация — Аура Света',

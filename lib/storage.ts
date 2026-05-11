@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Сервисный слой для работы с объектным хранилищем (MinIO / AWS S3).
  *
  * Конфигурируется через переменные окружения:
@@ -223,3 +223,4 @@ export async function fileExists(key: string): Promise<boolean> {
 		return false
 	}
 }
+

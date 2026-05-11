@@ -2,8 +2,8 @@ import {
 	generateProductSeo,
 	generateCategorySeo,
 	generatePageSeo,
-} from '@/shared/lib/seo/generateSeo'
-import type { NormalizedSeoFields } from '../metadata-persistence'
+} from '@/shared/lib/seo/generateseo'
+import type { NormalizedSeoFields } from '../metadatapersistence'
 import type {
 	SeoEntityType,
 	SeoFieldDiff,

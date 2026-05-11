@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import type { Prisma } from '@prisma/client'
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import PublicSectionRenderer from '@/entities/section/ui/PublicSectionRenderer'
-import DynamicHomeSection from '@/widgets/home-sections/ui/DynamicHomeSection'
-import { getUnifiedHomePageRenderData } from '@/lib/sections/public-page-data'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import PublicSectionRenderer from '@/entities/section/ui/publicsectionrenderer'
+import DynamicHomeSection from '@/widgets/home-sections/ui/dynamichomesection'
+import { getUnifiedHomePageRenderData } from '@/lib/sections/publicpagedata'
 
 export const metadata: Metadata = {
 	title: 'Аура Света — магазин люстр и светильников в Мозыре',

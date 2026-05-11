@@ -1,4 +1,4 @@
-import { FavoritesPageSkeleton } from '@/shared/ui/storefront-skeletons'
+import { FavoritesPageSkeleton } from '@/shared/ui/storefrontskeletons'
 
 export default function Loading() {
 	return <FavoritesPageSkeleton />

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 import crypto from 'crypto'
 import type { Prisma } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
@@ -165,3 +165,4 @@ export const anonymousRouter = createTRPCRouter({
 			return { migrated: true }
 		}),
 })
+

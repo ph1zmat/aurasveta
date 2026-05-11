@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+﻿import { prisma } from '@/lib/prisma'
 import type { PushPlatform } from '@prisma/client'
 
 interface PushPayload {
@@ -187,3 +187,4 @@ async function sendWebPush(
 		return null
 	}
 }
+

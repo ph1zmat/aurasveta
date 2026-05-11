@@ -1,6 +1,6 @@
 import type { Product } from '@/entities/product/model/types'
-import type { FavoriteProductCardProps } from '@/features/favorites/ui/FavoriteProductCard'
-import { getProductImageUrl } from '@/shared/lib/product-utils'
+import type { FavoriteProductCardProps } from '@/features/favorites/ui/favoriteproductcard'
+import { getProductImageUrl } from '@/shared/lib/productutils'
 
 /**
  * Product → FavoriteProductCard

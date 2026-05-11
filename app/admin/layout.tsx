@@ -1,6 +1,6 @@
-import { requireCmsAccess } from '@/lib/auth/auth-utils'
-import AdminQueryDevtools from './components/AdminQueryDevtools'
-import AdminShell from './components/AdminShell'
+import { requireCmsAccess } from '@/lib/auth/authutils'
+import AdminQueryDevtools from './components/adminquerydevtools'
+import AdminShell from './components/adminshell'
 import { Toaster } from '@/components/ui/sonner'
 
 export default async function AdminLayout({

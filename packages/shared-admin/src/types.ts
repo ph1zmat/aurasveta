@@ -2,7 +2,7 @@
  * Re-export AppRouter type from the main web application.
  * This creates a type-only dependency — no runtime code imported.
  */
-export type { AppRouter } from '../../../lib/trpc/routers/_app'
+export type { AppRouter } from '../../../lib/trpc/routers/app'
 
 // Общие типы для администраторских приложений
 

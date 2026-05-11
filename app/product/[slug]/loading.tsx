@@ -1,4 +1,4 @@
-import { ProductPageSkeleton } from '@/shared/ui/storefront-skeletons'
+import { ProductPageSkeleton } from '@/shared/ui/storefrontskeletons'
 
 export default function Loading() {
 	return <ProductPageSkeleton />

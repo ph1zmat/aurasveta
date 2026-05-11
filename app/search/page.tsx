@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import SearchContent from './SearchContent'
-import Skeleton from '@/shared/ui/Skeleton'
+import SearchContent from './searchcontent'
+import Skeleton from '@/shared/ui/skeleton'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 
 export const metadata: Metadata = {

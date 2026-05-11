@@ -2,8 +2,8 @@ import type { Prisma, PrismaClient } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
-import { upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
-import { generateSlug } from '@/shared/lib/generateSlug'
+import { upsertSeoMetadata } from '@/lib/seo/metadatapersistence'
+import { generateSlug } from '@/shared/lib/generateslug'
 import { deleteFile } from '@/lib/storage'
 import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
@@ -11,13 +11,13 @@ import {
 	getCategoryFilterSummary,
 	isFilteringCategory,
 	type CategoryFilterAware,
-} from '@/lib/categories/category-filters'
-import { productImageSelect } from '@/lib/products/product-images'
+} from '@/lib/categories/categoryfilters'
+import { productImageSelect } from '@/lib/products/productimages'
 import {
 	withResolvedImageAsset,
 	withResolvedProductImages,
-} from '@/lib/storage-image-assets'
-import { attachAutoBadges } from '@/lib/products/auto-badges'
+} from '@/lib/storageimageassets'
+import { attachAutoBadges } from '@/lib/products/autobadges'
 
 const categoryFilterInputSchema = z.object({
 	categoryMode: z.enum(['MANUAL', 'FILTER']).default('MANUAL'),

@@ -19,7 +19,7 @@
 ```
 prisma/
   schema.prisma          # Все модели (17 таблиц)
-  prisma.config.ts       # Конфигурация Prisma 7
+  prismaconfig.ts       # Конфигурация Prisma 7
 
 lib/
   prisma.ts              # PrismaClient singleton (Neon adapter)

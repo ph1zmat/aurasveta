@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import SeoClient from '../SeoClient'
+import SeoClient from '../seoclient'
 
 export const metadata: Metadata = {
   title: 'SEO Продвинутые опции',

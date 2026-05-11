@@ -1,11 +1,11 @@
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import CartContent from './CartContent'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import CartContent from './cartcontent'
 import { Suspense } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
-import { CartContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import { CartContentSkeleton } from '@/shared/ui/storefrontskeletons'
 
 export const metadata = {
 	title: 'Корзина — Аура Света',

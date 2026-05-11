@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { createTRPCRouter, baseProcedure } from '../init'
-import { attachAutoBadges } from '@/lib/products/auto-badges'
+import { attachAutoBadges } from '@/lib/products/autobadges'
 
 const searchInput = z.object({
 	query: z.string().min(1, 'Поисковый запрос не может быть пустым'),

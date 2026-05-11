@@ -1,13 +1,13 @@
 import type { Product, ProductImage } from '@/entities/product/model/types'
 import type { CartItemData } from '@/entities/cart/model/types'
-import type { ProductCardProps } from '@/entities/product/ui/ProductCard'
-import type { CatalogProductCardProps } from '@/entities/product/ui/CatalogProductCard'
+import type { ProductCardProps } from '@/entities/product/ui/productcard'
+import type { CatalogProductCardProps } from '@/entities/product/ui/catalogproductcard'
 import {
 	getResolvedProductImageUrl,
 	getProductImageUrl,
 	normalizeProductImages,
-} from '@/shared/lib/product-utils'
-import { resolveStorageFileUrl } from '@/shared/lib/storage-file-url'
+} from '@/shared/lib/productutils'
+import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import type { StorageImageAsset } from '@/shared/types/storage'
 
 /** Shape of a Prisma product row used by `toFrontendProduct`. */

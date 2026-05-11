@@ -4,13 +4,13 @@ import './globals.css'
 // Принудительный SSR для всего приложения — layout использует headers() через tRPC
 export const dynamic = 'force-dynamic'
 
-import MobileHeader from '@/widgets/header/ui/MobileHeader'
-import MobileBottomNav from '@/widgets/navigation/ui/MobileBottomNav'
+import MobileHeader from '@/widgets/header/ui/mobileheader'
+import MobileBottomNav from '@/widgets/navigation/ui/mobilebottomnav'
 import { TRPCProvider } from '@/lib/trpc/client'
 import { HydrateClient } from '@/lib/trpc/server'
-import Toaster from '@/shared/ui/Toaster'
-import RootThemeProvider from '@/shared/ui/RootThemeProvider'
-import { getPublicStoreSettings } from '@/lib/utils/getPublicStoreSettings'
+import Toaster from '@/shared/ui/toaster'
+import RootThemeProvider from '@/shared/ui/rootthemeprovider'
+import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 import { buildOrganizationSchema } from '@/lib/seo/schema/builders/organization'
 import { buildWebSiteSchema } from '@/lib/seo/schema/builders/website'
 

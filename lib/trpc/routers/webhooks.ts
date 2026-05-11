@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, adminProcedure } from '../init'
-import { validateWebhookUrl } from '@/shared/lib/validateUrl'
+import { validateWebhookUrl } from '@/shared/lib/validateurl'
 
 function assertSafeUrl(url: string) {
 	const result = validateWebhookUrl(url)

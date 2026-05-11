@@ -1,4 +1,4 @@
-import { ComparePageSkeleton } from '@/shared/ui/storefront-skeletons'
+import { ComparePageSkeleton } from '@/shared/ui/storefrontskeletons'
 
 export default function Loading() {
 	return <ComparePageSkeleton />

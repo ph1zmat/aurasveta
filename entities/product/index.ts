@@ -18,11 +18,11 @@ export {
 	getQuickSpecs,
 	getProductSpecGroups,
 	getCompareSpecs,
-} from './api/productService'
+} from './api/productservice'
 
 // UI
-export { default as ProductCard, type ProductCardProps } from './ui/ProductCard'
+export { default as ProductCard, type ProductCardProps } from './ui/productcard'
 export {
 	default as CatalogProductCard,
 	type CatalogProductCardProps,
-} from './ui/CatalogProductCard'
+} from './ui/catalogproductcard'

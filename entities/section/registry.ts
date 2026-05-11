@@ -32,7 +32,7 @@ import {
 	HeroSectionRenderer,
 	ProductGridSectionRenderer,
 	RichTextSectionRenderer,
-} from './ui/SectionRenderers'
+} from './ui/sectionrenderers'
 
 export type SectionConfigByType<TType extends SectionType> = Extract<
 	SectionConfig,

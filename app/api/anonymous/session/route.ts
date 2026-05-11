@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto'
 
@@ -51,3 +51,4 @@ export async function GET() {
 
 	return response
 }
+

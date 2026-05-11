@@ -1,23 +1,23 @@
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, editorProcedure } from '../init'
 import { deleteFile } from '@/lib/storage'
-import { withResolvedImageAsset } from '@/lib/storage-image-assets'
+import { withResolvedImageAsset } from '@/lib/storageimageassets'
 import {
 	mergeSeoFields,
 	pageLegacySeoToFields,
 	upsertSeoMetadata,
-} from '@/lib/seo/metadata-persistence'
+} from '@/lib/seo/metadatapersistence'
 import { SectionBackgroundSchema, SectionTypeSchema } from '@/shared/types/sections'
 import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
 	createPageVersionSnapshotInput,
 	replacePageSections,
-} from '@/lib/sections/page-section-persistence'
-import { PAGE_BLOCK_TYPES } from '@/shared/types/page-builder'
+} from '@/lib/sections/pagesectionpersistence'
+import { PAGE_BLOCK_TYPES } from '@/shared/types/pagebuilder'
 import {
 	replacePageBlocks,
 	pageBlocksToSnapshot,
-} from '@/lib/pages/page-block-persistence'
+} from '@/lib/pages/pageblockpersistence'
 
 const pageBlockInputSchema = z.object({
 	id: z.string().optional(),

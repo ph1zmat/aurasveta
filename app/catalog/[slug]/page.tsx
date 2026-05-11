@@ -1,15 +1,15 @@
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import CategoryContent from './CategoryContent'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import CategoryContent from './categorycontent'
 import { Suspense } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
-import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getMetadata'
-import { CategoryContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getmetadata'
+import { CategoryContentSkeleton } from '@/shared/ui/storefrontskeletons'
 import { prisma } from '@/lib/prisma'
-import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
+import BreadcrumbStructuredData from '@/shared/ui/breadcrumbstructureddata'
 
 export const revalidate = 3600 // 1 час ISR
 export const dynamicParams = true

@@ -1,6 +1,6 @@
 import { normalizeExternalSignals } from './normalize'
-import { fetchGoogleSearchConsoleSignals } from './providers/google-search-console'
-import { fetchYandexWebmasterSignals } from './providers/yandex-webmaster'
+import { fetchGoogleSearchConsoleSignals } from './providers/googlesearchconsole'
+import { fetchYandexWebmasterSignals } from './providers/yandexwebmaster'
 import type { ExternalFetchInput, ExternalFetchResult, ExternalProvider } from './types'
 
 export async function fetchExternalSignals(

@@ -1,3 +1,3 @@
-export * from './model/orderStatus'
-export * from './ui/OrderCard'
-export * from './ui/OrderEditorModal'
+export * from './model/orderstatus'
+export * from './ui/ordercard'
+export * from './ui/ordereditormodal'

@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure } from '../init'
-import { productImageSelect } from '@/lib/products/product-images'
-import { withResolvedProductImages } from '@/lib/storage-image-assets'
+import { productImageSelect } from '@/lib/products/productimages'
+import { withResolvedProductImages } from '@/lib/storageimageassets'
 import type { StorageImageAsset } from '@/shared/types/storage'
-import { attachAutoBadges } from '@/lib/products/auto-badges'
+import { attachAutoBadges } from '@/lib/products/autobadges'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' as const },

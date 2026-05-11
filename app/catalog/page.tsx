@@ -1,20 +1,20 @@
 import type { Metadata } from 'next'
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import CatalogContent from './CatalogContent'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import CatalogContent from './catalogcontent'
 import { Suspense } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
-import { CatalogContentSkeleton } from '@/shared/ui/storefront-skeletons'
-import BreadcrumbStructuredData from '@/shared/ui/BreadcrumbStructuredData'
+import { CatalogContentSkeleton } from '@/shared/ui/storefrontskeletons'
+import BreadcrumbStructuredData from '@/shared/ui/breadcrumbstructureddata'
 
 export const revalidate = 300 // 5 мин ISR
 
 export const metadata: Metadata = {
-	title: 'Каталог — Аура Света',
+	title: 'Каталог люстр и светильников в Мозыре',
 	description:
-		'Каталог люстр и светильников. Широкий ассортимент от ведущих производителей.',
+		'Каталог люстр, бра, спотов и светильников в Мозыре. Актуальные цены в Br, помощь с подбором и доставка по Беларуси.',
 	openGraph: {
 		url: 'https://aurasveta.by/catalog',
 		type: 'website',
@@ -43,10 +43,10 @@ export default async function CatalogPage() {
 
 					<div className='py-5 md:py-8'>
 						<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
-							Каталог
+							Каталог светильников в Мозыре
 						</h1>
 						<p className='mt-2 text-sm tracking-wider text-muted-foreground'>
-							Товары каталога представлены в категориях
+							Люстры, бра, споты и декоративное освещение с доставкой по Беларуси
 						</p>
 					</div>
 

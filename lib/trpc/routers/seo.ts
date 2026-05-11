@@ -1,9 +1,9 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 import Papa from 'papaparse'
 import { Prisma } from '@prisma/client'
 import { createTRPCRouter, adminProcedure, editorProcedure } from '../init'
 import { SeoMetadataInputSchema, SeoTargetTypeSchema } from '@/shared/types/seo'
-import { normalizeSeoFields, upsertSeoMetadata } from '@/lib/seo/metadata-persistence'
+import { normalizeSeoFields, upsertSeoMetadata } from '@/lib/seo/metadatapersistence'
 import {
 	generateProductResult,
 	generateCategoryResult,
@@ -13,16 +13,16 @@ import type { BulkPreviewResult, BulkApplyResult, SeoEntityType } from '@/lib/se
 import { BULK_BATCH_SIZE, BULK_SAMPLE_SIZE } from '@/lib/seo/domain/rules'
 import { computeSeoAudit } from '@/lib/seo/domain/audit'
 import { detectCannibalizationCandidates } from '@/lib/seo/domain/cannibalization'
-import { prioritizeExternalSignal, summarizeExternalTriage } from '@/lib/seo/domain/external-triage'
-import { buildSnippetSuggestion } from '@/lib/seo/domain/snippet-suggestions'
-import { rankRuleScoredSnippetSuggestion } from '@/lib/seo/domain/snippet-suggestions-scored'
-import { mergeHybridSnippetSuggestion } from '@/lib/seo/domain/snippet-suggestions-hybrid'
-import { buildStaleContentQueue } from '@/lib/seo/domain/stale-content'
-import { buildWeeklyTriageBoard } from '@/lib/seo/domain/weekly-triage'
+import { prioritizeExternalSignal, summarizeExternalTriage } from '@/lib/seo/domain/externaltriage'
+import { buildSnippetSuggestion } from '@/lib/seo/domain/snippetsuggestions'
+import { rankRuleScoredSnippetSuggestion } from '@/lib/seo/domain/snippetsuggestionsscored'
+import { mergeHybridSnippetSuggestion } from '@/lib/seo/domain/snippetsuggestionshybrid'
+import { buildStaleContentQueue } from '@/lib/seo/domain/stalecontent'
+import { buildWeeklyTriageBoard } from '@/lib/seo/domain/weeklytriage'
 import { fetchExternalQueryUrlSignals } from '@/lib/seo/external/cannibalization'
 import { fetchExternalSignals } from '@/lib/seo/external'
-import { fetchAiSnippetDrafts } from '@/lib/seo/external/snippet-ai'
-import { fetchExternalStaleSignals } from '@/lib/seo/external/stale-content'
+import { fetchAiSnippetDrafts } from '@/lib/seo/external/snippetai'
+import { fetchExternalStaleSignals } from '@/lib/seo/external/stalecontent'
 
 const BASE_URL = 'https://aurasveta.by'
 
@@ -2510,3 +2510,4 @@ export const seoRouter = createTRPCRouter({
 			return { items }
 		}),
 })
+

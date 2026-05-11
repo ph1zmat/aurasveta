@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireCmsAccess } from '@/lib/auth/auth-utils'
-import { adminEventBus } from '@/lib/realtime/admin-events'
+import { requireCmsAccess } from '@/lib/auth/authutils'
+import { adminEventBus } from '@/lib/realtime/adminevents'
 
 function encodeSseEvent(eventName: string, data: unknown) {
 	// SSE format: event: <name>\n data: <json>\n\n

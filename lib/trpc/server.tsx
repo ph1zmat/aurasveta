@@ -4,8 +4,8 @@ import { cache } from 'react'
 import { createHydrationHelpers } from '@trpc/react-query/rsc'
 import { headers } from 'next/headers'
 import { createTRPCContext, createCallerFactory } from './init'
-import { makeQueryClient } from './query-client'
-import { appRouter, type AppRouter } from './routers/_app'
+import { makeQueryClient } from './queryclient'
+import { appRouter, type AppRouter } from './routers/app'
 
 export const getQueryClient = cache(makeQueryClient)
 

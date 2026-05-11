@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import SeoDashboard from './SeoDashboard'
+import SeoDashboard from './seodashboard'
 
 export const metadata: Metadata = {
 	title: 'SEO Здоровье',

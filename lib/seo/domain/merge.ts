@@ -1,4 +1,4 @@
-import { normalizeSeoFields, type NormalizedSeoFields } from '../metadata-persistence'
+import { normalizeSeoFields, type NormalizedSeoFields } from '../metadatapersistence'
 import type { SeoGenerationMode } from './types'
 import { CANONICAL_BASE_URL, TRACKED_QUERY_PARAMS } from './rules'
 

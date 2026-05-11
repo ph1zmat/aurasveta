@@ -1,4 +1,4 @@
-import ProductsClient from './ProductsClient'
+import ProductsClient from './productsclient'
 
 export default function ProductsPage() {
 	return <ProductsClient />

@@ -14,7 +14,7 @@ import {
 import {
   InputGroup,
   InputGroupAddon,
-} from "@/components/ui/input-group"
+} from "@/components/ui/inputgroup"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({

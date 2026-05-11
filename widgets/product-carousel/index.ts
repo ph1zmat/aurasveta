@@ -1,1 +1,1 @@
-export { default as ProductCarousel } from './ui/ProductCarousel'
+export { default as ProductCarousel } from './ui/productcarousel'

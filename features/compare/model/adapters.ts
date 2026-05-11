@@ -1,6 +1,6 @@
 import type { Product } from '@/entities/product/model/types'
-import type { CompareProductCardProps } from '@/features/compare/ui/CompareProductCard'
-import { getProductImageUrl } from '@/shared/lib/product-utils'
+import type { CompareProductCardProps } from '@/features/compare/ui/compareproductcard'
+import { getProductImageUrl } from '@/shared/lib/productutils'
 
 /**
  * Product → CompareProductCard

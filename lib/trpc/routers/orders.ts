@@ -3,8 +3,8 @@ import { TRPCError } from '@trpc/server'
 import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
 import { sendPushToAdmins } from '@/lib/push/send'
-import { adminEventBus } from '@/lib/realtime/admin-events'
-import { productImageSelect } from '@/lib/products/product-images'
+import { adminEventBus } from '@/lib/realtime/adminevents'
+import { productImageSelect } from '@/lib/products/productimages'
 import {
 	AdminOrderStatusSchema,
 	AdminOrderUpdateInputSchema,
@@ -161,7 +161,7 @@ export const ordersRouter = createTRPCRouter({
 			// Отправить push-уведомление администраторам о новом заказе
 			sendPushToAdmins({
 				title: 'Новый заказ',
-				body: `Заказ #${order.id.slice(-6)} на сумму ${order.total}₽`,
+				body: `Заказ #${order.id.slice(-6)} на сумму ${order.total} Br`,
 				data: { orderId: order.id, type: 'new_order' },
 			}).catch(err => console.error('[Push] Ошибка отправки:', err))
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushToAdmins } from '@/lib/push/send'
@@ -73,4 +73,5 @@ export async function POST(request: NextRequest) {
 
 	return NextResponse.json({ result })
 }
+
 

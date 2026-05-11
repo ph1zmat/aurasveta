@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Button } from '@/shared/ui/Button'
+import { Button } from '@/shared/ui/button'
 
 export const metadata: Metadata = {
 	title: 'Нет доступа — Аура Света',

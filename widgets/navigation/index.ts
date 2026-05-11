@@ -1,3 +1,3 @@
-export { default as CategoryNav } from './ui/CategoryNav'
-export { default as MobileBottomNav } from './ui/MobileBottomNav'
-export { default as MobileCatalogMenu } from './ui/MobileCatalogMenu'
+export { default as CategoryNav } from './ui/categorynav'
+export { default as MobileBottomNav } from './ui/mobilebottomnav'
+export { default as MobileCatalogMenu } from './ui/mobilecatalogmenu'

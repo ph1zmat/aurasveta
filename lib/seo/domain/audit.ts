@@ -1,4 +1,4 @@
-import type { NormalizedSeoFields } from '../metadata-persistence'
+import type { NormalizedSeoFields } from '../metadatapersistence'
 import type { SeoAuditFlag, SeoScore } from './types'
 import { SEO_RULES } from './rules'
 

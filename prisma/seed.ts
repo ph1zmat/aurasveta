@@ -1,4 +1,4 @@
-import { PrismaPg } from '@prisma/adapter-pg'
+﻿import { PrismaPg } from '@prisma/adapter-pg'
 import { Prisma, PrismaClient } from '@prisma/client'
 import { hashPassword } from 'better-auth/crypto'
 import {
@@ -7,7 +7,7 @@ import {
 	createCatalogProducts,
 	PROPERTY_DEFINITIONS,
 	SEARCH_QUERIES,
-} from './seed-catalog'
+} from './seedcatalog'
 
 if (process.env.NODE_ENV === 'production') {
 	throw new Error('Seeding is not allowed in production')
@@ -928,3 +928,4 @@ main()
 	.finally(async () => {
 		await prisma.$disconnect()
 	})
+

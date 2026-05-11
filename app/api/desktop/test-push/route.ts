@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth/auth'
-import { adminEventBus } from '@/lib/realtime/admin-events'
+import { adminEventBus } from '@/lib/realtime/adminevents'
 import { NextResponse } from 'next/server'
 
 function corsHeaders() {

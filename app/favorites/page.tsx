@@ -1,10 +1,10 @@
-import TopBar from '@/widgets/header/ui/TopBar'
-import Header from '@/widgets/header/ui/HeaderServer'
-import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
-import Footer from '@/widgets/footer/ui/Footer'
-import FavoritesContent from './FavoritesContent'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
+import FavoritesContent from './favoritescontent'
 import { Suspense } from 'react'
-import { FavoritesContentSkeleton } from '@/shared/ui/storefront-skeletons'
+import { FavoritesContentSkeleton } from '@/shared/ui/storefrontskeletons'
 
 export const metadata = {
 	title: 'Избранное — Аура Света',

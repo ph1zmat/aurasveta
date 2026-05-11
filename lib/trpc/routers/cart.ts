@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure } from '../init'
-import { productImageSelect } from '@/lib/products/product-images'
+import { productImageSelect } from '@/lib/products/productimages'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' as const },
