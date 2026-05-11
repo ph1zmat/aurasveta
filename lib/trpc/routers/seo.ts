@@ -2065,4 +2065,371 @@ export const seoRouter = createTRPCRouter({
 
 			return { applied, skipped, errors, nextCursor, hasMore, processed: results.length } satisfies BulkApplyResult
 		}),
+
+	quickFix: adminProcedure
+		.input(
+			z.object({
+				mode: z.enum(['strict', 'safe-overwrite', 'force']).default('safe-overwrite'),
+			}).default({ mode: 'safe-overwrite' }),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const mode = input.mode ?? 'safe-overwrite'
+			const allResults: {
+				titlesAdded: number
+				descriptionsAdded: number
+				ogImagesAdded: number
+				snippetsApplied: number
+				totalProcessed: number
+				totalApplied: number
+				errors: number
+				byType: Record<string, { processed: number; applied: number }>
+			} = {
+				titlesAdded: 0,
+				descriptionsAdded: 0,
+				ogImagesAdded: 0,
+				snippetsApplied: 0,
+				totalProcessed: 0,
+				totalApplied: 0,
+				errors: 0,
+				byType: {},
+			}
+
+			for (const targetType of ['product', 'category', 'page'] as const) {
+				const existingRecords = await ctx.prisma.seoMetadata.findMany({
+					where: { targetType },
+					select: {
+						targetId: true,
+						title: true,
+						description: true,
+						keywords: true,
+						ogTitle: true,
+						ogDescription: true,
+						ogImage: true,
+						canonicalUrl: true,
+						noIndex: true,
+					},
+				})
+
+				const existingMap = new Map(
+					existingRecords.map((r) => [
+						r.targetId,
+						normalizeSeoFields({
+							title: r.title,
+							description: r.description,
+							keywords: r.keywords,
+							ogTitle: r.ogTitle,
+							ogDescription: r.ogDescription,
+							ogImage: r.ogImage,
+							canonicalUrl: r.canonicalUrl,
+							noIndex: r.noIndex,
+						}),
+					]),
+				)
+
+				let results: Array<{
+					targetType: 'product' | 'category' | 'page'
+					targetId: string
+					after: ReturnType<typeof normalizeSeoFields>
+					changed: boolean
+				}> = []
+
+				if (targetType === 'product') {
+					const entities = await ctx.prisma.product.findMany({
+						select: {
+							id: true,
+							name: true,
+							description: true,
+							price: true,
+							brand: true,
+							metaTitle: true,
+							metaDesc: true,
+							images: { select: { url: true }, orderBy: { order: 'asc' }, take: 1 },
+						},
+						orderBy: { id: 'asc' },
+					})
+					results = entities.map((e) => {
+						const r = generateProductResult(e, existingMap.get(e.id) ?? null, mode)
+						return { targetType: r.targetType, targetId: r.targetId, after: r.after, changed: r.changed }
+					})
+				} else if (targetType === 'category') {
+					const entities = await ctx.prisma.category.findMany({
+						select: { id: true, name: true, description: true, image: true, imagePath: true },
+						orderBy: { id: 'asc' },
+					})
+					results = entities.map((e) => {
+						const r = generateCategoryResult(e, existingMap.get(e.id) ?? null, mode)
+						return { targetType: r.targetType, targetId: r.targetId, after: r.after, changed: r.changed }
+					})
+				} else {
+					const entities = await ctx.prisma.page.findMany({
+						select: {
+							id: true,
+							title: true,
+							content: true,
+							metaTitle: true,
+							metaDesc: true,
+							imagePath: true,
+							image: true,
+						},
+						orderBy: { id: 'asc' },
+					})
+					results = entities.map((e) => {
+						const r = generatePageResult(e, existingMap.get(e.id) ?? null, mode)
+						return { targetType: r.targetType, targetId: r.targetId, after: r.after, changed: r.changed }
+					})
+				}
+
+				let applied = 0
+
+				for (const result of results) {
+					if (!result.changed) continue
+					try {
+						const existing = existingMap.get(result.targetId)
+						const hadTitle = !!existing?.title
+						const hadDescription = !!existing?.description
+						const hadOgImage = !!existing?.ogImage
+						const after = result.after
+
+						await upsertSeoMetadata(ctx.prisma, {
+							targetType: result.targetType,
+							targetId: result.targetId,
+							fields: after,
+						})
+
+						applied++
+						if (!hadTitle && after.title) allResults.titlesAdded++
+						if (!hadDescription && after.description) allResults.descriptionsAdded++
+						if (!hadOgImage && after.ogImage) allResults.ogImagesAdded++
+						if (after.title || after.description) allResults.snippetsApplied++
+					} catch {
+						allResults.errors++
+					}
+				}
+
+				allResults.totalProcessed += results.length
+				allResults.totalApplied += applied
+				allResults.byType[targetType] = { processed: results.length, applied }
+			}
+
+			await createSeoOperationLog(ctx, {
+				type: 'seo-quick-fix',
+				status: allResults.errors > 0 ? 'PARTIAL' : 'COMPLETED',
+				count: allResults.totalApplied,
+				meta: {
+					action: 'quickFix',
+					mode,
+					titlesAdded: allResults.titlesAdded,
+					descriptionsAdded: allResults.descriptionsAdded,
+					ogImagesAdded: allResults.ogImagesAdded,
+					snippetsApplied: allResults.snippetsApplied,
+					errors: allResults.errors,
+					byType: allResults.byType,
+				},
+			})
+
+			return {
+				success: allResults.errors === 0,
+				completedAt: new Date().toISOString(),
+				titlesAdded: allResults.titlesAdded,
+				descriptionsAdded: allResults.descriptionsAdded,
+				ogImagesAdded: allResults.ogImagesAdded,
+				snippetsApplied: allResults.snippetsApplied,
+				totalApplied: allResults.totalApplied,
+				totalProcessed: allResults.totalProcessed,
+				errors: allResults.errors,
+				byType: allResults.byType,
+			}
+		}),
+
+	quickFixPreview: adminProcedure.query(async ({ ctx }) => {
+		const mode = 'safe-overwrite'
+		const corrected = { total: 0, titles: 0, descriptions: 0, ogImages: 0 }
+
+		for (const targetType of ['product', 'category', 'page'] as const) {
+			const existingRecords = await ctx.prisma.seoMetadata.findMany({
+				where: { targetType },
+				select: {
+					targetId: true,
+					title: true,
+					description: true,
+					keywords: true,
+					ogTitle: true,
+					ogDescription: true,
+					ogImage: true,
+					canonicalUrl: true,
+					noIndex: true,
+				},
+			})
+			const existingMap = new Map(existingRecords.map((r) => [r.targetId, r]))
+
+			if (targetType === 'product') {
+				const entities = await ctx.prisma.product.findMany({
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						price: true,
+						brand: true,
+						metaTitle: true,
+						metaDesc: true,
+						images: { select: { url: true }, orderBy: { order: 'asc' }, take: 1 },
+					},
+					orderBy: { id: 'asc' },
+				})
+				for (const e of entities) {
+					const existing = existingMap.get(e.id)
+					const r = generateProductResult(e, existing ? normalizeSeoFields(existing) : null, mode)
+					if (!r.changed) continue
+					corrected.total++
+					if (!existing?.title && r.after.title) corrected.titles++
+					if (!existing?.description && r.after.description) corrected.descriptions++
+					if (!existing?.ogImage && r.after.ogImage) corrected.ogImages++
+				}
+			} else if (targetType === 'category') {
+				const entities = await ctx.prisma.category.findMany({
+					select: { id: true, name: true, description: true, image: true, imagePath: true },
+					orderBy: { id: 'asc' },
+				})
+				for (const e of entities) {
+					const existing = existingMap.get(e.id)
+					const r = generateCategoryResult(e, existing ? normalizeSeoFields(existing) : null, mode)
+					if (!r.changed) continue
+					corrected.total++
+					if (!existing?.title && r.after.title) corrected.titles++
+					if (!existing?.description && r.after.description) corrected.descriptions++
+					if (!existing?.ogImage && r.after.ogImage) corrected.ogImages++
+				}
+			} else {
+				const entities = await ctx.prisma.page.findMany({
+					select: {
+						id: true,
+						title: true,
+						content: true,
+						metaTitle: true,
+						metaDesc: true,
+						imagePath: true,
+						image: true,
+					},
+					orderBy: { id: 'asc' },
+				})
+				for (const e of entities) {
+					const existing = existingMap.get(e.id)
+					const r = generatePageResult(e, existing ? normalizeSeoFields(existing) : null, mode)
+					if (!r.changed) continue
+					corrected.total++
+					if (!existing?.title && r.after.title) corrected.titles++
+					if (!existing?.description && r.after.description) corrected.descriptions++
+					if (!existing?.ogImage && r.after.ogImage) corrected.ogImages++
+				}
+			}
+		}
+
+		return {
+			totalWillBeAffected: corrected.total,
+			titlesWillBeAdded: corrected.titles,
+			descriptionsWillBeAdded: corrected.descriptions,
+			ogImagesWillBeAdded: corrected.ogImages,
+		}
+	}),
+
+	getSummary: adminProcedure.query(async ({ ctx }) => {
+		const [seoRows, productCount, categoryCount, pageCount] = await Promise.all([
+			ctx.prisma.seoMetadata.findMany({
+				select: {
+					targetType: true,
+					title: true,
+					description: true,
+					ogImage: true,
+					noIndex: true,
+				},
+			}),
+			ctx.prisma.product.count(),
+			ctx.prisma.category.count(),
+			ctx.prisma.page.count(),
+		])
+
+		const seoByType = {
+			product: seoRows.filter((r) => r.targetType === 'product'),
+			category: seoRows.filter((r) => r.targetType === 'category'),
+			page: seoRows.filter((r) => r.targetType === 'page'),
+		}
+
+		const counts = {
+			product: productCount,
+			category: categoryCount,
+			page: pageCount,
+		}
+
+		function getStats(type: 'product' | 'category' | 'page') {
+			const total = counts[type]
+			const rows = seoByType[type]
+			const withTitle = rows.filter((r) => !!r.title).length
+			const withDescription = rows.filter((r) => !!r.description).length
+			const withOgImage = rows.filter((r) => !!r.ogImage).length
+
+			const score =
+				total === 0
+					? 100
+					: Math.round((withTitle / total) * 40 + (withDescription / total) * 40 + (withOgImage / total) * 20)
+
+			return {
+				total,
+				withTitle,
+				withDescription,
+				withOgImage,
+				missingTitle: total - withTitle,
+				missingDescription: total - withDescription,
+				missingOgImage: total - withOgImage,
+				score,
+				status: score >= 90 ? 'good' as const : score >= 60 ? 'warning' as const : 'critical' as const,
+			}
+		}
+
+		return {
+			product: getStats('product'),
+			category: getStats('category'),
+			page: getStats('page'),
+			overallScore: Math.round((getStats('product').score + getStats('category').score + getStats('page').score) / 3),
+		}
+	}),
+
+	getQuickFixHistory: adminProcedure
+		.input(z.object({ limit: z.number().min(1).max(50).default(10) }).optional())
+		.query(async ({ ctx, input }) => {
+			const limit = input?.limit ?? 10
+
+			if (!ctx.prisma.importOperation?.findMany) {
+				return { items: [] as Array<never> }
+			}
+
+			const rows = await ctx.prisma.importOperation.findMany({
+				where: { type: 'seo-quick-fix' },
+				orderBy: { createdAt: 'desc' },
+				take: limit,
+				select: {
+					id: true,
+					status: true,
+					count: true,
+					meta: true,
+					createdAt: true,
+				},
+			})
+
+			const items = rows.map((row) => {
+				const meta = getJsonObjectMeta(row.meta)
+				return {
+					id: row.id,
+					status: row.status,
+					count: row.count,
+					titlesAdded: typeof meta.titlesAdded === 'number' ? meta.titlesAdded : 0,
+					descriptionsAdded: typeof meta.descriptionsAdded === 'number' ? meta.descriptionsAdded : 0,
+					ogImagesAdded: typeof meta.ogImagesAdded === 'number' ? meta.ogImagesAdded : 0,
+					snippetsApplied: typeof meta.snippetsApplied === 'number' ? meta.snippetsApplied : 0,
+					errors: typeof meta.errors === 'number' ? meta.errors : 0,
+					createdAt: row.createdAt.toISOString(),
+				}
+			})
+
+			return { items }
+		}),
 })

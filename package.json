@@ -28,6 +28,8 @@
 		"@neondatabase/serverless": "^1.0.2",
 		"@prisma/adapter-pg": "^7.6.0",
 		"@prisma/client": "^7.6.0",
+		"@radix-ui/react-progress": "^1.1.8",
+		"@radix-ui/react-separator": "^1.1.8",
 		"@sentry/nextjs": "^10.49.0",
 		"@tanstack/hotkeys": "^0.8.0",
 		"@tanstack/react-form": "^1.29.1",
