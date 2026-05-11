@@ -241,8 +241,6 @@ export default async function ProductPage({
 									/>
 								}
 							/>
-
-							<QuickSpecs specs={quickSpecs} />
 						</div>
 					</div>
 				</div>
