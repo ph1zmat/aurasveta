@@ -49,7 +49,7 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 	const rightGroups = groups.slice(mid)
 
 	return (
-		<div className='grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2'>
+		<div className='grid grid-cols-1 gap-x-12 gap-y-8'>
 			<div className='space-y-8'>
 				{leftGroups.map(group => (
 					<div key={group.title}>
