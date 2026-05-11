@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { generateSlug } from '@/shared/lib/generateSlug'
-import { SeoEditor } from '@aurasveta/shared-admin'
+import { generatePageSeo } from '@/shared/lib/seo/generateSeo'
+import { SeoEditor, SeoFieldsBlock } from '@aurasveta/shared-admin'
 import { PageBlocksEditor } from '@/features/admin/page-blocks'
 import type { PageBlockDraft, PageBlockRecord, PageBlockType } from '@/shared/types/page-builder'
 import { PAGE_BLOCK_TYPES } from '@/shared/types/page-builder'
@@ -187,6 +188,27 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 
 	const isPending = isCreating || isUpdating
 
+	const autoSeoSuggestion = useMemo(
+		() =>
+			generatePageSeo({
+				title,
+				metaTitle: seoDraft.title || undefined,
+				metaDesc: seoDraft.description || undefined,
+			}),
+		[title, seoDraft.title, seoDraft.description],
+	)
+
+	const applyAutoSeo = () => {
+		setSeoDraft(prev => ({
+			...prev,
+			title: prev.title || autoSeoSuggestion.title,
+			description: prev.description || autoSeoSuggestion.description,
+			ogTitle: prev.ogTitle || autoSeoSuggestion.ogTitle,
+			ogDescription: prev.ogDescription || autoSeoSuggestion.ogDescription,
+			ogImage: prev.ogImage || autoSeoSuggestion.ogImage || '',
+		}))
+	}
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
@@ -237,10 +259,11 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 						{isEdit && page?.id ? (
 							<SeoEditor mode='managed' targetType='page' targetId={page.id} />
 						) : (
-							<SeoEditor
-								mode='controlled'
+							<SeoFieldsBlock
 								value={seoDraft}
 								onChange={setSeoDraft}
+								onAutoFill={applyAutoSeo}
+								auditNote='Кнопка заполняет SEO-поля по общим правилам генерации для страниц.'
 								title={title || undefined}
 								description='SEO-поля будут сохранены сразу после создания страницы.'
 							/>

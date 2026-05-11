@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { trpc } from '@/lib/trpc/client'
@@ -26,6 +26,9 @@ import { Plus, Trash2 } from 'lucide-react'
 import MultiImageUploader, {
 	type ProductImageDraft,
 } from '../../components/MultiImageUploader'
+import { generateProductSeo } from '@/shared/lib/seo/generateSeo'
+import { SeoFieldsBlock } from '@aurasveta/shared-admin'
+import type { SeoFormValues } from '@/shared/types/seo'
 import {
 	productFormSchema,
 	type ProductFormValue,
@@ -237,9 +240,17 @@ export default function ProductFormModal({
 
 	// eslint-disable-next-line react-hooks/incompatible-library
 	const nameValue = watch('name')
+	const descriptionValue = watch('description')
 	const priceValue = watch('price')
+	const brandValue = watch('brand')
 	const metaTitleValue = watch('seo.title')
 	const metaDescValue = watch('seo.description')
+	const seoKeywordsValue = watch('seo.keywords')
+	const seoOgTitleValue = watch('seo.ogTitle')
+	const seoOgDescriptionValue = watch('seo.ogDescription')
+	const seoOgImageValue = watch('seo.ogImage')
+	const seoCanonicalUrlValue = watch('seo.canonicalUrl')
+	const seoNoIndexValue = watch('seo.noIndex')
 	const rootCategoryIdValue = watch('rootCategoryId')
 
 	const rootCategories = (categories ?? []).filter(c => !c.parentId)
@@ -255,6 +266,77 @@ export default function ProductFormModal({
 	const imagesValue = watch('images')
 	const isActiveValue = watch('isActive')
 	const propertiesValue = watch('properties')
+
+	const seoDraft = useMemo<SeoFormValues>(
+		() => ({
+			title: metaTitleValue,
+			description: metaDescValue,
+			keywords: seoKeywordsValue,
+			ogTitle: seoOgTitleValue,
+			ogDescription: seoOgDescriptionValue,
+			ogImage: seoOgImageValue,
+			canonicalUrl: seoCanonicalUrlValue,
+			noIndex: seoNoIndexValue,
+		}),
+		[
+			metaDescValue,
+			metaTitleValue,
+			seoCanonicalUrlValue,
+			seoKeywordsValue,
+			seoNoIndexValue,
+			seoOgDescriptionValue,
+			seoOgImageValue,
+			seoOgTitleValue,
+		],
+	)
+
+	const autoSeoSuggestion = useMemo(
+		() =>
+			generateProductSeo({
+				name: nameValue,
+				description: descriptionValue || undefined,
+				price: priceValue ? Number(priceValue) : undefined,
+				brand: brandValue || undefined,
+				images: imagesValue?.map(image => ({ url: image.url })) ?? [],
+			}),
+		[nameValue, descriptionValue, priceValue, brandValue, imagesValue],
+	)
+
+	const applyAutoSeo = () => {
+		setValue('seo.title', metaTitleValue || autoSeoSuggestion.title, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.description', metaDescValue || autoSeoSuggestion.description, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.ogTitle', seoOgTitleValue || autoSeoSuggestion.ogTitle, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.ogDescription', seoOgDescriptionValue || autoSeoSuggestion.ogDescription, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		if (!seoOgImageValue && autoSeoSuggestion.ogImage) {
+			setValue('seo.ogImage', autoSeoSuggestion.ogImage, {
+				shouldDirty: true,
+				shouldValidate: true,
+			})
+		}
+	}
+
+	const handleSeoChange = (next: SeoFormValues) => {
+		setValue('seo.title', next.title, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.description', next.description, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.keywords', next.keywords, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.ogTitle', next.ogTitle, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.ogDescription', next.ogDescription, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.ogImage', next.ogImage, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.canonicalUrl', next.canonicalUrl, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.noIndex', next.noIndex, { shouldDirty: true, shouldValidate: true })
+	}
 
 	const appendPropertyRow = () => {
 		setValue('properties', [
@@ -583,73 +665,14 @@ export default function ProductFormModal({
 						</TabsContent>
 
 						<TabsContent value='seo' className='space-y-4'>
-							<div className='space-y-2'>
-								<label className='text-sm font-medium'>Meta Title</label>
-								<Input {...register('seo.title')} />
-								<div className='text-xs text-muted-foreground text-right'>
-									{metaTitleValue.length}/60
-								</div>
-							</div>
-							<div className='space-y-2'>
-								<label className='text-sm font-medium'>Meta Description</label>
-								<textarea
-									className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]'
-									{...register('seo.description')}
-								/>
-								<div className='text-xs text-muted-foreground text-right'>
-									{metaDescValue.length}/160
-								</div>
-							</div>
-							{(() => {
-								const titleScore = Math.min(
-									metaTitleValue.length >= 10 && metaTitleValue.length <= 60
-										? 40
-										: metaTitleValue.length > 0
-											? 20
-											: 0,
-									40,
-								)
-								const descScore = Math.min(
-									metaDescValue.length >= 50 && metaDescValue.length <= 160
-										? 40
-										: metaDescValue.length > 0
-											? 20
-											: 0,
-									40,
-								)
-								const nameScore = nameValue.length > 0 ? 20 : 0
-								const total = titleScore + descScore + nameScore
-								const color =
-									total >= 80
-										? 'bg-success'
-										: total >= 50
-											? 'bg-warning'
-											: 'bg-destructive'
-								return (
-									<div className='space-y-1.5'>
-										<div className='flex items-center justify-between text-xs'>
-											<span className='font-medium'>SEO Score</span>
-											<span
-												className={`font-bold ${
-													total >= 80
-														? 'text-success'
-														: total >= 50
-															? 'text-warning'
-															: 'text-destructive'
-												}`}
-											>
-												{total}/100
-											</span>
-										</div>
-										<div className='h-2 w-full rounded-full bg-secondary overflow-hidden'>
-											<div
-												className={`h-full rounded-full transition-all duration-300 ${color}`}
-												style={{ width: `${total}%` }}
-											/>
-										</div>
-									</div>
-								)
-							})()}
+							<SeoFieldsBlock
+								value={seoDraft}
+								onChange={handleSeoChange}
+								onAutoFill={applyAutoSeo}
+								auditNote='Кнопка подставляет значения из текущих данных товара через общую SEO-логику.'
+								title={nameValue || undefined}
+								description='SEO-поля товара сохраняются вместе с формой товара.'
+							/>
 						</TabsContent>
 					</Tabs>
 					<div className='flex justify-end gap-2 mt-4'>
