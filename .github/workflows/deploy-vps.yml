@@ -30,12 +30,43 @@ jobs:
 
             APP_DIR="/var/www/aurasveta/current"
             SERVICE_NAME="aurasveta"
+            # Минимум свободного места (KB): 2 GiB
+            MIN_FREE_KB=2097152
 
             cd "$APP_DIR"
 
+            echo "=== Disk usage before cleanup ==="
+            df -h /
+
+            FREE_KB=$(df -Pk / | awk 'NR==2 {print $4}')
+            if [ "$FREE_KB" -lt "$MIN_FREE_KB" ]; then
+              echo "Low disk space detected (${FREE_KB} KB). Running cleanup..."
+
+              # Артефакты прошлых деплоев/сборок
+              rm -rf .next .turbo node_modules node_modules/.cache || true
+              rm -f .next-build-upload.tar.gz || true
+
+              # npm cache
+              npm cache clean --force || true
+
+              # Обслуживание git-репозитория
+              git reflog expire --expire=now --all || true
+              git gc --prune=now || true
+
+              echo "=== Disk usage after cleanup ==="
+              df -h /
+            fi
+
+            FREE_KB=$(df -Pk / | awk 'NR==2 {print $4}')
+            if [ "$FREE_KB" -lt "$MIN_FREE_KB" ]; then
+              echo "ERROR: still not enough free disk space (${FREE_KB} KB)."
+              echo "Please free disk space on VPS and rerun workflow."
+              exit 1
+            fi
+
             # Берем точное состояние main из GitHub
-            git fetch --all --prune
-            git reset --hard origin/main
+            git fetch --prune --depth=1 origin main
+            git reset --hard FETCH_HEAD
 
             # Загружаем production env до npm ci,
             # так как postinstall запускает prisma generate
