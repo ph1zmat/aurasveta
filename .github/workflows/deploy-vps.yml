@@ -86,7 +86,10 @@ jobs:
             # Зависимости + Prisma типы
             echo "=== Phase: npm ci ($(date -Is)) ==="
             rm -rf node_modules
-            NODE_OPTIONS=--max-old-space-size=1024 npm ci --no-audit --no-fund
+            # В .env.production обычно NODE_ENV=production, из-за чего npm может
+            # не установить devDependencies. Для сборки Next.js dev-пакеты нужны
+            # (например, @tailwindcss/postcss для postcss.config.mjs).
+            NODE_OPTIONS=--max-old-space-size=1024 npm ci --include=dev --no-audit --no-fund
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
