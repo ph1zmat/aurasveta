@@ -21,6 +21,10 @@ export const metadata: Metadata = {
 		template: '%s | Аура Света',
 	},
 	description: 'Аура Света — интернет-магазин светильников и декора',
+	verification: {
+		google: 'fA8h5x9FAQDa6OFp09Tvp67Fc9KEF3MvBLZMH3e-OUg',
+		yandex: 'ee70a2896ab83afb',
+	},
 	openGraph: {
 		siteName: 'Аура Света',
 		locale: 'ru_RU',

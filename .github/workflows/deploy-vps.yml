@@ -36,6 +36,12 @@ jobs:
             cd "$APP_DIR"
             echo "=== Deploy started at: $(date -Is) ==="
 
+            # Важно: останавливаем production-процесс ДО очистки .next.
+            # Иначе удаленные файлы могут оставаться занятыми процессом next start,
+            # и место на диске фактически не освобождается.
+            echo "=== Phase: stop service ($(date -Is)) ==="
+            systemctl stop "$SERVICE_NAME" || true
+
             echo "=== Disk usage before cleanup ==="
             df -h /
 
@@ -85,7 +91,7 @@ jobs:
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
             rm -rf .next
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --webpack
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build
 
             # Перезапуск приложения
             echo "=== Phase: restart service ($(date -Is)) ==="
