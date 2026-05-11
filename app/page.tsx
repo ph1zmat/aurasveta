@@ -9,7 +9,7 @@ import DynamicHomeSection from '@/widgets/home-sections/ui/DynamicHomeSection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/public-page-data'
 
 export const metadata: Metadata = {
-	title: 'Интернет-магазин люстр и светильников в Мозыре — Аура Света',
+	title: 'Аура Света — магазин люстр и светильников в Мозыре',
 	description:
 		'Аура Света — купить люстры, бра, потолочные светильники и декор в Мозыре. Широкий ассортимент, доставка по Беларуси.',
 	openGraph: {

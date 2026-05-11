@@ -21,6 +21,10 @@ export const metadata: Metadata = {
 		template: '%s | Аура Света',
 	},
 	description: 'Аура Света — интернет-магазин светильников и декора',
+	icons: {
+		icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
+		shortcut: ['/favicon.ico'],
+	},
 	verification: {
 		google: 'fA8h5x9FAQDa6OFp09Tvp67Fc9KEF3MvBLZMH3e-OUg',
 		yandex: 'ee70a2896ab83afb',
@@ -60,21 +64,6 @@ export default async function RootLayout({
 					type='application/ld+json'
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }}
 				/>
-				<link
-					rel='icon'
-					type='image/png'
-					href='/favicon-96x96.png'
-					sizes='96x96'
-				/>
-				<link rel='icon' type='image/svg+xml' href='/favicon.svg' />
-				<link rel='shortcut icon' href='/favicon.ico' />
-				<link
-					rel='apple-touch-icon'
-					sizes='180x180'
-					href='/apple-touch-icon.png'
-				/>
-				<meta name='apple-mobile-web-app-title' content='Аура Света' />
-				<link rel='manifest' href='/site.webmanifest' />
 			</head>
 			<body className='font-sans antialiased'>
 				<RootThemeProvider>
