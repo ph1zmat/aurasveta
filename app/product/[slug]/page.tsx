@@ -207,9 +207,6 @@ export default async function ProductPage({
 						{/* Interest counter */}
 						{productViews >= 5 && <InterestCounter views={productViews} />}
 
-						{/* Delivery advantages */}
-						<DeliveryAdvantages dbValue={deliveryAdvantagesSetting?.value} />
-
 						{/* Tabs + Specs (two-column layout with sticky sidebar) */}
 						<div id='product-tabs' className='flex gap-4 py-6 md:gap-8 md:py-8'>
 							{/* Left: Tabs content */}
@@ -241,6 +238,9 @@ export default async function ProductPage({
 									/>
 								}
 							/>
+
+							{/* Delivery advantages */}
+							<DeliveryAdvantages dbValue={deliveryAdvantagesSetting?.value} />
 						</div>
 					</div>
 				</div>
