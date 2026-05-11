@@ -35,7 +35,6 @@ import {
 import { prisma } from '@/lib/prisma'
 import {
 	getProductBySlug,
-	getQuickSpecs,
 	getProductSpecGroups,
 } from '@/entities/product/api/productService'
 import {
