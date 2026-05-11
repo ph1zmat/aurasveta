@@ -7,8 +7,6 @@ import CategoryNav from '@/widgets/navigation/ui/CategoryNav'
 import Footer from '@/widgets/footer/ui/Footer'
 import ProductGallery from '@/features/product-details/ui/ProductGallery'
 import ProductPriceBlock from '@/features/product-details/ui/ProductPriceBlock'
-import QuickSpecs from '@/features/product-details/ui/QuickSpecs'
-
 import InterestCounter from '@/features/product-details/ui/InterestCounter'
 import DeliveryAdvantages from '@/features/product-details/ui/DeliveryAdvantages'
 // Ниже fold — загружаются после LCP
