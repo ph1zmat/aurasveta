@@ -110,9 +110,8 @@ export default async function ProductPage({
 	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
 	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
 
-	const [quickSpecs, specGroups, productViews, deliveryAdvantagesSetting] =
+	const [specGroups, productViews, deliveryAdvantagesSetting] =
 		await Promise.all([
-			getQuickSpecs(product.id),
 			getProductSpecGroups(product.id),
 			prisma.productView.count({ where: { productId } }).catch(() => 0),
 			prisma.setting
