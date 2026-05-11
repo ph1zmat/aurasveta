@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
 
     steps:
       - name: Deploy over SSH
@@ -24,7 +24,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          command_timeout: 60m
+          command_timeout: 150m
           script: |
             set -euo pipefail
 
@@ -34,6 +34,7 @@ jobs:
             MIN_FREE_KB=2097152
 
             cd "$APP_DIR"
+            echo "=== Deploy started at: $(date -Is) ==="
 
             echo "=== Disk usage before cleanup ==="
             df -h /
@@ -65,24 +66,29 @@ jobs:
             fi
 
             # Берем точное состояние main из GitHub
+            echo "=== Phase: git sync ($(date -Is)) ==="
             git fetch --prune --depth=1 origin main
             git reset --hard FETCH_HEAD
 
             # Загружаем production env до npm ci,
             # так как postinstall запускает prisma generate
+            echo "=== Phase: load env ($(date -Is)) ==="
             set -a
             . ./.env.production
             set +a
 
             # Зависимости + Prisma типы
+            echo "=== Phase: npm ci ($(date -Is)) ==="
             rm -rf node_modules
             NODE_OPTIONS=--max-old-space-size=1024 npm ci --no-audit --no-fund
-            ./node_modules/.bin/prisma generate
 
             # Production build
+            echo "=== Phase: next build ($(date -Is)) ==="
             rm -rf .next
             NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --webpack
 
             # Перезапуск приложения
+            echo "=== Phase: restart service ($(date -Is)) ==="
             systemctl restart "$SERVICE_NAME"
             systemctl is-active "$SERVICE_NAME"
+            echo "=== Deploy finished at: $(date -Is) ==="
