@@ -203,6 +203,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 			...prev,
 			title: prev.title || autoSeoSuggestion.title,
 			description: prev.description || autoSeoSuggestion.description,
+			keywords: prev.keywords || autoSeoSuggestion.keywords,
 			ogTitle: prev.ogTitle || autoSeoSuggestion.ogTitle,
 			ogDescription: prev.ogDescription || autoSeoSuggestion.ogDescription,
 			ogImage: prev.ogImage || autoSeoSuggestion.ogImage || '',

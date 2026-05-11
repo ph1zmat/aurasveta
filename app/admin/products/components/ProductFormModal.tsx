@@ -176,6 +176,15 @@ export default function ProductFormModal({
 
 	const { data: categories } = trpc.categories.getAll.useQuery()
 	const { data: properties } = trpc.properties.getAll.useQuery()
+	const { data: productSeo } = trpc.seo.getByTarget.useQuery(
+		{
+			targetType: 'product',
+			targetId: product?.id ?? '',
+		},
+		{
+			enabled: Boolean(open && product?.id),
+		},
+	)
 
 	const createMut = trpc.products.create.useMutation({
 		onSuccess: () => {
@@ -201,6 +210,43 @@ export default function ProductFormModal({
 			}
 		}
 	}, [product, open, reset])
+
+	useEffect(() => {
+		if (!open || !product || !productSeo) return
+
+		setValue('seo.title', productSeo.title ?? product.metaTitle ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.description', productSeo.description ?? product.metaDesc ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.keywords', productSeo.keywords ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.ogTitle', productSeo.ogTitle ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.ogDescription', productSeo.ogDescription ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.ogImage', productSeo.ogImage ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.canonicalUrl', productSeo.canonicalUrl ?? '', {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+		setValue('seo.noIndex', productSeo.noIndex ?? false, {
+			shouldDirty: false,
+			shouldValidate: false,
+		})
+	}, [open, product, productSeo, setValue])
 
 	const onSubmit = (values: ProductFormValue) => {
 		const payload = {
@@ -308,6 +354,10 @@ export default function ProductFormModal({
 			shouldValidate: true,
 		})
 		setValue('seo.description', metaDescValue || autoSeoSuggestion.description, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.keywords', seoKeywordsValue || autoSeoSuggestion.keywords, {
 			shouldDirty: true,
 			shouldValidate: true,
 		})

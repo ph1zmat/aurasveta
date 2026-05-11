@@ -172,13 +172,90 @@ export const seoRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.seoMetadata.findUnique({
+			const existing = await ctx.prisma.seoMetadata.findUnique({
 				where: {
 					targetType_targetId: {
 						targetType: input.targetType,
 						targetId: input.targetId,
 					},
 				},
+			})
+
+			if (existing) {
+				return existing
+			}
+
+			if (input.targetType === 'product') {
+				const product = await ctx.prisma.product.findUnique({
+					where: { id: input.targetId },
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						price: true,
+						brand: true,
+						metaTitle: true,
+						metaDesc: true,
+						images: {
+							orderBy: { order: 'asc' },
+							take: 1,
+							select: { url: true },
+						},
+					},
+				})
+
+				if (!product) return null
+
+				const generated = generateProductResult(product, null, 'safe-overwrite')
+				return upsertSeoMetadata(ctx.prisma, {
+					targetType: input.targetType,
+					targetId: input.targetId,
+					fields: generated.after,
+				})
+			}
+
+			if (input.targetType === 'category') {
+				const category = await ctx.prisma.category.findUnique({
+					where: { id: input.targetId },
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						image: true,
+						imagePath: true,
+					},
+				})
+
+				if (!category) return null
+
+				const generated = generateCategoryResult(category, null, 'safe-overwrite')
+				return upsertSeoMetadata(ctx.prisma, {
+					targetType: input.targetType,
+					targetId: input.targetId,
+					fields: generated.after,
+				})
+			}
+
+			const page = await ctx.prisma.page.findUnique({
+				where: { id: input.targetId },
+				select: {
+					id: true,
+					title: true,
+					content: true,
+					metaTitle: true,
+					metaDesc: true,
+					imagePath: true,
+					image: true,
+				},
+			})
+
+			if (!page) return null
+
+			const generated = generatePageResult(page, null, 'safe-overwrite')
+			return upsertSeoMetadata(ctx.prisma, {
+				targetType: input.targetType,
+				targetId: input.targetId,
+				fields: generated.after,
 			})
 		}),
 
