@@ -53,7 +53,16 @@ export async function generateMetadata({
 		imagePath: page.imagePath,
 		image: page.image,
 	})
-	return seoToMetadata(seo)
+	const metadata = seoToMetadata(seo)
+
+	return {
+		...metadata,
+		alternates: {
+			...(metadata.alternates ?? {}),
+			canonical:
+				metadata.alternates?.canonical ?? `https://aurasveta.by/pages/${slug}`,
+		},
+	}
 }
 
 export default async function ContentPage({

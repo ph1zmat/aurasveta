@@ -46,6 +46,8 @@ export async function generateMetadata({
 		description: category.description,
 	})
 	const metadata = seoToMetadata(seo)
+	const canonical =
+		metadata.alternates?.canonical ?? `https://aurasveta.by/catalog/${slug}`
 
 	const hasQueryParams = Object.values(sp).some(value => {
 		if (Array.isArray(value)) {
@@ -55,14 +57,20 @@ export async function generateMetadata({
 	})
 
 	if (!hasQueryParams) {
-		return metadata
+		return {
+			...metadata,
+			alternates: {
+				...(metadata.alternates ?? {}),
+				canonical,
+			},
+		}
 	}
 
 	return {
 		...metadata,
 		alternates: {
 			...(metadata.alternates ?? {}),
-			canonical: `https://aurasveta.by/catalog/${slug}`,
+			canonical,
 		},
 		robots: {
 			index: false,
@@ -149,6 +157,9 @@ export default async function CategoryPage({
 					<TopBar />
 					<Header />
 					<CategoryNav />
+
+					{/* SSR h1 для поисковых ботов: основной заголовок рендерится в client-компоненте */}
+					{category && <h1 className='sr-only'>{category.name}</h1>}
 
 					<Suspense fallback={<CategoryContentSkeleton />}>
 						<CategoryContent slug={slug} />

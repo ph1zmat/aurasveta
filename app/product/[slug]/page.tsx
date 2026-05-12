@@ -91,7 +91,16 @@ export async function generateMetadata({
 		images: product.images,
 		brand: product.brand,
 	})
-	return seoToMetadata(seo)
+	const metadata = seoToMetadata(seo)
+
+	return {
+		...metadata,
+		alternates: {
+			...(metadata.alternates ?? {}),
+			canonical:
+				metadata.alternates?.canonical ?? `https://aurasveta.by/product/${slug}`,
+		},
+	}
 }
 
 export default async function ProductPage({
