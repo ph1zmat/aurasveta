@@ -29,6 +29,10 @@ export const metadata: Metadata = {
 		google: 'fA8h5x9FAQDa6OFp09Tvp67Fc9KEF3MvBLZMH3e-OUg',
 		yandex: 'ee70a2896ab83afb',
 	},
+	other: {
+		'geo.region': 'BY',
+		'geo.placename': 'Belarus',
+	},
 	openGraph: {
 		siteName: 'Аура Света',
 		locale: 'ru_RU',
