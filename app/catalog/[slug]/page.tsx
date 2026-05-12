@@ -30,10 +30,13 @@ const PROPERTY_PARAM_PREFIX = 'prop.'
 
 export async function generateMetadata({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ slug: string }>
+	searchParams: Promise<Record<string, string | string[] | undefined>>
 }): Promise<Metadata> {
 	const { slug } = await params
+	const sp = await searchParams
 	const category = await trpc.categories.getBySlug(slug)
 	if (!category) return { title: 'Категория не найдена' }
 
@@ -42,7 +45,30 @@ export async function generateMetadata({
 		name: category.name,
 		description: category.description,
 	})
-	return seoToMetadata(seo)
+	const metadata = seoToMetadata(seo)
+
+	const hasQueryParams = Object.values(sp).some(value => {
+		if (Array.isArray(value)) {
+			return value.some(item => typeof item === 'string' && item.trim().length > 0)
+		}
+		return typeof value === 'string' && value.trim().length > 0
+	})
+
+	if (!hasQueryParams) {
+		return metadata
+	}
+
+	return {
+		...metadata,
+		alternates: {
+			...(metadata.alternates ?? {}),
+			canonical: `https://aurasveta.by/catalog/${slug}`,
+		},
+		robots: {
+			index: false,
+			follow: true,
+		},
+	}
 }
 
 export default async function CategoryPage({

@@ -6,6 +6,7 @@ import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 const BASE_URL = 'https://aurasveta.by'
 
 type SitemapEntity = {
+	id: string
 	slug: string
 	updatedAt: Date
 }
@@ -30,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		prisma.product.findMany({
 			where: { isActive: true },
 			select: {
+				id: true,
 				slug: true,
 				updatedAt: true,
 				images: {
@@ -40,30 +42,74 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			},
 		}),
 		prisma.category.findMany({
-			select: { slug: true, updatedAt: true },
+			select: { id: true, slug: true, updatedAt: true },
 		}),
 		prisma.page.findMany({
 			where: { isPublished: true },
-			select: { slug: true, updatedAt: true },
+			select: { id: true, slug: true, updatedAt: true },
 		}),
 	])
+
+	const noIndexRows = await prisma.seoMetadata.findMany({
+		where: {
+			noIndex: true,
+			targetType: { in: ['product', 'category', 'page'] },
+		},
+		select: {
+			targetType: true,
+			targetId: true,
+		},
+	})
+
+	const noIndexProducts = new Set(
+		noIndexRows
+			.filter(row => row.targetType === 'product')
+			.map(row => row.targetId),
+	)
+	const noIndexCategories = new Set(
+		noIndexRows
+			.filter(row => row.targetType === 'category')
+			.map(row => row.targetId),
+	)
+	const noIndexPages = new Set(
+		noIndexRows
+			.filter(row => row.targetType === 'page')
+			.map(row => row.targetId),
+	)
+
+	const filteredProducts = products.filter(product => !noIndexProducts.has(product.id))
+	const filteredCategories = categories.filter(
+		category => !noIndexCategories.has(category.id),
+	)
+	const filteredPages = pages.filter(page => !noIndexPages.has(page.id))
+
+	const staticLastModified = [
+		...filteredProducts.map(product => product.updatedAt),
+		...filteredCategories.map(category => category.updatedAt),
+		...filteredPages.map(page => page.updatedAt),
+	].reduce<Date>((latest, current) => {
+		return current > latest ? current : latest
+	}, new Date(0))
+
+	const normalizedStaticLastModified =
+		staticLastModified.getTime() > 0 ? staticLastModified : new Date()
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{
 			url: BASE_URL,
-			lastModified: new Date(),
+			lastModified: normalizedStaticLastModified,
 			changeFrequency: 'daily',
 			priority: 1,
 		},
 		{
 			url: `${BASE_URL}/catalog`,
-			lastModified: new Date(),
+			lastModified: normalizedStaticLastModified,
 			changeFrequency: 'daily',
 			priority: 0.9,
 		},
 	]
 
-	const productPages: MetadataRoute.Sitemap = products.map(
+	const productPages: MetadataRoute.Sitemap = filteredProducts.map(
 		(product: SitemapProductEntity) => {
 			const images = product.images
 				.map(image => resolveStorageFileUrl(image.url))
@@ -80,14 +126,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		},
 	)
 
-	const categoryPages: MetadataRoute.Sitemap = categories.map((category: SitemapEntity) => ({
+	const categoryPages: MetadataRoute.Sitemap = filteredCategories.map((category: SitemapEntity) => ({
 		url: `${BASE_URL}/catalog/${category.slug}`,
 		lastModified: category.updatedAt,
 		changeFrequency: 'weekly' as const,
 		priority: 0.7,
 	}))
 
-	const cmsPages: MetadataRoute.Sitemap = pages.map((page: SitemapEntity) => ({
+	const cmsPages: MetadataRoute.Sitemap = filteredPages.map((page: SitemapEntity) => ({
 		url: `${BASE_URL}/pages/${page.slug}`,
 		lastModified: page.updatedAt,
 		changeFrequency: 'monthly' as const,
