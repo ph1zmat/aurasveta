@@ -105,6 +105,13 @@ jobs:
             rm -rf .next
             NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build
 
+            # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
+            # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
+            # runtime-кэше (.next/cache/images).
+            echo "=== Phase: fix .next permissions ($(date -Is)) ==="
+            chown -R aurasveta:www-data .next
+            chmod -R u+rwX,g+rwX .next
+
             # Перезапуск приложения
             echo "=== Phase: restart service ($(date -Is)) ==="
             systemctl restart "$SERVICE_NAME"
