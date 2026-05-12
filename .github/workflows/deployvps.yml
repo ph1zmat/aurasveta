@@ -128,4 +128,18 @@ jobs:
             echo "=== Phase: restart service ($(date -Is)) ==="
             systemctl restart "$SERVICE_NAME"
             systemctl is-active "$SERVICE_NAME"
+
+            # Пост-деплой smoke checks для SEO-критичных endpoint.
+            # Проверяем с локального loopback, чтобы не зависеть от внешнего CDN/сети.
+            echo "=== Phase: seo smoke checks ($(date -Is)) ==="
+            for path in / /catalog /robots.txt /sitemap.xml /favicon.ico; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: aurasveta.by" "http://127.0.0.1:3000${path}")
+              echo "${path} -> ${code}"
+              if [ "$code" -ne 200 ]; then
+                echo "ERROR: SEO smoke check failed for ${path} (HTTP ${code})"
+                journalctl -u "$SERVICE_NAME" -n 60 --no-pager || true
+                exit 1
+              fi
+            done
+
             echo "=== Deploy finished at: $(date -Is) ==="
