@@ -40,7 +40,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | CSV | Papaparse |
 | Storage | AWS S3 SDK (совместимо с MinIO) |
 | Push | web-push |
-| Error tracking | Sentry |
 | Testing | Vitest, jsdom, Playwright |
 | Desktop | Electron 36 + Vite 6 |
 | Mobile | Expo 55 + React Native 0.83 |
@@ -366,7 +365,6 @@ npm run test:watch  # watch mode
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — OAuth GitHub
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth Google
 - `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET_NAME` — S3/MinIO
-- `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` — мониторинг ошибок
 - `FIREBASE_SERVER_KEY`, `VAPID_*` — push-уведомления
 
 ---

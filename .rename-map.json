@@ -1316,14 +1316,6 @@
     "lib/auth/authclient.ts"
   ],
   [
-    "sentry.client.config.ts",
-    "sentryclientconfig.ts"
-  ],
-  [
-    "sentry.server.config.ts",
-    "sentryserverconfig.ts"
-  ],
-  [
     "tests/unit/cart.test.ts",
     "tests/unit/carttest.ts"
   ],
@@ -1354,10 +1346,6 @@
   [
     "public/Favourite.webp",
     "public/favourite.webp"
-  ],
-  [
-    "sentry.edge.config.ts",
-    "sentryedgeconfig.ts"
   ],
   [
     "shared/ui/Toaster.tsx",
