@@ -133,11 +133,18 @@ jobs:
             # Проверяем с локального loopback, чтобы не зависеть от внешнего CDN/сети.
             echo "=== Phase: seo smoke checks ($(date -Is)) ==="
             for path in / /catalog /robots.txt /sitemap.xml /favicon.ico; do
-              code=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: aurasveta.by" "http://127.0.0.1:3000${path}")
-              echo "${path} -> ${code}"
+              code="000"
+              for attempt in $(seq 1 30); do
+                code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 8 -H "Host: aurasveta.by" "http://127.0.0.1:3000${path}" || true)
+                echo "${path} attempt ${attempt}/30 -> ${code}"
+                if [ "$code" -eq 200 ]; then
+                  break
+                fi
+                sleep 2
+              done
               if [ "$code" -ne 200 ]; then
-                echo "ERROR: SEO smoke check failed for ${path} (HTTP ${code})"
-                journalctl -u "$SERVICE_NAME" -n 60 --no-pager || true
+                echo "ERROR: SEO smoke check failed for ${path} after retries (last HTTP ${code})"
+                journalctl -u "$SERVICE_NAME" -n 80 --no-pager || true
                 exit 1
               fi
             done
