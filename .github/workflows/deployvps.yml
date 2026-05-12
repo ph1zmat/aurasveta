@@ -100,10 +100,22 @@ jobs:
             # (например, @tailwindcss/postcss для postcssconfig.mjs).
             NODE_OPTIONS=--max-old-space-size=1024 npm ci --include=dev --no-audit --no-fund
 
+            # Анти-OOM: если swap отсутствует, добавляем временный swapfile для build.
+            # На маленьких VPS Next.js/TypeScript может завершаться с code 137 (Killed).
+            echo "=== Phase: ensure swap ($(date -Is)) ==="
+            if [ "$(swapon --noheadings --show=NAME 2>/dev/null | wc -l)" -eq 0 ]; then
+              if [ ! -f /swapfile-aurasveta-ci ]; then
+                fallocate -l 2G /swapfile-aurasveta-ci || dd if=/dev/zero of=/swapfile-aurasveta-ci bs=1M count=2048
+                chmod 600 /swapfile-aurasveta-ci
+                mkswap /swapfile-aurasveta-ci
+              fi
+              swapon /swapfile-aurasveta-ci || true
+            fi
+
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
             rm -rf .next
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1536 ./node_modules/.bin/next build --webpack
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
