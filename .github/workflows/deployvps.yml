@@ -79,14 +79,23 @@ jobs:
             # Загружаем production env до npm ci,
             # так как postinstall запускает prisma generate
             echo "=== Phase: load env ($(date -Is)) ==="
+            if [ -f ./.env.production ]; then
+              ENV_FILE="./.env.production"
+            elif [ -f ./env.production ]; then
+              ENV_FILE="./env.production"
+            else
+              echo "ERROR: neither .env.production nor env.production found in $APP_DIR"
+              exit 1
+            fi
+            echo "Using env file: $ENV_FILE"
             set -a
-            . ./env.production
+            . "$ENV_FILE"
             set +a
 
             # Зависимости + Prisma типы
             echo "=== Phase: npm ci ($(date -Is)) ==="
             rm -rf node_modules
-            # В env.production обычно NODE_ENV=production, из-за чего npm может
+            # В production env обычно NODE_ENV=production, из-за чего npm может
             # не установить devDependencies. Для сборки Next.js dev-пакеты нужны
             # (например, @tailwindcss/postcss для postcssconfig.mjs).
             NODE_OPTIONS=--max-old-space-size=1024 npm ci --include=dev --no-audit --no-fund
