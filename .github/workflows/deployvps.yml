@@ -114,7 +114,15 @@ jobs:
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
             # Не чистим .next перед сборкой — сохраняем статический кэш.
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+            # Защита от параллельных деплоев: один build на сервер в момент времени.
+            BUILD_LOCK_FILE="/tmp/aurasveta-next-build.lock"
+            if command -v flock >/dev/null 2>&1; then
+              echo "Using build lock: ${BUILD_LOCK_FILE}"
+              flock -w 1800 "$BUILD_LOCK_FILE" env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+            else
+              echo "WARN: flock not found, running build without lock"
+              NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+            fi
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
