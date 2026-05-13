@@ -1,6 +1,6 @@
 name: Deploy to vps
 
-"on":
+'on':
   push:
     branches:
       - main
@@ -100,12 +100,23 @@ jobs:
             # Анти-OOM: доводим суммарный swap минимум до 4 GiB.
             echo "=== Phase: ensure swap ($(date -Is)) ==="
             TARGET_SWAP_MB=4096
-            TOTAL_SWAP_MB=$(swapon --bytes --noheadings --show=SIZE 2>/dev/null | awk '{sum+=$1} END {printf "%.0f", sum/1024/1024}')
-            TOTAL_SWAP_MB=${TOTAL_SWAP_MB:-0}
+            TOTAL_SWAP_MB=$( (swapon --bytes --noheadings --show=SIZE 2>/dev/null || true) | awk '{sum+=$1} END {printf "%.0f", sum/1024/1024}')
+            TOTAL_SWAP_MB=$(echo "${TOTAL_SWAP_MB:-0}" | tr -dc '0-9')
+            [ -z "$TOTAL_SWAP_MB" ] && TOTAL_SWAP_MB=0
+            echo "Current total swap: ${TOTAL_SWAP_MB} MB"
+
+            # Fallback для окружений, где swapon --show=SIZE недоступен/возвращает пустой вывод.
+            if [ "$TOTAL_SWAP_MB" -eq 0 ] && [ -r /proc/meminfo ]; then
+              TOTAL_SWAP_MB=$(awk '/SwapTotal:/ {printf "%.0f", $2/1024}' /proc/meminfo)
+              TOTAL_SWAP_MB=${TOTAL_SWAP_MB:-0}
+              echo "Fallback swap from /proc/meminfo: ${TOTAL_SWAP_MB} MB"
+            fi
+
             if [ "$TOTAL_SWAP_MB" -lt "$TARGET_SWAP_MB" ]; then
               NEED_SWAP_MB=$((TARGET_SWAP_MB - TOTAL_SWAP_MB))
               [ "$NEED_SWAP_MB" -lt 1024 ] && NEED_SWAP_MB=1024
               EXTRA_SWAP_FILE="/swapfile-aurasveta-ci-extra"
+              echo "Need extra swap: ${NEED_SWAP_MB} MB"
 
               if [ ! -f "$EXTRA_SWAP_FILE" ]; then
                 fallocate -l "${NEED_SWAP_MB}M" "$EXTRA_SWAP_FILE" || dd if=/dev/zero of="$EXTRA_SWAP_FILE" bs=1M count="$NEED_SWAP_MB"
