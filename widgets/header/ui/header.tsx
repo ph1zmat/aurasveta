@@ -113,7 +113,7 @@ export default function Header({ logoUrl }: { logoUrl?: string | null }) {
 				{/* Logo */}
 				<Link href='/' className='flex items-center gap-2 shrink-0'>
 					<Image
-						src={logoUrl ?? '/aura-logo-noline-primary.png'}
+						src={logoUrl ?? '/auralogonolineprimary.png'}
 						alt='Logo'
 						width={128}
 						height={48}

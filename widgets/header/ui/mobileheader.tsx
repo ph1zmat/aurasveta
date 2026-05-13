@@ -34,7 +34,7 @@ export default function MobileHeader({ phone, logoUrl }: { phone?: string | null
 					<div className='flex items-center justify-between gap-3 py-2'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
 						<Image
-							src={logoUrl ?? '/aura-logo-noline-primary.png'}
+							src={logoUrl ?? '/auralogonolineprimary.png'}
 							alt='Аура Света'
 							width={110}
 							height={40}
