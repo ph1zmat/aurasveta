@@ -30,17 +30,16 @@ jobs:
 
             APP_DIR="/var/www/aurasveta/current"
             SERVICE_NAME="aurasveta"
-            # Минимум свободного места (KB): 2 GiB
-            MIN_FREE_KB=2097152
+            # Минимум свободного места (KB): 3 GiB
+            MIN_FREE_KB=3145728
 
             cd "$APP_DIR"
             echo "=== Deploy started at: $(date -Is) ==="
 
-            # Важно: останавливаем production-процесс ДО очистки .next.
-            # Иначе удаленные файлы могут оставаться занятыми процессом next start,
-            # и место на диске фактически не освобождается.
-            echo "=== Phase: stop service ($(date -Is)) ==="
-            systemctl stop "$SERVICE_NAME" || true
+            # Держим сервис запущенным во время sync/install/build,
+            # чтобы избежать длительного окна 502.
+            echo "=== Phase: service precheck ($(date -Is)) ==="
+            systemctl is-active "$SERVICE_NAME" || true
 
             echo "=== Disk usage before cleanup ==="
             df -h /
@@ -49,8 +48,8 @@ jobs:
             if [ "$FREE_KB" -lt "$MIN_FREE_KB" ]; then
               echo "Low disk space detected (${FREE_KB} KB). Running cleanup..."
 
-              # Артефакты прошлых деплоев/сборок
-              rm -rf .next .turbo node_modules node_modules/.cache || true
+              # Щадящая очистка: не трогаем .next/.turbo и node_modules,
+              # чтобы не ломать живой сервис до рестарта.
               rm -f nextbuilduploadtar.gz || true
 
               # npm cache
@@ -93,29 +92,33 @@ jobs:
             set +a
 
             # Зависимости + Prisma типы
-            echo "=== Phase: npm ci ($(date -Is)) ==="
-            rm -rf node_modules
-            # В production env обычно NODE_ENV=production, из-за чего npm может
-            # не установить devDependencies. Для сборки Next.js dev-пакеты нужны
-            # (например, @tailwindcss/postcss для postcssconfig.mjs).
-            NODE_OPTIONS=--max-old-space-size=1024 npm ci --include=dev --no-audit --no-fund
+            echo "=== Phase: npm install ($(date -Is)) ==="
+            # npm ci удаляет node_modules и может вызвать ошибки у работающего сервиса.
+            # Для паттерна без остановки используем npm install с lockfile.
+            NODE_OPTIONS=--max-old-space-size=1024 npm install --include=dev --no-audit --no-fund
 
-            # Анти-OOM: если swap отсутствует, добавляем временный swapfile для build.
-            # На маленьких VPS Next.js/TypeScript может завершаться с code 137 (Killed).
+            # Анти-OOM: доводим суммарный swap минимум до 4 GiB.
             echo "=== Phase: ensure swap ($(date -Is)) ==="
-            if [ "$(swapon --noheadings --show=NAME 2>/dev/null | wc -l)" -eq 0 ]; then
-              if [ ! -f /swapfile-aurasveta-ci ]; then
-                fallocate -l 2G /swapfile-aurasveta-ci || dd if=/dev/zero of=/swapfile-aurasveta-ci bs=1M count=2048
-                chmod 600 /swapfile-aurasveta-ci
-                mkswap /swapfile-aurasveta-ci
+            TARGET_SWAP_MB=4096
+            TOTAL_SWAP_MB=$(swapon --bytes --noheadings --show=SIZE 2>/dev/null | awk '{sum+=$1} END {printf "%.0f", sum/1024/1024}')
+            TOTAL_SWAP_MB=${TOTAL_SWAP_MB:-0}
+            if [ "$TOTAL_SWAP_MB" -lt "$TARGET_SWAP_MB" ]; then
+              NEED_SWAP_MB=$((TARGET_SWAP_MB - TOTAL_SWAP_MB))
+              [ "$NEED_SWAP_MB" -lt 1024 ] && NEED_SWAP_MB=1024
+              EXTRA_SWAP_FILE="/swapfile-aurasveta-ci-extra"
+
+              if [ ! -f "$EXTRA_SWAP_FILE" ]; then
+                fallocate -l "${NEED_SWAP_MB}M" "$EXTRA_SWAP_FILE" || dd if=/dev/zero of="$EXTRA_SWAP_FILE" bs=1M count="$NEED_SWAP_MB"
+                chmod 600 "$EXTRA_SWAP_FILE"
+                mkswap "$EXTRA_SWAP_FILE"
               fi
-              swapon /swapfile-aurasveta-ci || true
+              swapon "$EXTRA_SWAP_FILE" || true
             fi
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
-            rm -rf .next
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1536 ./node_modules/.bin/next build --webpack
+            # Не чистим .next перед сборкой — сохраняем статический кэш.
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
@@ -127,7 +130,22 @@ jobs:
             # Перезапуск приложения
             echo "=== Phase: restart service ($(date -Is)) ==="
             systemctl restart "$SERVICE_NAME"
-            systemctl is-active "$SERVICE_NAME"
+
+            # Ждём переход сервиса в active, чтобы минимизировать 502.
+            SERVICE_ACTIVE=0
+            for attempt in $(seq 1 30); do
+              if systemctl is-active --quiet "$SERVICE_NAME"; then
+                SERVICE_ACTIVE=1
+                echo "service active on attempt ${attempt}/30"
+                break
+              fi
+              sleep 2
+            done
+            if [ "$SERVICE_ACTIVE" -ne 1 ]; then
+              echo "ERROR: service did not become active in time"
+              journalctl -u "$SERVICE_NAME" -n 120 --no-pager || true
+              exit 1
+            fi
 
             # Пост-деплой smoke checks для SEO-критичных endpoint.
             # Проверяем с локального loopback, чтобы не зависеть от внешнего CDN/сети.
