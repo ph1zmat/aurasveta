@@ -99,6 +99,7 @@ jobs:
 
             # Анти-OOM: доводим суммарный swap минимум до 4 GiB.
             echo "=== Phase: ensure swap ($(date -Is)) ==="
+            set +e
             TARGET_SWAP_MB=4096
             TOTAL_SWAP_MB=$( (swapon --bytes --noheadings --show=SIZE 2>/dev/null || true) | awk '{sum+=$1} END {printf "%.0f", sum/1024/1024}')
             TOTAL_SWAP_MB=$(echo "${TOTAL_SWAP_MB:-0}" | tr -dc '0-9')
@@ -118,13 +119,18 @@ jobs:
               EXTRA_SWAP_FILE="/swapfile-aurasveta-ci-extra"
               echo "Need extra swap: ${NEED_SWAP_MB} MB"
 
-              if [ ! -f "$EXTRA_SWAP_FILE" ]; then
-                fallocate -l "${NEED_SWAP_MB}M" "$EXTRA_SWAP_FILE" || dd if=/dev/zero of="$EXTRA_SWAP_FILE" bs=1M count="$NEED_SWAP_MB"
-                chmod 600 "$EXTRA_SWAP_FILE"
-                mkswap "$EXTRA_SWAP_FILE"
+              if [ "$(id -u)" -ne 0 ]; then
+                echo "WARN: not running as root; skip creating extra swap file"
+              else
+                if [ ! -f "$EXTRA_SWAP_FILE" ]; then
+                  fallocate -l "${NEED_SWAP_MB}M" "$EXTRA_SWAP_FILE" || dd if=/dev/zero of="$EXTRA_SWAP_FILE" bs=1M count="$NEED_SWAP_MB"
+                  chmod 600 "$EXTRA_SWAP_FILE"
+                  mkswap "$EXTRA_SWAP_FILE"
+                fi
+                swapon "$EXTRA_SWAP_FILE" || true
               fi
-              swapon "$EXTRA_SWAP_FILE" || true
             fi
+            set -e
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
