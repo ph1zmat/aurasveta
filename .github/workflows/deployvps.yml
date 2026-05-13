@@ -116,6 +116,34 @@ jobs:
             # Не чистим .next перед сборкой — сохраняем статический кэш.
             # Защита от параллельных деплоев: один build на сервер в момент времени.
             BUILD_LOCK_FILE="/tmp/aurasveta-next-build.lock"
+
+            # Если на VPS реально идёт другой next build — подождём его завершения.
+            # Это может случиться после отменённого/перезапущенного GitHub run.
+            if pgrep -fa '[n]ext build' >/dev/null 2>&1; then
+              echo "Another 'next build' process detected, waiting up to 10 minutes..."
+              BUILD_WAIT_OK=0
+              for attempt in $(seq 1 120); do
+                if pgrep -fa '[n]ext build' >/dev/null 2>&1; then
+                  sleep 5
+                else
+                  BUILD_WAIT_OK=1
+                  echo "Previous build process finished on attempt ${attempt}/120"
+                  break
+                fi
+              done
+              if [ "$BUILD_WAIT_OK" -ne 1 ]; then
+                echo "ERROR: another 'next build' is still running after timeout"
+                pgrep -fa '[n]ext build' || true
+                exit 1
+              fi
+            fi
+
+            # После аварийного прерывания у Next.js может остаться stale lock-файл.
+            if [ -f .next/build.lock ]; then
+              echo "Removing stale .next/build.lock"
+              rm -f .next/build.lock
+            fi
+
             if command -v flock >/dev/null 2>&1; then
               echo "Using build lock: ${BUILD_LOCK_FILE}"
               flock -w 1800 "$BUILD_LOCK_FILE" env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
