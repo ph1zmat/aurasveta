@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 
-// Принудительный SSR для всего приложения — layout использует headers() через tRPC
-export const dynamic = 'force-dynamic'
+// Публичный layout кэшируется через ISR, динамичность остается на уровне конкретных маршрутов
+export const revalidate = 3600
 
 import MobileHeader from '@/widgets/header/ui/mobileheader'
 import MobileBottomNav from '@/widgets/navigation/ui/mobilebottomnav'
@@ -13,35 +13,12 @@ import RootThemeProvider from '@/shared/ui/rootthemeprovider'
 import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 import { buildOrganizationSchema } from '@/lib/seo/schema/builders/organization'
 import { buildWebSiteSchema } from '@/lib/seo/schema/builders/website'
+import { buildRootMetadata } from '@/lib/seo/sitemetadata'
 
-export const metadata: Metadata = {
-	metadataBase: new URL('https://aurasveta.by'),
-	title: {
-		default: 'Интернет-магазин люстр и светильников в Мозыре — Аура Света',
-		template: '%s | Аура Света',
-	},
-	description: 'Аура Света — интернет-магазин светильников и декора',
-	icons: {
-		icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
-		shortcut: ['/favicon.ico'],
-	},
-	verification: {
-		google: 'fA8h5x9FAQDa6OFp09Tvp67Fc9KEF3MvBLZMH3e-OUg',
-		yandex: 'ee70a2896ab83afb',
-	},
-	other: {
-		'geo.region': 'BY',
-		'geo.placename': 'Belarus',
-	},
-	openGraph: {
-		siteName: 'Аура Света',
-		locale: 'ru_RU',
-		type: 'website',
-	},
-	twitter: {
-		card: 'summary_large_image',
-		site: '@aurasveta',
-	},
+export async function generateMetadata(): Promise<Metadata> {
+	const storeSettings = await getPublicStoreSettings()
+
+	return buildRootMetadata(storeSettings)
 }
 
 export default async function RootLayout({

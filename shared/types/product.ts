@@ -35,6 +35,7 @@ export interface Product {
 	subcategorySlug?: string
 	brand?: string
 	brandCountry?: string
+	condition?: 'NEW' | 'USED' | 'REFURBISHED'
 	images: ProductImage[]
 	rating?: number
 	reviewsCount?: number

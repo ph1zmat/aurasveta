@@ -23,6 +23,7 @@ import {
 	getNewSinceDate,
 } from '@/lib/products/autobadges'
 import { getMainImage } from '@/shared/lib/productutils'
+import { getEffectiveMerchantPolicies } from '@/lib/merchant-policies/geteffectivemerchantpolicies'
 
 const orderedProductImages = {
 	orderBy: { order: 'asc' },
@@ -43,7 +44,11 @@ const productCardSelect = {
 	rating: true,
 	reviewsCount: true,
 	badges: true,
+	condition: true,
 	isActive: true,
+	shippingPolicyId: true,
+	returnPolicyId: true,
+	warrantyPolicyId: true,
 	categoryId: true,
 	rootCategoryId: true,
 	subcategoryId: true,
@@ -63,6 +68,9 @@ const productDetailInclude = {
 	category: true,
 	rootCategory: true,
 	subcategory: true,
+	shippingPolicy: true,
+	returnPolicy: true,
+	warrantyPolicy: true,
 	images: orderedProductImages,
 	properties: { include: { property: true, propertyValue: true } },
 } as const satisfies Prisma.ProductInclude
@@ -71,6 +79,8 @@ const propertyValueSchema = z.object({
 	propertyId: z.string(),
 	propertyValueId: z.string(),
 })
+
+const productConditionSchema = z.enum(['NEW', 'USED', 'REFURBISHED'])
 
 const incomingProductImageSchema = z.union([
 	z.string(),
@@ -632,6 +642,12 @@ export const productsRouter = createTRPCRouter({
 		return withBadges ?? null
 	}),
 
+	getEffectivePolicies: baseProcedure
+		.input(z.string())
+		.query(async ({ ctx, input: productId }) => {
+			return getEffectiveMerchantPolicies(ctx.prisma, productId)
+		}),
+
 	getAdminOptions: adminProcedure
 		.input(
 			z
@@ -681,6 +697,10 @@ export const productsRouter = createTRPCRouter({
 				rootCategoryId: z.string().nullable().optional(),
 				subcategoryId: z.string().nullable().optional(),
 				isActive: z.boolean().default(true),
+				condition: productConditionSchema.default('NEW'),
+				shippingPolicyId: z.string().nullable().optional(),
+				returnPolicyId: z.string().nullable().optional(),
+				warrantyPolicyId: z.string().nullable().optional(),
 				brand: z.string().nullable().optional(),
 				brandCountry: z.string().nullable().optional(),
 				badges: z.array(z.string()).default([]),
@@ -788,6 +808,10 @@ export const productsRouter = createTRPCRouter({
 				rootCategoryId: z.string().nullable().optional(),
 				subcategoryId: z.string().nullable().optional(),
 				isActive: z.boolean().optional(),
+				condition: productConditionSchema.optional(),
+				shippingPolicyId: z.string().nullable().optional(),
+				returnPolicyId: z.string().nullable().optional(),
+				warrantyPolicyId: z.string().nullable().optional(),
 				brand: z.string().nullable().optional(),
 				brandCountry: z.string().nullable().optional(),
 				badges: z.array(z.string()).optional(),

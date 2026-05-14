@@ -211,3 +211,57 @@ export function seoToMetadata(seo: SeoResult): Metadata {
 		robots: seo.noIndex ? { index: false, follow: false } : undefined,
 	}
 }
+
+type ProductMetadataSignals = {
+	canonicalUrl: string
+	imageUrl?: string | null
+	price?: number | null
+	inStock: boolean
+	currency?: string
+}
+
+export function seoToProductMetadata(
+	seo: SeoResult,
+	signals: ProductMetadataSignals,
+): Metadata {
+	const metadata = seoToMetadata(seo)
+	const ogTitle = seo.ogTitle ?? seo.title
+	const ogDescription = seo.ogDescription ?? seo.description ?? undefined
+	const imageUrl = seo.ogImage ?? signals.imageUrl ?? undefined
+
+	return {
+		...metadata,
+		openGraph: {
+			type: 'website',
+			title: ogTitle,
+			description: ogDescription,
+			url: seo.canonicalUrl ?? signals.canonicalUrl,
+			images: imageUrl
+				? [{ url: imageUrl, width: 1200, height: 630, alt: ogTitle }]
+				: undefined,
+		},
+		twitter: {
+			card: 'summary_large_image',
+			title: ogTitle,
+			description: ogDescription,
+			images: imageUrl ? [imageUrl] : undefined,
+		},
+		alternates: {
+			canonical: seo.canonicalUrl ?? signals.canonicalUrl,
+		},
+		other: {
+			...(metadata.other ?? {}),
+			'og:type': 'product',
+			...(signals.price != null
+				? {
+					'product:price:amount': signals.price.toFixed(2),
+					'product:price:currency': signals.currency ?? 'BYN',
+				}
+				: {}),
+			'product:availability': signals.inStock
+				? 'https://schema.org/InStock'
+				: 'https://schema.org/OutOfStock',
+			'product:url': seo.canonicalUrl ?? signals.canonicalUrl,
+		},
+	}
+}

@@ -13,10 +13,14 @@ import PageRenderer from '@/widgets/page-renderer/pagerenderer'
 import PublicSectionRenderer from '@/entities/section/ui/publicsectionrenderer'
 import PublicPageBlocksRenderer from '@/entities/page-block/ui/publicpageblocksrenderer'
 import { getPublishedPageRenderDataBySlug } from '@/lib/sections/publicpagedata'
-import { buildFaqSchema } from '@/lib/seo/schema/builders/faq'
-import type { FaqSectionConfig } from '@/shared/types/sections'
+import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
+import {
+	buildFaqSchema,
+	extractFaqItemsFromSections,
+} from '@/lib/seo/schema/builders/faq'
 
 export const revalidate = 3600
+export const dynamicParams = false
 
 export async function generateStaticParams() {
 	try {
@@ -26,10 +30,7 @@ export async function generateStaticParams() {
 		})
 		return pages.map(p => ({ slug: p.slug }))
 	} catch (error) {
-		console.warn(
-			'[pages] generateStaticParams fallback: database unavailable',
-			error,
-		)
+		logDatabaseFallback('pages.generate-static-params', error)
 		return []
 	}
 }
@@ -43,7 +44,7 @@ export async function generateMetadata({
 	const data = await getPublishedPageRenderDataBySlug(slug)
 	const page = data?.page
 
-	if (!page) return { title: 'Страница не найдена' }
+	if (!page) notFound()
 	const seo = await getMetadataForPage({
 		id: page.id,
 		title: page.title,
@@ -92,9 +93,7 @@ export default async function ContentPage({
 		Array.isArray(page.contentBlocks) && page.contentBlocks.length > 0
 
 	// Собираем FAQ-пары из FAQ-секций для JSON-LD (SEO-CLAIM-035 / E6)
-	const faqItems = unifiedSections
-		.filter(s => s.type === 'faq')
-		.flatMap(s => (s.config as FaqSectionConfig).items)
+	const faqItems = extractFaqItemsFromSections(unifiedSections)
 	const faqSchema = buildFaqSchema(faqItems)
 
 	return (

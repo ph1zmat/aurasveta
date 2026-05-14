@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import nextConfig from '../../nextconfig'
+import nextConfig from '../../next.config'
 
 describe('next config seo headers', () => {
 	it('задаёт HSTS в глобальных security headers', async () => {

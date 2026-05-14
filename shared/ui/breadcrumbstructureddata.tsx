@@ -1,4 +1,4 @@
-const BASE_URL = 'https://aurasveta.by'
+import { buildBreadcrumbSchema } from '@/lib/seo/schema/builders/breadcrumb'
 
 interface BreadcrumbItem {
 	name: string
@@ -12,16 +12,7 @@ interface BreadcrumbStructuredDataProps {
 export default function BreadcrumbStructuredData({
 	items,
 }: BreadcrumbStructuredDataProps) {
-	const jsonLd = {
-		'@context': 'https://schema.org',
-		'@type': 'BreadcrumbList',
-		itemListElement: items.map((item, index) => ({
-			'@type': 'ListItem',
-			position: index + 1,
-			name: item.name,
-			...(item.href ? { item: `${BASE_URL}${item.href}` } : {}),
-		})),
-	}
+	const jsonLd = buildBreadcrumbSchema(items)
 
 	return (
 		<script

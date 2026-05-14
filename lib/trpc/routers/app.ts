@@ -24,6 +24,9 @@ import { settingsBusinessRouter } from './admin/settingsbusiness'
 import { notificationsRouter } from './notifications'
 import { importOperationsRouter } from './importoperations'
 import { siteNavRouter } from './sitenav'
+import { shippingPolicyRouter } from './shippingpolicy'
+import { returnPolicyRouter } from './returnpolicy'
+import { warrantyPolicyRouter } from './warrantypolicy'
 
 export const appRouter = createTRPCRouter({
 	categories: categoriesRouter,
@@ -51,6 +54,9 @@ export const appRouter = createTRPCRouter({
 	notifications: notificationsRouter,
 	importOperations: importOperationsRouter,
 	siteNav: siteNavRouter,
+	shippingPolicy: shippingPolicyRouter,
+	returnPolicy: returnPolicyRouter,
+	warrantyPolicy: warrantyPolicyRouter,
 })
 
 export type AppRouter = typeof appRouter

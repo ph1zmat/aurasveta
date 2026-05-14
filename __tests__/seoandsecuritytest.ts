@@ -62,7 +62,8 @@ describe('generateCategorySeo', () => {
 			name: 'Люстры',
 			description: 'Большой выбор люстр',
 		})
-		expect(result.title).toContain('Люстры')
+		expect(result.title.toLowerCase()).toContain('люстры')
+		expect(result.ogTitle).toBe('Люстры')
 	})
 })
 

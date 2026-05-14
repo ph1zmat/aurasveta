@@ -48,9 +48,13 @@ interface ProductFormModalProps {
 		sku?: string | null
 		rootCategoryId?: string | null
 		subcategoryId?: string | null
+		shippingPolicyId?: string | null
+		returnPolicyId?: string | null
+		warrantyPolicyId?: string | null
 		brand?: string | null
 		brandCountry?: string | null
 		isActive?: boolean | null
+		condition?: 'NEW' | 'USED' | 'REFURBISHED' | null
 		metaTitle?: string | null
 		metaDesc?: string | null
 		images?: Array<{
@@ -92,9 +96,13 @@ function defaultFormValues(): ProductFormValue {
 		sku: '',
 		rootCategoryId: '',
 		subcategoryId: '',
+		shippingPolicyId: '',
+		returnPolicyId: '',
+		warrantyPolicyId: '',
 		brand: '',
 		brandCountry: '',
 		isActive: true,
+		condition: 'NEW',
 		images: [],
 		properties: [],
 		seo: {
@@ -123,9 +131,13 @@ function productToFormValues(
 		sku: product.sku ?? '',
 		rootCategoryId: product.rootCategoryId ?? '',
 		subcategoryId: product.subcategoryId ?? '',
+		shippingPolicyId: product.shippingPolicyId ?? '',
+		returnPolicyId: product.returnPolicyId ?? '',
+		warrantyPolicyId: product.warrantyPolicyId ?? '',
 		brand: product.brand ?? '',
 		brandCountry: product.brandCountry ?? '',
 		isActive: product.isActive ?? true,
+		condition: product.condition ?? 'NEW',
 		images: (product.images ?? []).map((img, i) => ({
 			id: img.id ?? undefined,
 			url: img.url,
@@ -176,6 +188,9 @@ export default function ProductFormModal({
 
 	const { data: categories } = trpc.categories.getAll.useQuery()
 	const { data: properties } = trpc.properties.getAll.useQuery()
+	const { data: shippingPolicies = [] } = trpc.shippingPolicy.getAll.useQuery()
+	const { data: returnPolicies = [] } = trpc.returnPolicy.getAll.useQuery()
+	const { data: warrantyPolicies = [] } = trpc.warrantyPolicy.getAll.useQuery()
 	const { data: productSeo } = trpc.seo.getByTarget.useQuery(
 		{
 			targetType: 'product',
@@ -261,9 +276,13 @@ export default function ProductFormModal({
 			sku: values.sku || null,
 			rootCategoryId: values.rootCategoryId || null,
 			subcategoryId: values.subcategoryId || null,
+			shippingPolicyId: values.shippingPolicyId || null,
+			returnPolicyId: values.returnPolicyId || null,
+			warrantyPolicyId: values.warrantyPolicyId || null,
 			brand: values.brand || null,
 			brandCountry: values.brandCountry || null,
 			isActive: values.isActive,
+			condition: values.condition,
 			images: values.images.map(img => ({
 				key: img.key,
 				url: img.url,
@@ -298,10 +317,22 @@ export default function ProductFormModal({
 	const seoCanonicalUrlValue = watch('seo.canonicalUrl')
 	const seoNoIndexValue = watch('seo.noIndex')
 	const rootCategoryIdValue = watch('rootCategoryId')
+	const shippingPolicyIdValue = watch('shippingPolicyId')
+	const returnPolicyIdValue = watch('returnPolicyId')
+	const warrantyPolicyIdValue = watch('warrantyPolicyId')
 
 	const rootCategories = (categories ?? []).filter(c => !c.parentId)
 	const subcategories = (categories ?? []).filter(
 		c => c.parentId === rootCategoryIdValue,
+	)
+	const activeShippingPolicies = shippingPolicies.filter(
+		(policy: { isActive: boolean }) => policy.isActive,
+	)
+	const activeReturnPolicies = returnPolicies.filter(
+		(policy: { isActive: boolean }) => policy.isActive,
+	)
+	const activeWarrantyPolicies = warrantyPolicies.filter(
+		(policy: { isActive: boolean }) => policy.isActive,
 	)
 
 	const priceNum = Number(priceValue) || 0
@@ -466,6 +497,94 @@ export default function ProductFormModal({
 								<div className='space-y-2'>
 									<label className='text-sm font-medium'>Бренд</label>
 									<Input {...register('brand')} />
+								</div>
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Состояние</label>
+									<Select
+										value={watch('condition')}
+										onValueChange={v =>
+											setValue('condition', v as 'NEW' | 'USED' | 'REFURBISHED')
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder='Выберите состояние' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='NEW'>Новый</SelectItem>
+											<SelectItem value='USED'>Б/у</SelectItem>
+											<SelectItem value='REFURBISHED'>Восстановленный</SelectItem>
+										</SelectContent>
+									</Select>
+									{errors.condition && (
+										<p className='text-xs text-destructive'>
+											{errors.condition.message}
+										</p>
+									)}
+								</div>
+							</div>
+							<div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Доставка (override)</label>
+									<Select
+										value={shippingPolicyIdValue || '__default__'}
+										onValueChange={v =>
+											setValue('shippingPolicyId', v === '__default__' ? '' : v)
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder='По умолчанию магазина' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
+											{activeShippingPolicies.map((policy: { id: string; name: string }) => (
+												<SelectItem key={policy.id} value={policy.id}>
+													{policy.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Возврат (override)</label>
+									<Select
+										value={returnPolicyIdValue || '__default__'}
+										onValueChange={v =>
+											setValue('returnPolicyId', v === '__default__' ? '' : v)
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder='По умолчанию магазина' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
+											{activeReturnPolicies.map((policy: { id: string; name: string }) => (
+												<SelectItem key={policy.id} value={policy.id}>
+													{policy.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Гарантия (override)</label>
+									<Select
+										value={warrantyPolicyIdValue || '__default__'}
+										onValueChange={v =>
+											setValue('warrantyPolicyId', v === '__default__' ? '' : v)
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder='По умолчанию магазина' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
+											{activeWarrantyPolicies.map((policy: { id: string; name: string }) => (
+												<SelectItem key={policy.id} value={policy.id}>
+													{policy.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</div>
 							</div>
 							<div className='grid grid-cols-2 gap-4'>

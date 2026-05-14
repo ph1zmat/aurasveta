@@ -7,6 +7,7 @@ import Footer from '@/widgets/footer/ui/footer'
 import PublicSectionRenderer from '@/entities/section/ui/publicsectionrenderer'
 import DynamicHomeSection from '@/widgets/home-sections/ui/dynamichomesection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/publicpagedata'
+import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 
 export const metadata: Metadata = {
 	title: 'Аура Света — магазин люстр и светильников в Мозыре',
@@ -34,7 +35,7 @@ export default async function Home() {
 	try {
 		unifiedPage = await getUnifiedHomePageRenderData()
 	} catch (error) {
-		console.warn('[home] unified sections unavailable', error)
+		logDatabaseFallback('home.unified-sections', error)
 	}
 
 	const unifiedSections = unifiedPage?.sections ?? []
@@ -49,7 +50,7 @@ export default async function Home() {
 				include: homeSectionsInclude,
 			})
 		} catch (error) {
-			console.warn('[home] home sections unavailable', error)
+			logDatabaseFallback('home.legacy-sections', error)
 		}
 	}
 

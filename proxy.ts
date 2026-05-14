@@ -83,8 +83,17 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
 export function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl
+	const host = request.headers.get('host') ?? ''
 	const ip = getClientIp(request)
 	cleanStaleEntries()
+
+	// Canonical host redirect: www -> non-www
+	if (host.toLowerCase().startsWith('www.aurasveta.by')) {
+		const targetUrl = new URL(request.url)
+		targetUrl.hostname = 'aurasveta.by'
+		targetUrl.protocol = 'https:'
+		return NextResponse.redirect(targetUrl, 301)
+	}
 
 	// ── CORS & rate limiting for API routes ──
 	if (pathname.startsWith('/api/')) {

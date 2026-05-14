@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Save, Loader2, Info } from 'lucide-react'
 import ShopSettingsCard from './components/shopsettingscard'
 import DeliveryAdvantagesCard from './components/deliveryadvantagescard'
+import MerchantPolicyManagementCard from './components/merchantpolicymanagementcard'
 
 type GeneralSettingsForm = {
 	shopName: string
@@ -128,6 +129,120 @@ export default function SettingsClient() {
 		refetchOnWindowFocus: false,
 	})
 	const [draftForm, setDraftForm] = useState<GeneralSettingsForm | null>(null)
+	const { data: shippingPolicies = [], isLoading: shippingPoliciesLoading } =
+		trpc.shippingPolicy.getAll.useQuery()
+	const { data: returnPolicies = [], isLoading: returnPoliciesLoading } =
+		trpc.returnPolicy.getAll.useQuery()
+	const { data: warrantyPolicies = [], isLoading: warrantyPoliciesLoading } =
+		trpc.warrantyPolicy.getAll.useQuery()
+
+	const { mutate: createShippingPolicy } = trpc.shippingPolicy.create.useMutation({
+		onSuccess: async () => {
+			toast.success('Shipping policy создана')
+			await utils.shippingPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: setDefaultShippingPolicy } = trpc.shippingPolicy.setDefault.useMutation({
+		onSuccess: async () => {
+			toast.success('Default shipping policy обновлена')
+			await utils.shippingPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: archiveShippingPolicy } = trpc.shippingPolicy.archive.useMutation({
+		onSuccess: async () => {
+			toast.success('Shipping policy архивирована')
+			await utils.shippingPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: updateShippingPolicy } = trpc.shippingPolicy.update.useMutation({
+		onSuccess: async () => {
+			toast.success('Shipping policy обновлена')
+			await utils.shippingPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: deleteShippingPolicy } = trpc.shippingPolicy.delete.useMutation({
+		onSuccess: async () => {
+			toast.success('Shipping policy удалена')
+			await utils.shippingPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+
+	const { mutate: createReturnPolicy } = trpc.returnPolicy.create.useMutation({
+		onSuccess: async () => {
+			toast.success('Return policy создана')
+			await utils.returnPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: setDefaultReturnPolicy } = trpc.returnPolicy.setDefault.useMutation({
+		onSuccess: async () => {
+			toast.success('Default return policy обновлена')
+			await utils.returnPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: archiveReturnPolicy } = trpc.returnPolicy.archive.useMutation({
+		onSuccess: async () => {
+			toast.success('Return policy архивирована')
+			await utils.returnPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: updateReturnPolicy } = trpc.returnPolicy.update.useMutation({
+		onSuccess: async () => {
+			toast.success('Return policy обновлена')
+			await utils.returnPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: deleteReturnPolicy } = trpc.returnPolicy.delete.useMutation({
+		onSuccess: async () => {
+			toast.success('Return policy удалена')
+			await utils.returnPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+
+	const { mutate: createWarrantyPolicy } = trpc.warrantyPolicy.create.useMutation({
+		onSuccess: async () => {
+			toast.success('Warranty policy создана')
+			await utils.warrantyPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: setDefaultWarrantyPolicy } = trpc.warrantyPolicy.setDefault.useMutation({
+		onSuccess: async () => {
+			toast.success('Default warranty policy обновлена')
+			await utils.warrantyPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: archiveWarrantyPolicy } = trpc.warrantyPolicy.archive.useMutation({
+		onSuccess: async () => {
+			toast.success('Warranty policy архивирована')
+			await utils.warrantyPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: updateWarrantyPolicy } = trpc.warrantyPolicy.update.useMutation({
+		onSuccess: async () => {
+			toast.success('Warranty policy обновлена')
+			await utils.warrantyPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
+	const { mutate: deleteWarrantyPolicy } = trpc.warrantyPolicy.delete.useMutation({
+		onSuccess: async () => {
+			toast.success('Warranty policy удалена')
+			await utils.warrantyPolicy.getAll.invalidate()
+		},
+		onError: error => toast.error(error.message),
+	})
 
 	const { mutate: bulkUpsert, isPending: isSaving } = trpc.setting.bulkUpsert.useMutation({
 		onSuccess: async () => {
@@ -428,7 +543,92 @@ export default function SettingsClient() {
 				</TabsContent>
 
 				<TabsContent value='catalog' className='mt-4'>
-					<DeliveryAdvantagesCard />
+					<div className='space-y-4'>
+						<DeliveryAdvantagesCard />
+						<MerchantPolicyManagementCard
+							title='Shipping policy (structured data)'
+							description='Это источник данных доставки для merchant/schema. Не путать с блоком «Преимущества доставки».'
+							loading={shippingPoliciesLoading}
+							policies={shippingPolicies.map((policy: { id: string; name: string; code: string; isDefault: boolean; isActive: boolean }) => ({
+								id: policy.id,
+								name: policy.name,
+								code: policy.code,
+								isDefault: policy.isDefault,
+								isActive: policy.isActive,
+							}))}
+							onCreate={({ code, name }) =>
+								createShippingPolicy({
+									code,
+									name,
+									countryCode: 'BY',
+									currency: 'BYN',
+									isActive: true,
+								})
+							}
+							onSetDefault={setDefaultShippingPolicy}
+							onUpdate={({ id, code, name, isActive }) =>
+								updateShippingPolicy({ id, code, name, isActive })
+							}
+							onDelete={deleteShippingPolicy}
+							onArchive={archiveShippingPolicy}
+						/>
+						<MerchantPolicyManagementCard
+							title='Return policy (structured data)'
+							description='Политика возврата для merchant/schema. UI-тексты на витрине остаются отдельным контентом.'
+							loading={returnPoliciesLoading}
+							policies={returnPolicies.map((policy: { id: string; name: string; code: string; isDefault: boolean; isActive: boolean }) => ({
+								id: policy.id,
+								name: policy.name,
+								code: policy.code,
+								isDefault: policy.isDefault,
+								isActive: policy.isActive,
+							}))}
+							onCreate={({ code, name }) =>
+								createReturnPolicy({
+									code,
+									name,
+									isActive: true,
+									returnPolicyCategory: 'FINITE_WINDOW',
+									merchantReturnDays: 14,
+									returnMethod: 'BY_MAIL',
+									returnFees: 'BUYER_PAYS',
+								})
+							}
+							onSetDefault={setDefaultReturnPolicy}
+							onUpdate={({ id, code, name, isActive }) =>
+								updateReturnPolicy({ id, code, name, isActive })
+							}
+							onDelete={deleteReturnPolicy}
+							onArchive={archiveReturnPolicy}
+						/>
+						<MerchantPolicyManagementCard
+							title='Warranty policy (structured data)'
+							description='Политика гарантии для merchant/schema и product-page logic.'
+							loading={warrantyPoliciesLoading}
+							policies={warrantyPolicies.map((policy: { id: string; name: string; code: string; isDefault: boolean; isActive: boolean }) => ({
+								id: policy.id,
+								name: policy.name,
+								code: policy.code,
+								isDefault: policy.isDefault,
+								isActive: policy.isActive,
+							}))}
+							onCreate={({ code, name }) =>
+								createWarrantyPolicy({
+									code,
+									name,
+									isActive: true,
+									warrantyScope: 'LIMITED',
+									durationMonths: 12,
+								})
+							}
+							onSetDefault={setDefaultWarrantyPolicy}
+							onUpdate={({ id, code, name, isActive }) =>
+								updateWarrantyPolicy({ id, code, name, isActive })
+							}
+							onDelete={deleteWarrantyPolicy}
+							onArchive={archiveWarrantyPolicy}
+						/>
+					</div>
 				</TabsContent>
 
 				<TabsContent value='security' className='mt-4'>

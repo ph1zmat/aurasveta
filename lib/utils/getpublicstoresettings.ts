@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
 export type PublicStoreSettings = {
@@ -6,6 +8,7 @@ export type PublicStoreSettings = {
 	email: string
 	address: string
 	city: string | null
+	postalCode: string | null
 	workingHours: Record<string, string>
 	socialLinks: Array<{ platform: string; url: string }>
 	logoUrl: string | null
@@ -46,7 +49,9 @@ function asSocialLinks(
  * Безопасно для RSC — не возвращает чувствительных данных.
  * При отсутствии записи возвращает null.
  */
-export async function getPublicStoreSettings(): Promise<PublicStoreSettings | null> {
+
+const getPublicStoreSettingsCached = cache(
+	async (): Promise<PublicStoreSettings | null> => {
 	try {
 		const settings = await prisma.storeSettings.findUnique({ where: { id: 1 } })
 		if (!settings) return null
@@ -57,6 +62,7 @@ export async function getPublicStoreSettings(): Promise<PublicStoreSettings | nu
 			email: settings.email,
 			address: settings.address,
 			city: settings.city,
+			postalCode: settings.postalCode,
 			workingHours: asStringRecord(settings.workingHours),
 			socialLinks: asSocialLinks(settings.socialLinks),
 			logoUrl: settings.logoUrl,
@@ -65,6 +71,17 @@ export async function getPublicStoreSettings(): Promise<PublicStoreSettings | nu
 	} catch {
 		return null
 	}
+	},
+)
+
+const getPublicStoreSettingsFromCache = unstable_cache(
+	async (): Promise<PublicStoreSettings | null> => getPublicStoreSettingsCached(),
+	['public-store-settings'],
+	{ revalidate: 3600 },
+)
+
+export async function getPublicStoreSettings(): Promise<PublicStoreSettings | null> {
+	return getPublicStoreSettingsFromCache()
 }
 
 /**

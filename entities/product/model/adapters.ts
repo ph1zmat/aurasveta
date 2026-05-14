@@ -24,6 +24,7 @@ export interface DbProduct {
 	images: unknown
 	brand?: string | null
 	brandCountry?: string | null
+	condition?: 'NEW' | 'USED' | 'REFURBISHED' | null
 	rating?: number | null
 	reviewsCount?: number
 	badges: unknown
@@ -125,6 +126,7 @@ export function toFrontendProduct(p: DbProduct): Product {
 		subcategorySlug: p.subcategory?.slug ?? p.category?.slug ?? undefined,
 		brand: p.brand ?? undefined,
 		brandCountry: p.brandCountry ?? undefined,
+		condition: p.condition ?? undefined,
 		images,
 		rating: p.rating ? Number(p.rating) : undefined,
 		reviewsCount: p.reviewsCount,

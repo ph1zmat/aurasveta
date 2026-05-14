@@ -1,6 +1,21 @@
 import type { PublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
+import { CANONICAL_BASE_URL } from '@/lib/seo/domain/rules'
+import { resolveSiteAssetUrl } from '@/lib/seo/sitemetadata'
 
-const BASE_URL = 'https://aurasveta.by'
+function asCleanString(value: string | null | undefined): string | null {
+	if (typeof value !== 'string') return null
+	const trimmed = value.trim()
+	return trimmed.length > 0 ? trimmed : null
+}
+
+function isValidPublicHttpUrl(value: string): boolean {
+	try {
+		const url = new URL(value)
+		return url.protocol === 'http:' || url.protocol === 'https:'
+	} catch {
+		return false
+	}
+}
 
 /**
  * Генерирует JSON-LD объект `Organization` на основе публичных настроек магазина.
@@ -9,48 +24,54 @@ const BASE_URL = 'https://aurasveta.by'
 export function buildOrganizationSchema(
 	settings: PublicStoreSettings | null,
 ): Record<string, unknown> {
-	const logoUrl = settings?.logoUrl
-		? settings.logoUrl.startsWith('http')
-			? settings.logoUrl
-			: `${BASE_URL}${settings.logoUrl}`
-		: undefined
+	const logoUrl = resolveSiteAssetUrl(settings?.logoUrl)
+	const socialLinks =
+		settings?.socialLinks
+			?.map(link => asCleanString(link.url))
+			.filter((url): url is string => Boolean(url && isValidPublicHttpUrl(url))) ?? []
+	const email = asCleanString(settings?.email)
+	const address = asCleanString(settings?.address)
+	const city = asCleanString(settings?.city)
+	const postalCode = asCleanString(settings?.postalCode)
+	const contactPhones = [asCleanString(settings?.phone), asCleanString(settings?.additionalPhone)].filter(
+		(phone): phone is string => Boolean(phone),
+	)
 
 	return {
 		'@context': 'https://schema.org',
 		'@type': 'Organization',
-		'@id': `${BASE_URL}/#organization`,
+		'@id': `${CANONICAL_BASE_URL}/#organization`,
 		name: 'Аура Света',
-		url: BASE_URL,
+		url: CANONICAL_BASE_URL,
 		...(logoUrl
 			? { logo: { '@type': 'ImageObject', url: logoUrl } }
 			: {}),
-		...(settings?.phone
+		...(email ? { email } : {}),
+		...(contactPhones.length > 0
 			? {
-					telephone: settings.phone,
-					contactPoint: [
-						{
-							'@type': 'ContactPoint',
-							telephone: settings.phone,
-							contactType: 'customer service',
-							areaServed: 'BY',
-							availableLanguage: 'Russian',
-						},
-					],
+					telephone: contactPhones[0],
+					contactPoint: contactPhones.map(phone => ({
+						'@type': 'ContactPoint',
+						telephone: phone,
+						contactType: 'customer service',
+						areaServed: 'BY',
+						availableLanguage: 'Russian',
+					})),
 				}
 			: {}),
-		...(settings?.address
+		...(address
 			? {
 					address: {
 						'@type': 'PostalAddress',
-						streetAddress: settings.address,
-						addressLocality: settings.city ?? 'Мозырь',
+						streetAddress: address,
+						addressLocality: city ?? 'Мозырь',
+						...(postalCode
+							? { postalCode }
+							: {}),
 						addressCountry: 'BY',
 					},
 				}
 			: {}),
-		sameAs:
-			settings?.socialLinks
-				?.filter(l => l.url.trim().length > 0)
-				.map(l => l.url) ?? [],
+		...(socialLinks.length > 0 ? { sameAs: socialLinks } : {}),
 	}
 }

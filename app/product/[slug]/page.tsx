@@ -44,13 +44,18 @@ import {
 } from '@/entities/product/model/adapters'
 import { notFound } from 'next/navigation'
 import { trpc } from '@/lib/trpc/server'
-import { getMetadataForProduct, seoToMetadata } from '@/lib/seo/getmetadata'
+import {
+	getMetadataForProduct,
+	seoToProductMetadata,
+} from '@/lib/seo/getmetadata'
 import {
 	getProductImageUrl,
 	normalizeProductImages,
 } from '@/shared/lib/productutils'
 import { ProductCarouselSkeleton } from '@/shared/ui/storefrontskeletons'
 import RecentlyViewedProductCarousel from '@/widgets/product-carousel/ui/recentlyviewedproductcarousel'
+import { getEffectiveMerchantPolicies } from '@/lib/merchant-policies/geteffectivemerchantpolicies'
+import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 
 /* ── Page ── */
 
@@ -67,7 +72,7 @@ export async function generateStaticParams() {
 		})
 		return products.map(p => ({ slug: p.slug }))
 	} catch (error) {
-		console.warn('[product] generateStaticParams: database unavailable', error)
+		logDatabaseFallback('product.generate-static-params', error)
 		return []
 	}
 }
@@ -79,7 +84,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
 	const { slug } = await params
 	const product = await getProductBySlug(slug)
-	if (!product) return { title: 'Товар не найден' }
+	if (!product) notFound()
 
 	const seo = await getMetadataForProduct({
 		id: String(product.id),
@@ -91,16 +96,16 @@ export async function generateMetadata({
 		images: product.images,
 		brand: product.brand,
 	})
-	const metadata = seoToMetadata(seo)
+  const canonicalUrl = `https://aurasveta.by/product/${slug}`
+	const metadata = seoToProductMetadata(seo, {
+		canonicalUrl,
+		imageUrl: getProductImageUrl(product),
+		price: product.price,
+		inStock: product.inStock,
+		currency: 'BYN',
+	})
 
-	return {
-		...metadata,
-		alternates: {
-			...(metadata.alternates ?? {}),
-			canonical:
-				metadata.alternates?.canonical ?? `https://aurasveta.by/product/${slug}`,
-		},
-	}
+	return metadata
 }
 
 export default async function ProductPage({
@@ -118,13 +123,14 @@ export default async function ProductPage({
 	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
 	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
 
-	const [specGroups, productViews, deliveryAdvantagesSetting] =
+	const [specGroups, productViews, deliveryAdvantagesSetting, effectivePolicies] =
 		await Promise.all([
 			getProductSpecGroups(product.id),
 			prisma.productView.count({ where: { productId } }).catch(() => 0),
 			prisma.setting
 				.findUnique({ where: { key: 'delivery.advantages' } })
 				.catch(() => null),
+			getEffectiveMerchantPolicies(prisma, productId),
 		])
 
 	const allImages = normalizeProductImages(product.images).map(
@@ -141,10 +147,44 @@ export default async function ProductPage({
 				images={allImages}
 				sku={product.slug}
 				brand={product.brand}
+				condition={product.condition}
 				inStock={product.inStock}
 				rating={product.rating}
 				reviewsCount={product.reviewsCount}
 				url={`https://aurasveta.by/product/${product.slug}`}
+				shippingPolicy={
+					effectivePolicies.shippingPolicy
+						? {
+								countryCode: effectivePolicies.shippingPolicy.countryCode,
+								currency: effectivePolicies.shippingPolicy.currency,
+								shippingRate: effectivePolicies.shippingPolicy.shippingRate,
+								minTransitDays: effectivePolicies.shippingPolicy.minTransitDays,
+								maxTransitDays: effectivePolicies.shippingPolicy.maxTransitDays,
+							}
+						: null
+				}
+				returnPolicy={
+					effectivePolicies.returnPolicy
+						? {
+								returnPolicyCategory:
+									effectivePolicies.returnPolicy.returnPolicyCategory,
+								merchantReturnDays:
+									effectivePolicies.returnPolicy.merchantReturnDays,
+								returnMethod: effectivePolicies.returnPolicy.returnMethod,
+								returnFees: effectivePolicies.returnPolicy.returnFees,
+							}
+						: null
+				}
+				warrantyPolicy={
+					effectivePolicies.warrantyPolicy
+						? {
+								durationMonths:
+									effectivePolicies.warrantyPolicy.durationMonths,
+								warrantyScope:
+									effectivePolicies.warrantyPolicy.warrantyScope,
+							}
+						: null
+				}
 			/>
 			<BreadcrumbStructuredData
 				items={[

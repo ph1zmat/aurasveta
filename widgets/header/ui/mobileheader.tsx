@@ -9,7 +9,13 @@ import { Input } from '@/shared/ui/input'
 import { Button } from '@/shared/ui/button'
 import MobileCatalogMenu from '@/widgets/navigation/ui/mobilecatalogmenu'
 
-export default function MobileHeader({ phone, logoUrl }: { phone?: string | null; logoUrl?: string | null }) {
+export default function MobileHeader({
+	phone,
+	logoUrl,
+}: {
+	phone?: string | null
+	logoUrl?: string | null
+}) {
 	const router = useRouter()
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [searchTerm, setSearchTerm] = useState('')
@@ -33,13 +39,13 @@ export default function MobileHeader({ phone, logoUrl }: { phone?: string | null
 					{/* Top row: Logo + Phone */}
 					<div className='flex items-center justify-between gap-3 py-2'>
 						<Link href='/' className='flex items-center gap-2 shrink-0'>
-						<Image
-							src={logoUrl ?? '/auralogonolineprimary.png'}
-							alt='Аура Света'
-							width={110}
-							height={40}
-							className='h-10 w-28 object-cover'
-						/>
+							<Image
+								src={logoUrl ?? '/auralogonolineprimary.png'}
+								alt='Аура Света'
+								width={110}
+								height={40}
+								className='h-10 w-28 object-cover'
+							/>
 						</Link>
 						{phone && (
 							<a
@@ -68,7 +74,11 @@ export default function MobileHeader({ phone, logoUrl }: { phone?: string | null
 								<Menu className='h-5 w-5' strokeWidth={1.5} />
 							)}
 						</Button>
-						<form className='relative flex-1' onSubmit={handleSearchSubmit} role='search'>
+						<form
+							className='relative flex-1'
+							onSubmit={handleSearchSubmit}
+							role='search'
+						>
 							<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
 							<Input
 								variant='search'

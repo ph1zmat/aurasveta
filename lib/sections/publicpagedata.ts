@@ -12,6 +12,7 @@ import {
 	SectionConfigSchema,
 	type SectionBackground,
 } from '@/shared/types/sections'
+import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 import type {
 	ResolvedSectionCategory,
 	ResolvedSectionMediaItem,
@@ -393,10 +394,15 @@ async function resolveSections(page: PageWithSections) {
 export async function getPublishedPageRenderDataBySlug(
 	slug: string,
 ): Promise<PublicPageRenderData | null> {
-	const page = await prisma.page.findFirst({
-		where: { slug, isPublished: true },
-		include: pageSectionsInclude,
-	})
+	const page = await prisma.page
+		.findFirst({
+			where: { slug, isPublished: true },
+			include: pageSectionsInclude,
+		})
+		.catch(error => {
+			logDatabaseFallback('pages.render-data', error)
+			return null
+		})
 
 	if (!page) return null
 

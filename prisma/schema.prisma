@@ -190,6 +190,12 @@ enum CategoryFilterKind {
   SALE
 }
 
+enum ProductCondition {
+  NEW
+  USED
+  REFURBISHED
+}
+
 model ProductPropertyValue {
   id              String   @id @default(cuid())
   productId       String   @map("product_id")
@@ -399,6 +405,7 @@ model Product {
   rating         Float?
   reviewsCount   Int                      @default(0) @map("reviews_count")
   badges         Json                     @default("[]")
+  condition      ProductCondition         @default(NEW)
   metaTitle      String?                  @map("meta_title")
   metaDesc       String?                  @map("meta_description")
   searchVector   Unsupported("tsvector")? @map("search_vector")
@@ -406,6 +413,12 @@ model Product {
   updatedAt      DateTime                 @updatedAt @map("updated_at")
   userId         String?                  @map("user_id")
   user           User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shippingPolicyId String?                @map("shipping_policy_id")
+  shippingPolicy   ShippingPolicy?        @relation(fields: [shippingPolicyId], references: [id], onDelete: SetNull)
+  returnPolicyId   String?                @map("return_policy_id")
+  returnPolicy     ReturnPolicy?          @relation(fields: [returnPolicyId], references: [id], onDelete: SetNull)
+  warrantyPolicyId String?                @map("warranty_policy_id")
+  warrantyPolicy   WarrantyPolicy?        @relation(fields: [warrantyPolicyId], references: [id], onDelete: SetNull)
 
   images          ProductImage[]
   properties      ProductPropertyValue[]
@@ -418,6 +431,9 @@ model Product {
   @@index([categoryId])
   @@index([rootCategoryId])
   @@index([subcategoryId])
+  @@index([shippingPolicyId])
+  @@index([returnPolicyId])
+  @@index([warrantyPolicyId])
   @@index([isActive, createdAt(sort: Desc)])
   @@index([brand])
   @@index([searchVector], type: Gin)
@@ -607,6 +623,93 @@ enum OrderStatus {
 enum ContactMethod {
   PHONE
   VIBER
+}
+
+enum ReturnPolicyCategory {
+  FINITE_WINDOW
+  NOT_PERMITTED
+}
+
+enum ReturnMethod {
+  BY_MAIL
+  IN_STORE
+  PICKUP
+}
+
+enum ReturnFees {
+  FREE
+  BUYER_PAYS
+  RESTOCKING_FEE
+}
+
+enum WarrantyScope {
+  LIMITED
+  FULL
+  MANUFACTURER
+}
+
+model ShippingPolicy {
+  id                    String   @id @default(cuid())
+  code                  String   @unique
+  name                  String
+  isDefault             Boolean  @default(false) @map("is_default")
+  isActive              Boolean  @default(true) @map("is_active")
+  countryCode           String   @default("BY") @map("country_code")
+  region                String?
+  currency              String   @default("BYN")
+  shippingRate          Float?   @map("shipping_rate")
+  minTransitDays        Int?     @map("min_transit_days")
+  maxTransitDays        Int?     @map("max_transit_days")
+  freeShippingThreshold Float?   @map("free_shipping_threshold")
+  policyUrl             String?  @map("policy_url")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  products              Product[]
+
+  @@index([isActive, isDefault])
+  @@map("shipping_policies")
+}
+
+model ReturnPolicy {
+  id                   String               @id @default(cuid())
+  code                 String               @unique
+  name                 String
+  isDefault            Boolean              @default(false) @map("is_default")
+  isActive             Boolean              @default(true) @map("is_active")
+  returnPolicyCategory ReturnPolicyCategory @default(FINITE_WINDOW) @map("return_policy_category")
+  merchantReturnDays   Int?                 @map("merchant_return_days")
+  returnMethod         ReturnMethod         @default(BY_MAIL) @map("return_method")
+  returnFees           ReturnFees           @default(BUYER_PAYS) @map("return_fees")
+  policyUrl            String?              @map("policy_url")
+  notes                String?
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  products             Product[]
+
+  @@index([isActive, isDefault])
+  @@map("return_policies")
+}
+
+model WarrantyPolicy {
+  id             String         @id @default(cuid())
+  code           String         @unique
+  name           String
+  isDefault      Boolean        @default(false) @map("is_default")
+  isActive       Boolean        @default(true) @map("is_active")
+  durationMonths Int?           @map("duration_months")
+  warrantyScope  WarrantyScope  @default(LIMITED) @map("warranty_scope")
+  policyUrl      String?        @map("policy_url")
+  notes          String?
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  products       Product[]
+
+  @@index([isActive, isDefault])
+  @@map("warranty_policies")
 }
 
 model CompareItem {

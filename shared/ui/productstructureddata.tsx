@@ -1,3 +1,5 @@
+import { buildProductSchema } from '@/lib/seo/schema/builders/product'
+
 interface ProductStructuredDataProps {
 	name: string
 	description?: string | null
@@ -5,10 +7,28 @@ interface ProductStructuredDataProps {
 	images: string[]
 	sku?: string | null
 	brand?: string | null
+	condition?: 'NEW' | 'USED' | 'REFURBISHED' | null
 	inStock: boolean
 	rating?: number | null
 	reviewsCount?: number
 	url: string
+	shippingPolicy?: {
+		countryCode: string
+		currency: string
+		shippingRate: number | null
+		minTransitDays: number | null
+		maxTransitDays: number | null
+	} | null
+	returnPolicy?: {
+		returnPolicyCategory: 'FINITE_WINDOW' | 'NOT_PERMITTED'
+		merchantReturnDays: number | null
+		returnMethod: 'BY_MAIL' | 'IN_STORE' | 'PICKUP'
+		returnFees: 'FREE' | 'BUYER_PAYS' | 'RESTOCKING_FEE'
+	} | null
+	warrantyPolicy?: {
+		durationMonths: number | null
+		warrantyScope: 'LIMITED' | 'FULL' | 'MANUFACTURER'
+	} | null
 }
 
 export default function ProductStructuredData({
@@ -18,41 +38,31 @@ export default function ProductStructuredData({
 	images,
 	sku,
 	brand,
+	condition,
 	inStock,
 	rating,
 	reviewsCount,
 	url,
+	shippingPolicy,
+	returnPolicy,
+	warrantyPolicy,
 }: ProductStructuredDataProps) {
-	const jsonLd = {
-		'@context': 'https://schema.org',
-		'@type': 'Product',
+	const jsonLd = buildProductSchema({
 		name,
-		description: description ?? undefined,
-		image: images.length > 0 ? images : undefined,
-		sku: sku ?? undefined,
-		brand: brand ? { '@type': 'Brand', name: brand } : undefined,
-		offers: price
-			? {
-					'@type': 'Offer',
-					price: price.toFixed(2),
-					priceCurrency: 'BYN',
-					availability: inStock
-						? 'https://schema.org/InStock'
-						: 'https://schema.org/OutOfStock',
-					itemCondition: 'https://schema.org/NewCondition',
-					seller: { '@type': 'Organization', name: 'Аура Света' },
-					url,
-				}
-			: undefined,
-		aggregateRating:
-			rating && reviewsCount && reviewsCount > 0
-				? {
-						'@type': 'AggregateRating',
-						ratingValue: rating,
-						reviewCount: reviewsCount,
-					}
-				: undefined,
-	}
+		description,
+		price,
+		images,
+		sku,
+		brand,
+		condition,
+		inStock,
+		rating,
+		reviewsCount,
+		url,
+		shippingPolicy,
+		returnPolicy,
+		warrantyPolicy,
+	})
 
 	return (
 		<script

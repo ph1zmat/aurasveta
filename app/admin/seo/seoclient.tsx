@@ -355,7 +355,11 @@ export default function SeoClient() {
 
 			finishBulkApply()
 			const message = `Обработано всё: ${applied} изменений за ${batches} батчей. Пропущено: ${skipped}. Ошибок: ${errors}.`
-			errors > 0 ? toast.error(message) : toast.success(message)
+			if (errors > 0) {
+				toast.error(message)
+			} else {
+				toast.success(message)
+			}
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Не удалось обработать весь список')
 		} finally {
