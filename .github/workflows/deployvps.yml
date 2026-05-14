@@ -39,8 +39,11 @@ jobs:
             # Серверный lock на весь деплой: защищает от наложения двух SSH-deploy,
             # даже если GitHub run был отменён/перезапущен, а remote-скрипт ещё жив.
             DEPLOY_LOCK_FILE="/tmp/aurasveta-deploy.lock"
+            # Учитываем, что один полный deploy может идти 30+ минут.
+            # Ждём дольше, чтобы следующий run не падал ложноположительно на lock timeout.
+            DEPLOY_LOCK_WAIT_SECONDS=7200
             exec 9>"$DEPLOY_LOCK_FILE"
-            if ! flock -w 1800 9; then
+            if ! flock -w "$DEPLOY_LOCK_WAIT_SECONDS" 9; then
               echo "ERROR: timed out waiting for deploy lock: ${DEPLOY_LOCK_FILE}"
               exit 1
             fi
@@ -188,5 +191,22 @@ jobs:
                 exit 1
               fi
             done
+
+            # Контракт 404: несуществующая страница обязана отдавать 404, не 200.
+            echo "=== Phase: 404 contract check ($(date -Is)) ==="
+            code="000"
+            for attempt in $(seq 1 30); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 8 -H "Host: aurasveta.by" "http://127.0.0.1:3000/__seo-smoke__/non-existent-page" || true)
+              echo "/__seo-smoke__/non-existent-page attempt ${attempt}/30 -> ${code}"
+              if [ "$code" -eq 404 ]; then
+                break
+              fi
+              sleep 2
+            done
+            if [ "$code" -ne 404 ]; then
+              echo "ERROR: 404 contract failed (expected 404, got ${code})"
+              journalctl -u "$SERVICE_NAME" -n 80 --no-pager || true
+              exit 1
+            fi
 
             echo "=== Deploy finished at: $(date -Is) ==="
