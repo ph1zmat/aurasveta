@@ -107,6 +107,10 @@ jobs:
             # Для паттерна без остановки используем npm install с lockfile.
             NODE_OPTIONS=--max-old-space-size=1024 npm install --include=dev --no-audit --no-fund
 
+            # Синхронизация схемы БД перед временными сид-скриптами.
+            echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
+            npx prisma migrate deploy
+
             # TEMP: отдельные seed-блоки для rollout новых SEO/policy изменений.
             # Убрать после стабилизации данных на production.
             echo "=== Phase: temporary grouped seeds ($(date -Is)) ==="
