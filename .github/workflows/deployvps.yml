@@ -1,4 +1,4 @@
-name: Deploy to vps
+name: Deploy to VPS
 
 'on':
   push:
@@ -113,13 +113,6 @@ jobs:
             # Синхронизация схемы БД перед временными сид-скриптами.
             echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
             npx prisma migrate deploy
-
-            # TEMP: отдельные seed-блоки для rollout новых SEO/policy изменений.
-            # Убрать после стабилизации данных на production.
-            echo "=== Phase: temporary grouped seeds ($(date -Is)) ==="
-            ALLOW_PRODUCTION_SEED=true npm run seed:policies
-            ALLOW_PRODUCTION_SEED=true npm run seed:content
-            ALLOW_PRODUCTION_SEED=true npm run seed:behavioral
 
             # Анти-OOM: доводим суммарный swap минимум до 4 GiB.
             echo "=== Phase: ensure swap ($(date -Is)) ==="
