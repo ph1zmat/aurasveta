@@ -4,6 +4,7 @@ import CategoryNav from '@/widgets/navigation/ui/categorynav'
 import Footer from '@/widgets/footer/ui/footer'
 import CategoryContent from './categorycontent'
 import { Suspense } from 'react'
+import type { ReactElement } from 'react'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
 import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getmetadata'
@@ -123,41 +124,23 @@ export async function generateMetadata({
 		metadata.alternates?.canonical ?? `https://aurasveta.by/catalog/${slug}`
 
 	const hasQueryParams = hasActiveQueryParams(sp)
-	const page = Number(sp.page ?? '1')
-
-	// Пагинация: next/prev
-	const alternates: Metadata['alternates'] = {
-		...(metadata.alternates ?? {}),
-		canonical,
-	}
-
-	if (!hasQueryParams) {
-		const productsResult = await trpc.products.getMany({
-			categorySlug: slug,
-			includeChildren: true,
-			limit: 1,
-			page: 1,
-		})
-		const totalPages = productsResult.totalPages || 1
-
-		if (page > 1) {
-			alternates.prev = `${BASE_URL}/catalog/${slug}${page > 2 ? `?page=${page - 1}` : ''}`
-		}
-		if (page < totalPages) {
-			alternates.next = `${BASE_URL}/catalog/${slug}?page=${page + 1}`
-		}
-	}
 
 	if (!hasQueryParams) {
 		return {
 			...metadata,
-			alternates,
+			alternates: {
+				...(metadata.alternates ?? {}),
+				canonical,
+			},
 		}
 	}
 
 	return {
 		...metadata,
-		alternates,
+		alternates: {
+			...(metadata.alternates ?? {}),
+			canonical,
+		},
 		robots: {
 			index: false,
 			follow: true,
@@ -233,6 +216,36 @@ export default async function CategoryPage({
 				})
 			: null
 
+	// Данные для пагинации next/prev
+	let paginationLinks: ReactElement[] = []
+	if (!hasQueryParams) {
+		const productsResult = await trpc.products.getMany({
+			categorySlug: slug,
+			includeChildren: true,
+			limit: 1,
+			page: 1,
+		})
+		const totalPages = productsResult.totalPages || 1
+		if (page > 1) {
+			paginationLinks.push(
+				<link
+					key='prev'
+					rel='prev'
+					href={`${BASE_URL}/catalog/${slug}${page > 2 ? `?page=${page - 1}` : ''}`}
+				/>,
+			)
+		}
+		if (page < totalPages) {
+			paginationLinks.push(
+				<link
+					key='next'
+					rel='next'
+					href={`${BASE_URL}/catalog/${slug}?page=${page + 1}`}
+				/>,
+			)
+		}
+	}
+
 	// Prefetch category, tree, filters, and products with actual URL params
 	void trpc.categories.getBySlug.prefetch(slug)
 	void trpc.categories.getTree.prefetch()
@@ -257,6 +270,7 @@ export default async function CategoryPage({
 
 	return (
 		<HydrateClient>
+			{paginationLinks}
 			{schemaBreadcrumbItems && (
 				<BreadcrumbStructuredData
 					items={schemaBreadcrumbItems}

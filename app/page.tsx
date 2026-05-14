@@ -12,7 +12,6 @@ import { getUnifiedHomePageRenderData } from '@/lib/sections/publicpagedata'
 import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 import { prisma } from '@/lib/prisma'
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
-import { getProductImageUrl } from '@/shared/lib/productutils'
 
 export const metadata: Metadata = {
 	title: 'Аура Света — магазин люстр и светильников в Мозыре',
@@ -65,22 +64,22 @@ export default async function Home() {
 		id: string
 		name: string
 		slug: string
-		imageUrl: string | null
+		imagePath: string | null
+		image: string | null
 	}> = []
 	let featuredProducts: Array<{
 		id: string
 		name: string
 		slug: string
-		price: number
-		imageUrl: string | null
+		price: number | null
+		images: Array<{ url: string }>
 	}> = []
 
 	try {
 		popularCategories = await prisma.category.findMany({
-			where: { isActive: true, parentId: null },
+			where: { parentId: null },
 			take: 8,
-			orderBy: { order: 'asc' },
-			select: { id: true, name: true, slug: true, imageUrl: true },
+			select: { id: true, name: true, slug: true, imagePath: true, image: true },
 		})
 	} catch {
 		/* игнорируем — это дополнительный SEO-блок */
@@ -96,7 +95,6 @@ export default async function Home() {
 				name: true,
 				slug: true,
 				price: true,
-				imageUrl: true,
 				images: { select: { url: true }, take: 1 },
 			},
 		})
@@ -132,30 +130,29 @@ export default async function Home() {
 							Популярные категории
 						</h2>
 						<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4'>
-							{popularCategories.map(cat => (
-								<Link
-									key={cat.id}
-									href={`/catalog/${cat.slug}`}
-									className='group flex flex-col items-center rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40'
-								>
-									{cat.imageUrl ? (
+							{popularCategories.map(cat => {
+								const imageSrc =
+									resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
+									'/bulb.svg'
+								return (
+									<Link
+										key={cat.id}
+										href={`/catalog/${cat.slug}`}
+										className='group flex flex-col items-center rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40'
+									>
 										<Image
-											src={resolveStorageFileUrl(cat.imageUrl) ?? '/bulb.svg'}
+											src={imageSrc}
 											alt={cat.name}
 											width={120}
 											height={120}
 											className='mb-3 h-24 w-24 rounded-lg object-cover'
 										/>
-									) : (
-										<div className='mb-3 flex h-24 w-24 items-center justify-center rounded-lg bg-muted'>
-											<span className='text-2xl'>💡</span>
-										</div>
-									)}
-									<span className='text-center text-sm font-medium text-foreground group-hover:text-accent'>
-										{cat.name}
-									</span>
-								</Link>
-							))}
+										<span className='text-center text-sm font-medium text-foreground group-hover:text-accent'>
+											{cat.name}
+										</span>
+									</Link>
+								)
+								})}
 						</div>
 					</section>
 				)}
@@ -168,9 +165,8 @@ export default async function Home() {
 						</h2>
 						<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6'>
 							{featuredProducts.map(product => {
-								const image =
-									getProductImageUrl(product as unknown as { images: Array<{ url?: string | null }>; imageUrl?: string | null }) ??
-									'/bulb.svg'
+								const imageSrc =
+									product.images[0]?.url ?? '/bulb.svg'
 								return (
 									<Link
 										key={product.id}
@@ -178,7 +174,7 @@ export default async function Home() {
 										className='group flex flex-col rounded-xl border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40'
 									>
 										<Image
-											src={image}
+											src={imageSrc}
 											alt={product.name}
 											width={200}
 											height={200}
@@ -188,12 +184,12 @@ export default async function Home() {
 											{product.name}
 										</span>
 										<span className='mt-1 text-xs font-semibold text-primary'>
-											{product.price.toFixed(2)} BYN
+											{product.price != null ? `${product.price.toFixed(2)} BYN` : 'Цена по запросу'}
 										</span>
 									</Link>
 								)
 								})}
-							</div>
+						</div>
 					</section>
 				)}
 			</main>

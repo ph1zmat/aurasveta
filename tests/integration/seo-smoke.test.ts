@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { proxy } from '@/proxy'
+import { proxy } from '@/lib/middleware/proxy'
 import { seoToMetadata } from '@/lib/seo/getmetadata'
 import nextConfig from '@/next.config'
 
