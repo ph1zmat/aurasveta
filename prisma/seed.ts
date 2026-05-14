@@ -1,6 +1,7 @@
 ﻿import { PrismaPg } from '@prisma/adapter-pg'
 import { Prisma, PrismaClient } from '@prisma/client'
 import { hashPassword } from 'better-auth/crypto'
+import { randomUUID } from 'node:crypto'
 import {
 	CATEGORY_DEFINITIONS,
 	CONTENT_PAGES,
@@ -195,80 +196,131 @@ async function seedCredentialAccount(params: {
 }
 
 async function seedDefaultMerchantPolicies() {
-	await prisma.shippingPolicy.upsert({
-		where: { code: 'default-by' },
-		update: {
-			name: 'Стандартная доставка по Беларуси',
-			isDefault: true,
-			isActive: true,
-			countryCode: 'BY',
-			currency: 'BYN',
-			shippingRate: 10,
-			minTransitDays: 2,
-			maxTransitDays: 5,
-			freeShippingThreshold: 100,
-			notes: 'Базовая политика доставки для каталога.',
-		},
-		create: {
-			code: 'default-by',
-			name: 'Стандартная доставка по Беларуси',
-			isDefault: true,
-			isActive: true,
-			countryCode: 'BY',
-			currency: 'BYN',
-			shippingRate: 10,
-			minTransitDays: 2,
-			maxTransitDays: 5,
-			freeShippingThreshold: 100,
-			notes: 'Базовая политика доставки для каталога.',
-		},
-	})
+	await prisma.$executeRaw`
+		INSERT INTO "shipping_policies" (
+			"id",
+			"code",
+			"name",
+			"is_default",
+			"is_active",
+			"country_code",
+			"currency",
+			"shipping_rate",
+			"min_transit_days",
+			"max_transit_days",
+			"free_shipping_threshold",
+			"notes",
+			"created_at",
+			"updated_at"
+		)
+		VALUES (
+			${randomUUID()},
+			${'default-by'},
+			${'Стандартная доставка по Беларуси'},
+			${true},
+			${true},
+			${'BY'},
+			${'BYN'},
+			${10},
+			${2},
+			${5},
+			${100},
+			${'Базовая политика доставки для каталога.'},
+			NOW(),
+			NOW()
+		)
+		ON CONFLICT ("code") DO UPDATE
+		SET
+			"name" = EXCLUDED."name",
+			"is_default" = EXCLUDED."is_default",
+			"is_active" = EXCLUDED."is_active",
+			"country_code" = EXCLUDED."country_code",
+			"currency" = EXCLUDED."currency",
+			"shipping_rate" = EXCLUDED."shipping_rate",
+			"min_transit_days" = EXCLUDED."min_transit_days",
+			"max_transit_days" = EXCLUDED."max_transit_days",
+			"free_shipping_threshold" = EXCLUDED."free_shipping_threshold",
+			"notes" = EXCLUDED."notes",
+			"updated_at" = NOW()
+	`
 
-	await prisma.returnPolicy.upsert({
-		where: { code: 'default-by' },
-		update: {
-			name: 'Стандартный возврат 14 дней',
-			isDefault: true,
-			isActive: true,
-			returnPolicyCategory: 'FINITE_WINDOW',
-			merchantReturnDays: 14,
-			returnMethod: 'BY_MAIL',
-			returnFees: 'BUYER_PAYS',
-			notes: 'Возврат в течение 14 дней при сохранении товарного вида.',
-		},
-		create: {
-			code: 'default-by',
-			name: 'Стандартный возврат 14 дней',
-			isDefault: true,
-			isActive: true,
-			returnPolicyCategory: 'FINITE_WINDOW',
-			merchantReturnDays: 14,
-			returnMethod: 'BY_MAIL',
-			returnFees: 'BUYER_PAYS',
-			notes: 'Возврат в течение 14 дней при сохранении товарного вида.',
-		},
-	})
+	await prisma.$executeRaw`
+		INSERT INTO "return_policies" (
+			"id",
+			"code",
+			"name",
+			"is_default",
+			"is_active",
+			"return_policy_category",
+			"merchant_return_days",
+			"return_method",
+			"return_fees",
+			"notes",
+			"created_at",
+			"updated_at"
+		)
+		VALUES (
+			${randomUUID()},
+			${'default-by'},
+			${'Стандартный возврат 14 дней'},
+			${true},
+			${true},
+			${'FINITE_WINDOW'}::"ReturnPolicyCategory",
+			${14},
+			${'BY_MAIL'}::"ReturnMethod",
+			${'BUYER_PAYS'}::"ReturnFees",
+			${'Возврат в течение 14 дней при сохранении товарного вида.'},
+			NOW(),
+			NOW()
+		)
+		ON CONFLICT ("code") DO UPDATE
+		SET
+			"name" = EXCLUDED."name",
+			"is_default" = EXCLUDED."is_default",
+			"is_active" = EXCLUDED."is_active",
+			"return_policy_category" = EXCLUDED."return_policy_category",
+			"merchant_return_days" = EXCLUDED."merchant_return_days",
+			"return_method" = EXCLUDED."return_method",
+			"return_fees" = EXCLUDED."return_fees",
+			"notes" = EXCLUDED."notes",
+			"updated_at" = NOW()
+	`
 
-	await prisma.warrantyPolicy.upsert({
-		where: { code: 'default-by' },
-		update: {
-			name: 'Гарантия производителя 12 месяцев',
-			isDefault: true,
-			isActive: true,
-			durationMonths: 12,
-			warrantyScope: 'MANUFACTURER',
-			notes: 'Базовая гарантия на продукцию каталога.',
-		},
-		create: {
-			code: 'default-by',
-			name: 'Гарантия производителя 12 месяцев',
-			isDefault: true,
-			isActive: true,
-			durationMonths: 12,
-			warrantyScope: 'MANUFACTURER',
-			notes: 'Базовая гарантия на продукцию каталога.',
-		},
-	})
+	await prisma.$executeRaw`
+		INSERT INTO "warranty_policies" (
+			"id",
+			"code",
+			"name",
+			"is_default",
+			"is_active",
+			"duration_months",
+			"warranty_scope",
+			"notes",
+			"created_at",
+			"updated_at"
+		)
+		VALUES (
+			${randomUUID()},
+			${'default-by'},
+			${'Гарантия производителя 12 месяцев'},
+			${true},
+			${true},
+			${12},
+			${'MANUFACTURER'}::"WarrantyScope",
+			${'Базовая гарантия на продукцию каталога.'},
+			NOW(),
+			NOW()
+		)
+		ON CONFLICT ("code") DO UPDATE
+		SET
+			"name" = EXCLUDED."name",
+			"is_default" = EXCLUDED."is_default",
+			"is_active" = EXCLUDED."is_active",
+			"duration_months" = EXCLUDED."duration_months",
+			"warranty_scope" = EXCLUDED."warranty_scope",
+			"notes" = EXCLUDED."notes",
+			"updated_at" = NOW()
+	`
 }
 
 async function clearCatalogData(existingTables: Set<string>) {
