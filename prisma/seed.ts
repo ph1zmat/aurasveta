@@ -701,6 +701,7 @@ async function seedBehavioralData(params: {
 	if (hasProductViews) {
 		await prisma.productView.createMany({
 			data: productViews,
+			skipDuplicates: true,
 		})
 	} else {
 		console.warn('⚠️ Skipping product view seed: table "product_views" is missing.')
