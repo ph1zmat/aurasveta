@@ -24,17 +24,27 @@ if (!databaseUrl) {
 const adapter = new PrismaPg(databaseUrl)
 const prisma = new PrismaClient({ adapter })
 
-const REQUIRED_TABLES = [
-	'users',
-	'accounts',
-	'categories',
-	'properties',
-	'product_property_values',
-	'products',
-	'pages',
-	'page_versions',
-	'webhooks',
+const SEED_GROUPS = [
+	'auth',
+	'policies',
+	'catalog',
+	'content',
+	'integrations',
+	'behavioral',
 ] as const
+
+type SeedGroup = (typeof SEED_GROUPS)[number]
+
+const REQUIRED_TABLES_BY_GROUP: Record<SeedGroup, readonly string[]> = {
+	auth: ['users', 'accounts'],
+	policies: ['shipping_policies', 'return_policies', 'warranty_policies'],
+	catalog: ['categories', 'properties', 'product_property_values', 'products'],
+	content: ['pages', 'page_versions'],
+	integrations: ['webhooks'],
+	behavioral: [],
+}
+
+const USER_DEPENDENT_GROUPS: readonly SeedGroup[] = ['auth', 'catalog', 'content', 'behavioral']
 
 type ExistingTableRow = {
 	table_name: string
@@ -50,8 +60,51 @@ async function getExistingPublicTables(): Promise<Set<string>> {
 	return new Set(rows.map(row => row.table_name))
 }
 
-function assertRequiredTables(existingTables: Set<string>) {
-	const missingTables = REQUIRED_TABLES.filter(tableName => !existingTables.has(tableName))
+function parseSelectedGroups(args: string[]): Set<SeedGroup> {
+	const groupArg = args.find(arg => arg.startsWith('--group=') || arg.startsWith('--groups='))
+
+	if (!groupArg) {
+		return new Set(SEED_GROUPS)
+	}
+
+	const rawValue = groupArg.slice(groupArg.indexOf('=') + 1).trim()
+	if (!rawValue || rawValue === 'all') {
+		return new Set(SEED_GROUPS)
+	}
+
+	const requested = rawValue
+		.split(',')
+		.map(value => value.trim())
+		.filter(Boolean)
+
+	if (requested.length === 0) {
+		throw new Error('Параметр --group пуст. Используйте, например: --group=auth или --group=catalog,content')
+	}
+
+	const invalid = requested.filter(value => !SEED_GROUPS.includes(value as SeedGroup))
+	if (invalid.length > 0) {
+		throw new Error(
+			`Неизвестные seed-группы: ${invalid.join(', ')}. Доступны: ${SEED_GROUPS.join(', ')}, all.`,
+		)
+	}
+
+	return new Set(requested as SeedGroup[])
+}
+
+function formatSelectedGroups(selectedGroups: Set<SeedGroup>): string {
+	return SEED_GROUPS.filter(group => selectedGroups.has(group)).join(', ')
+}
+
+function assertRequiredTables(existingTables: Set<string>, selectedGroups: Set<SeedGroup>) {
+	const requiredTables = new Set<string>()
+
+	for (const group of selectedGroups) {
+		for (const tableName of REQUIRED_TABLES_BY_GROUP[group]) {
+			requiredTables.add(tableName)
+		}
+	}
+
+	const missingTables = Array.from(requiredTables).filter(tableName => !existingTables.has(tableName))
 
 	if (missingTables.length > 0) {
 		throw new Error(
@@ -59,6 +112,14 @@ function assertRequiredTables(existingTables: Set<string>) {
 				'Apply the Prisma migrations before running the seed.',
 		)
 	}
+}
+
+function shouldRunGroup(selectedGroups: Set<SeedGroup>, group: SeedGroup) {
+	return selectedGroups.has(group)
+}
+
+function requiresUsers(selectedGroups: Set<SeedGroup>) {
+	return USER_DEPENDENT_GROUPS.some(group => selectedGroups.has(group))
 }
 
 async function runIfTableExists(params: {
@@ -126,6 +187,83 @@ async function seedCredentialAccount(params: {
 			providerId: 'credential',
 			providerAccountId: params.userId,
 			password: passwordHash,
+		},
+	})
+}
+
+async function seedDefaultMerchantPolicies() {
+	await prisma.shippingPolicy.upsert({
+		where: { code: 'default-by' },
+		update: {
+			name: 'Стандартная доставка по Беларуси',
+			isDefault: true,
+			isActive: true,
+			countryCode: 'BY',
+			currency: 'BYN',
+			shippingRate: 10,
+			minTransitDays: 2,
+			maxTransitDays: 5,
+			freeShippingThreshold: 100,
+			notes: 'Базовая политика доставки для каталога.',
+		},
+		create: {
+			code: 'default-by',
+			name: 'Стандартная доставка по Беларуси',
+			isDefault: true,
+			isActive: true,
+			countryCode: 'BY',
+			currency: 'BYN',
+			shippingRate: 10,
+			minTransitDays: 2,
+			maxTransitDays: 5,
+			freeShippingThreshold: 100,
+			notes: 'Базовая политика доставки для каталога.',
+		},
+	})
+
+	await prisma.returnPolicy.upsert({
+		where: { code: 'default-by' },
+		update: {
+			name: 'Стандартный возврат 14 дней',
+			isDefault: true,
+			isActive: true,
+			returnPolicyCategory: 'FINITE_WINDOW',
+			merchantReturnDays: 14,
+			returnMethod: 'BY_MAIL',
+			returnFees: 'BUYER_PAYS',
+			notes: 'Возврат в течение 14 дней при сохранении товарного вида.',
+		},
+		create: {
+			code: 'default-by',
+			name: 'Стандартный возврат 14 дней',
+			isDefault: true,
+			isActive: true,
+			returnPolicyCategory: 'FINITE_WINDOW',
+			merchantReturnDays: 14,
+			returnMethod: 'BY_MAIL',
+			returnFees: 'BUYER_PAYS',
+			notes: 'Возврат в течение 14 дней при сохранении товарного вида.',
+		},
+	})
+
+	await prisma.warrantyPolicy.upsert({
+		where: { code: 'default-by' },
+		update: {
+			name: 'Гарантия производителя 12 месяцев',
+			isDefault: true,
+			isActive: true,
+			durationMonths: 12,
+			warrantyScope: 'MANUFACTURER',
+			notes: 'Базовая гарантия на продукцию каталога.',
+		},
+		create: {
+			code: 'default-by',
+			name: 'Гарантия производителя 12 месяцев',
+			isDefault: true,
+			isActive: true,
+			durationMonths: 12,
+			warrantyScope: 'MANUFACTURER',
+			notes: 'Базовая гарантия на продукцию каталога.',
 		},
 	})
 }
@@ -459,6 +597,12 @@ async function seedPages(adminId: string) {
 }
 
 async function seedWebhook() {
+	await prisma.webhook.deleteMany({
+		where: {
+			url: 'https://webhook.site/test',
+		},
+	})
+
 	await prisma.webhook.create({
 		data: {
 			url: 'https://webhook.site/test',
@@ -810,9 +954,7 @@ async function seedWelcomePage(adminId: string) {
 	})
 }
 
-async function main() {
-	console.log('🌱 Seeding database...')
-
+async function seedUsersAndAccounts() {
 	const admin = await prisma.user.upsert({
 		where: { email: 'admin@example.com' },
 		update: {
@@ -855,67 +997,120 @@ async function main() {
 		password: 'user123',
 	})
 
-	console.log('✅ Users prepared')
+	return { admin, user }
+}
+
+async function main() {
+	console.log('🌱 Seeding database...')
+	const selectedGroups = parseSelectedGroups(process.argv.slice(2))
+	console.log(`🎯 Selected seed groups: ${formatSelectedGroups(selectedGroups)}`)
 
 	const existingTables = await getExistingPublicTables()
-	assertRequiredTables(existingTables)
+	assertRequiredTables(existingTables, selectedGroups)
 
-	await clearCatalogData(existingTables)
-	console.log('✅ Old catalog data removed')
+	let admin: { id: string } | null = null
+	let user: { id: string } | null = null
 
-	const categoryIds = await seedCategories()
-	console.log(`✅ Categories created: ${categoryIds.size}`)
+	if (requiresUsers(selectedGroups)) {
+		const users = await seedUsersAndAccounts()
+		admin = users.admin
+		user = users.user
+		console.log('✅ Users and credential accounts prepared')
+	}
 
-	const propertyData = await seedProperties()
-	console.log(`✅ Properties created: ${propertyData.size}`)
+	if (shouldRunGroup(selectedGroups, 'policies')) {
+		await seedDefaultMerchantPolicies()
+		console.log('✅ Default merchant policies upserted')
+	}
 
-	const parentMap = buildCategoryParentMap(categoryIds)
-	const products = await seedProducts({
-		adminId: admin.id,
-		categoryIds,
-		parentMap,
-		propertyData,
-	})
-	console.log(`✅ Products created: ${products.length}`)
+	let products: Array<{ id: string; slug: string }> = []
 
-	await seedPages(admin.id)
-	console.log(`✅ Content pages created: ${CONTENT_PAGES.length}`)
+	if (shouldRunGroup(selectedGroups, 'catalog')) {
+		if (!admin) {
+			throw new Error('Catalog seed requires prepared admin user')
+		}
 
-	await seedWebhook()
-	console.log('✅ Webhook created')
+		await clearCatalogData(existingTables)
+		console.log('✅ Old catalog data removed')
 
-	await seedBehavioralData({
-		userId: user.id,
-		products,
-		existingTables,
-	})
-	console.log('✅ Product views and search queries created')
+		const categoryIds = await seedCategories()
+		console.log(`✅ Categories created: ${categoryIds.size}`)
 
-	await runIfTableExists({
-		existingTables,
-		tableName: 'section_types',
-		label: 'section types',
-		action: async () => {
-			const typeIds = await seedSectionTypes()
-			console.log(`✅ SectionTypes upserted: ${typeIds.size}; HomeSections seeded`)
-		},
-	})
+		const propertyData = await seedProperties()
+		console.log(`✅ Properties created: ${propertyData.size}`)
 
-	await runIfTableExists({
-		existingTables,
-		tableName: 'settings',
-		label: 'cms settings',
-		action: async () => {
-			await seedCmsSettings()
-			console.log('✅ CMS settings upserted')
-		},
-	})
+		const parentMap = buildCategoryParentMap(categoryIds)
+		products = await seedProducts({
+			adminId: admin.id,
+			categoryIds,
+			parentMap,
+			propertyData,
+		})
+		console.log(`✅ Products created: ${products.length}`)
+	}
 
-	await seedCmsProperties()
-	console.log('✅ CMS properties upserted')
+	if (shouldRunGroup(selectedGroups, 'content')) {
+		if (!admin) {
+			throw new Error('Content seed requires prepared admin user')
+		}
 
-	await seedWelcomePage(admin.id)
-	console.log('✅ Welcome page upserted')
+		await seedPages(admin.id)
+		console.log(`✅ Content pages created: ${CONTENT_PAGES.length}`)
+
+		await runIfTableExists({
+			existingTables,
+			tableName: 'section_types',
+			label: 'section types',
+			action: async () => {
+				const typeIds = await seedSectionTypes()
+				console.log(`✅ SectionTypes upserted: ${typeIds.size}; HomeSections seeded`)
+			},
+		})
+
+		await runIfTableExists({
+			existingTables,
+			tableName: 'settings',
+			label: 'cms settings',
+			action: async () => {
+				await seedCmsSettings()
+				console.log('✅ CMS settings upserted')
+			},
+		})
+
+		await seedCmsProperties()
+		console.log('✅ CMS properties upserted')
+
+		await seedWelcomePage(admin.id)
+		console.log('✅ Welcome page upserted')
+	}
+
+	if (shouldRunGroup(selectedGroups, 'integrations')) {
+		await seedWebhook()
+		console.log('✅ Webhook created')
+	}
+
+	if (shouldRunGroup(selectedGroups, 'behavioral')) {
+		if (!user) {
+			throw new Error('Behavioral seed requires prepared user')
+		}
+
+		if (products.length === 0) {
+			products = await prisma.product.findMany({
+				select: { id: true, slug: true },
+			})
+		}
+
+		if (products.length === 0) {
+			console.warn('⚠️ Skipping behavioral seed: products table is empty.')
+		} else {
+			await seedBehavioralData({
+				userId: user.id,
+				products,
+				existingTables,
+			})
+			console.log('✅ Product views and search queries created')
+		}
+	}
 
 	console.log('🎉 Seeding complete!')
 }

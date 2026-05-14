@@ -8,6 +8,14 @@
 		"start": "next start",
 		"lint": "eslint",
 		"prisma:generate": "prisma generate",
+		"seed": "tsx --require dotenv/config prisma/seed.ts",
+		"seed:auth": "tsx --require dotenv/config prisma/seed.ts --group=auth",
+		"seed:policies": "tsx --require dotenv/config prisma/seed.ts --group=policies",
+		"seed:catalog": "tsx --require dotenv/config prisma/seed.ts --group=catalog",
+		"seed:content": "tsx --require dotenv/config prisma/seed.ts --group=content",
+		"seed:integrations": "tsx --require dotenv/config prisma/seed.ts --group=integrations",
+		"seed:behavioral": "tsx --require dotenv/config prisma/seed.ts --group=behavioral",
+		"seed:core": "tsx --require dotenv/config prisma/seed.ts --group=auth,policies,catalog,content,integrations",
 		"postinstall": "prisma generate",
 		"convert:svg-to-webp": "tsx scripts/convertsvgtowebp.ts",
 		"test": "vitest run",
@@ -17,6 +25,7 @@
 		"site-nav:migrate:apply": "tsx scripts/migratesitenavitems.ts --apply",
 		"seo:roadmap:backfill": "tsx scripts/seo-roadmap-backfill.ts",
 		"seo:roadmap:backfill:apply": "tsx scripts/seo-roadmap-backfill.ts --apply",
+		"seo:smoke": "node scripts/seo-post-deploy-smoke.mjs",
 		"seo:backfill-metadata": "tsx scripts/seo-roadmap-backfill.ts --apply",
 		"check:web": "npm run guardrails:web && npm run prisma:generate && npm run lint && npm run test && npm run build"
 	},
@@ -75,6 +84,7 @@
 		"seed": "npx tsx prisma/seed.ts"
 	},
 	"devDependencies": {
+		"@aurasveta/db-cli": "file:tools/db-cli",
 		"@tailwindcss/postcss": "^4",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
