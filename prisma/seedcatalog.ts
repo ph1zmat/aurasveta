@@ -1119,7 +1119,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'LUS',
 		topCategoryName: 'Люстры',
 		productTypeValue: 'Люстра',
-		count: 90,
+		count: 50,
 		brands: ['Citilux', 'Maytoni', 'Eglo', 'Lightstar', 'Arte Lamp', 'Odeon Light', 'ST Luce', 'Eurosvet', 'Freya', 'Crystal Lux', 'Loft IT', 'Escada', 'Favourite', 'Ambrella Light', 'Omnilux'],
 		subcategories: [
 			{ name: 'Потолочные люстры', slug: 'potolochnye-lyustry', productLabel: 'Потолочная люстра', placement: 'Потолок', purpose: 'Гостиная', mountingType: 'Накладной' },
@@ -1142,7 +1142,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'SVT',
 		topCategoryName: 'Светильники',
 		productTypeValue: 'Светильник',
-		count: 100,
+		count: 50,
 		brands: ['Lightstar', 'Maytoni', 'Novotech', 'Denkirs', 'Citilux', 'Loft IT', 'Odeon Light', 'Arte Lamp', 'Freya', 'Eurosvet', 'Elektrostandard', 'Velante', 'Uniel'],
 		subcategories: [
 			{ name: 'Потолочные светильники', slug: 'potolochnye-svetilniki', productLabel: 'Потолочный светильник', placement: 'Потолок', purpose: 'Гостиная', mountingType: 'Накладной' },
@@ -1165,7 +1165,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'TRK',
 		topCategoryName: 'Трековые системы',
 		productTypeValue: 'Трековая система',
-		count: 80,
+		count: 50,
 		brands: ['ST Luce', 'Novotech', 'Maytoni', 'Denkirs', 'Citilux', 'Arte Lamp', 'Lightstar', 'Eglo', 'Elektrostandard'],
 		subcategories: [
 			{ name: 'Трековые светильники', slug: 'trekovye-svetilniki', productLabel: 'Трековый светильник', placement: 'Трек', purpose: 'Офис', mountingType: 'На штанге' },
@@ -1186,7 +1186,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'BRA',
 		topCategoryName: 'Бра',
 		productTypeValue: 'Бра',
-		count: 85,
+		count: 50,
 		brands: ['Odeon Light', 'Maytoni', 'Citilux', 'Eurosvet', 'Crystal Lux', 'Eglo', 'Lightstar', 'Freya', 'Arte Lamp', 'Favourite', 'Loft IT', 'Kink Light'],
 		subcategories: [
 			{ name: 'Бра с 1 плафоном', slug: 'bra-s-1-plafonom', productLabel: 'Бра', placement: 'Стена', purpose: 'Спальня', mountingType: 'Накладной' },
@@ -1208,7 +1208,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'SPT',
 		topCategoryName: 'Споты',
 		productTypeValue: 'Спот',
-		count: 75,
+		count: 50,
 		brands: ['Elektrostandard', 'Arte Lamp', 'Reluce', 'Citilux', 'Maytoni', 'Novotech', 'Lightstar', 'Odeon Light', 'Favourite', 'Kink Light', 'Ambrella Light', 'Denkirs'],
 		subcategories: [
 			{ name: 'Потолочные споты', slug: 'potolochnye-spoty', productLabel: 'Спот', placement: 'Потолок', purpose: 'Кухня', mountingType: 'Накладной' },
@@ -1228,7 +1228,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'TBL',
 		topCategoryName: 'Настольные лампы',
 		productTypeValue: 'Настольная лампа',
-		count: 70,
+		count: 50,
 		brands: ['Arte Lamp', 'Maytoni', 'Citilux', 'Eurosvet', 'Loft IT', 'Odeon Light', 'Elektrostandard', 'Freya', 'Lumion', 'Reluce', 'Rivoli', 'Velante'],
 		subcategories: [
 			{ name: 'Настольные лампы с абажуром', slug: 'lampy-s-abazhurom', productLabel: 'Настольная лампа', placement: 'Стол', purpose: 'Спальня', mountingType: 'На стол' },
@@ -1249,7 +1249,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'OUT',
 		topCategoryName: 'Уличное освещение',
 		productTypeValue: 'Уличный светильник',
-		count: 85,
+		count: 50,
 		brands: ['Lightstar', 'Maytoni', 'Elektrostandard', 'Loft IT', 'Kink Light', 'Feron', 'Denkirs', 'Arte Lamp', 'Odeon Light', 'Eglo', 'Reluce', 'Favourite'],
 		subcategories: [
 			{ name: 'Уличные настенные светильники', slug: 'ulichnye-nastennye-svetilniki', productLabel: 'Уличный настенный светильник', placement: 'Улица', purpose: 'Фасад', mountingType: 'Накладной' },
@@ -1272,7 +1272,7 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		categoryCode: 'FLR',
 		topCategoryName: 'Торшеры',
 		productTypeValue: 'Торшер',
-		count: 80,
+		count: 50,
 		brands: ['Reluce', 'Citilux', 'Lumion', 'Maytoni', 'Arte Lamp', 'Lightstar', 'Odeon Light', 'Freya', 'Crystal Lux', 'Loft IT', 'Werkel', 'Escada'],
 		subcategories: [
 			{ name: 'Торшеры с 1 плафоном', slug: 'torshery-s-1-plafonom', productLabel: 'Торшер', placement: 'Пол', purpose: 'Гостиная', mountingType: 'Напольный' },
