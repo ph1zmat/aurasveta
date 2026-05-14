@@ -9,7 +9,10 @@ import {
 	SEARCH_QUERIES,
 } from './seedcatalog'
 
-if (process.env.NODE_ENV === 'production') {
+const isProduction = process.env.NODE_ENV === 'production'
+const allowProductionSeed = process.env.ALLOW_PRODUCTION_SEED === 'true'
+
+if (isProduction && !allowProductionSeed) {
 	throw new Error('Seeding is not allowed in production')
 }
 
