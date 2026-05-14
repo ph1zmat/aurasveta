@@ -183,6 +183,11 @@ export async function getMetadataForStaticPage(
 	}
 }
 
+const HREFLANG_LANGUAGES = {
+	'ru-by': 'https://aurasveta.by',
+	'x-default': 'https://aurasveta.by',
+}
+
 export function seoToMetadata(seo: SeoResult): Metadata {
 	const ogTitle = seo.ogTitle ?? seo.title
 	const ogDescription = seo.ogDescription ?? seo.description ?? undefined
@@ -207,7 +212,9 @@ export function seoToMetadata(seo: SeoResult): Metadata {
 			description: ogDescription,
 			images: seo.ogImage ? [seo.ogImage] : undefined,
 		},
-		alternates: seo.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,
+		alternates: seo.canonicalUrl
+			? { canonical: seo.canonicalUrl, languages: HREFLANG_LANGUAGES }
+			: { languages: HREFLANG_LANGUAGES },
 		robots: seo.noIndex ? { index: false, follow: false } : undefined,
 	}
 }

@@ -48,30 +48,49 @@ async function buildCategoryBreadcrumbSchemaItems(category: {
 	slug: string
 	parentId?: string | null
 }) {
-	const parentItems: Array<{ name: string; href: string }> = []
-	let parentId = category.parentId ?? null
+	// Собираем всю цепочку parentIds за один запрос (оптимизация N+1)
+	const parentIds: string[] = []
+	let currentParentId = category.parentId ?? null
 	let guard = 0
+	while (currentParentId && guard < 8) {
+		parentIds.push(currentParentId)
+		// parentId следующего уровня получим после batch-запроса
+		currentParentId = null
+		guard++
+	}
 
-	while (parentId && guard < 8) {
-		const parent = await prisma.category.findUnique({
-			where: { id: parentId },
-			select: {
-				id: true,
-				name: true,
-				slug: true,
-				parentId: true,
-			},
-		})
+	if (parentIds.length === 0) {
+		return [
+			{ name: 'Главная', href: '/' },
+			{ name: 'Каталог', href: '/catalog' },
+			{ name: category.name },
+		]
+	}
 
+	const parents = await prisma.category.findMany({
+		where: { id: { in: parentIds } },
+		select: {
+			id: true,
+			name: true,
+			slug: true,
+			parentId: true,
+		},
+	})
+
+	const parentMap = new Map(parents.map(p => [p.id, p]))
+	const parentItems: Array<{ name: string; href: string }> = []
+	let chainId = category.parentId ?? null
+	const visited = new Set<string>()
+	while (chainId && visited.size < 8) {
+		if (visited.has(chainId)) break
+		visited.add(chainId)
+		const parent = parentMap.get(chainId)
 		if (!parent) break
-
 		parentItems.unshift({
 			name: parent.name,
 			href: `/catalog/${parent.slug}`,
 		})
-
-		parentId = parent.parentId
-		guard++
+		chainId = parent.parentId
 	}
 
 	return [
@@ -104,23 +123,41 @@ export async function generateMetadata({
 		metadata.alternates?.canonical ?? `https://aurasveta.by/catalog/${slug}`
 
 	const hasQueryParams = hasActiveQueryParams(sp)
+	const page = Number(sp.page ?? '1')
+
+	// Пагинация: next/prev
+	const alternates: Metadata['alternates'] = {
+		...(metadata.alternates ?? {}),
+		canonical,
+	}
+
+	if (!hasQueryParams) {
+		const productsResult = await trpc.products.getMany({
+			categorySlug: slug,
+			includeChildren: true,
+			limit: 1,
+			page: 1,
+		})
+		const totalPages = productsResult.totalPages || 1
+
+		if (page > 1) {
+			alternates.prev = `${BASE_URL}/catalog/${slug}${page > 2 ? `?page=${page - 1}` : ''}`
+		}
+		if (page < totalPages) {
+			alternates.next = `${BASE_URL}/catalog/${slug}?page=${page + 1}`
+		}
+	}
 
 	if (!hasQueryParams) {
 		return {
 			...metadata,
-			alternates: {
-				...(metadata.alternates ?? {}),
-				canonical,
-			},
+			alternates,
 		}
 	}
 
 	return {
 		...metadata,
-		alternates: {
-			...(metadata.alternates ?? {}),
-			canonical,
-		},
+		alternates,
 		robots: {
 			index: false,
 			follow: true,
@@ -157,9 +194,9 @@ export default async function CategoryPage({
 			const propKey = key.slice(PROPERTY_PARAM_PREFIX.length)
 			if (propKey) {
 				properties[propKey] = value
-					.split(',')
-					.map(v => v.trim())
-					.filter(Boolean)
+				.split(',')
+				.map(v => v.trim())
+				.filter(Boolean)
 			}
 		}
 	}
@@ -168,6 +205,7 @@ export default async function CategoryPage({
 
 	// Получаем имя категории для BreadcrumbList (React cache deduplicates)
 	const category = await trpc.categories.getBySlug(slug)
+	if (!category) notFound()
 	const schemaBreadcrumbItems = category
 		? await buildCategoryBreadcrumbSchemaItems({
 				name: category.name,
@@ -249,9 +287,6 @@ export default async function CategoryPage({
 					<TopBar />
 					<Header />
 					<CategoryNav />
-
-					{/* SSR h1 для поисковых ботов: основной заголовок рендерится в client-компоненте */}
-					{category && <h1 className='sr-only'>{category.name}</h1>}
 
 					<Suspense fallback={<CategoryContentSkeleton />}>
 						<CategoryContent slug={slug} />

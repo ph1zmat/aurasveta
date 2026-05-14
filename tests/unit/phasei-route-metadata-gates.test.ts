@@ -10,6 +10,7 @@ const {
 	getMetadataForProductMock,
 	seoToProductMetadataMock,
 	getProductImageUrlMock,
+	productsGetManyMock,
 } = vi.hoisted(() => ({
 	categoryGetBySlugMock: vi.fn(),
 	getMetadataForCategoryMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
 	getMetadataForProductMock: vi.fn(),
 	seoToProductMetadataMock: vi.fn(),
 	getProductImageUrlMock: vi.fn(),
+	productsGetManyMock: vi.fn(),
 }))
 
 vi.mock('server-only', () => ({}))
@@ -26,6 +28,9 @@ vi.mock('@/lib/trpc/server', () => ({
 	trpc: {
 		categories: {
 			getBySlug: categoryGetBySlugMock,
+		},
+		products: {
+			getMany: productsGetManyMock,
 		},
 	},
 	HydrateClient: ({ children }: { children: React.ReactNode }) => children,
@@ -57,6 +62,7 @@ beforeEach(() => {
 	getMetadataForProductMock.mockReset()
 	seoToProductMetadataMock.mockReset()
 	getProductImageUrlMock.mockReset()
+	productsGetManyMock.mockReset()
 })
 
 describe('phase I: route metadata release gates', () => {
@@ -111,6 +117,7 @@ describe('phase I: route metadata release gates', () => {
 			title: 'Люстры',
 			alternates: { canonical: 'https://aurasveta.by/catalog/lyustry' },
 		})
+		productsGetManyMock.mockResolvedValue({ items: [], total: 0, totalPages: 1 })
 
 		const catalogPageModule = await import('@/app/catalog/[slug]/page')
 		const metadata = await catalogPageModule.generateMetadata({

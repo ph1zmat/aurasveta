@@ -1,4 +1,4 @@
-﻿import type { NextConfig } from 'next'
+import type { NextConfig } from 'next'
 
 function getStorageLocalPatterns(): NonNullable<
 	NonNullable<NextConfig['images']>['localPatterns']
@@ -68,6 +68,7 @@ function getStorageRemotePatterns(): NonNullable<
 }
 
 const nextConfig: NextConfig = {
+	trailingSlash: false,
 	images: {
 		dangerouslyAllowSVG: true,
 		contentDispositionType: 'inline',
@@ -78,8 +79,74 @@ const nextConfig: NextConfig = {
 	compiler: {
 		removeConsole: { exclude: ['error', 'warn'] },
 	},
+	async redirects() {
+		return [
+			{
+				source: '/:path+/',
+				destination: '/:path+',
+				permanent: true,
+			},
+		]
+	},
 	async headers() {
 		return [
+			// ISR-страницы: кэш на CDN 60 сек, stale-while-revalidate 30 мин
+			{
+				source: '/',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, s-maxage=60, stale-while-revalidate=1800',
+					},
+				],
+			},
+			{
+				source: '/catalog/:slug*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, s-maxage=60, stale-while-revalidate=1800',
+					},
+				],
+			},
+			{
+				source: '/product/:slug*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, s-maxage=60, stale-while-revalidate=1800',
+					},
+				],
+			},
+			{
+				source: '/pages/:slug*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, s-maxage=60, stale-while-revalidate=1800',
+					},
+				],
+			},
+			// Статика Next.js: 1 год
+			{
+				source: '/_next/static/:path*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, max-age=31536000, immutable',
+					},
+				],
+			},
+			// Статика public/
+			{
+				source: '/images/:path*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, max-age=31536000, immutable',
+					},
+				],
+			},
 			{
 				source: '/admin/:path*',
 				headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
@@ -135,4 +202,3 @@ const nextConfig: NextConfig = {
 }
 
 export default nextConfig
-

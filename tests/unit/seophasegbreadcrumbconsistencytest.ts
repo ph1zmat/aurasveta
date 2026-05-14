@@ -23,7 +23,7 @@ describe('phase G: breadcrumb structured-data consistency', () => {
 		const categoryPage = read('app/catalog/[slug]/page.tsx')
 
 		expect(categoryPage).toContain('buildCategoryBreadcrumbSchemaItems')
-		expect(categoryPage).toContain('parentId = parent.parentId')
+		expect(categoryPage).toContain('chainId = parent.parentId')
 		expect(categoryPage).toContain("{ name: 'Каталог', href: '/catalog' }")
 	})
 })

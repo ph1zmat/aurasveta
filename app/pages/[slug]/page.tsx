@@ -116,8 +116,8 @@ export default async function ContentPage({
 
 				{hasUnifiedSections ? (
 					<div className='py-6 md:py-8'>
-						{/* Семантический h1 для поисковиков — секции могут не включать заголовок */}
-						<h1 className='sr-only'>{page.title}</h1>
+						{/* Семантический h1 — видимый заголовок страницы */}
+						<h1 className='mb-6 text-3xl font-bold tracking-tight'>{page.title}</h1>
 						{unifiedSections.map(section => (
 							<PublicSectionRenderer key={section.id} section={section} />
 						))}

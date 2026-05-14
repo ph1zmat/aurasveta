@@ -1,24 +1,9 @@
 import type { MetadataRoute } from 'next'
-import { connection } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 
 const BASE_URL = 'https://aurasveta.by'
-
-type SitemapEntity = {
-	id: string
-	slug: string
-	updatedAt: Date
-}
-
-type SitemapProductEntity = SitemapEntity & {
-	images: Array<{
-		url: string
-		isMain: boolean
-		order: number
-	}>
-}
 
 function toAbsoluteUrl(value: string): string {
 	if (/^https?:\/\//i.test(value)) return value
@@ -26,8 +11,6 @@ function toAbsoluteUrl(value: string): string {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-	await connection()
-
 	try {
 		const [products, categories, pages] = await Promise.all([
 			prisma.product.findMany({
@@ -91,8 +74,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		)
 		const filteredPages = pages.filter(page => !noIndexPages.has(page.id))
 
+		// Защита: Google лимит — 50 000 URL. Оставляем запас до 45 000.
+		const MAX_URLS = 45_000
+		let totalUrls = 2 + filteredProducts.length + filteredCategories.length + filteredPages.length
+		let truncatedProducts = filteredProducts
+		if (totalUrls > MAX_URLS) {
+			const allowedProducts = MAX_URLS - 2 - filteredCategories.length - filteredPages.length
+			truncatedProducts = filteredProducts.slice(0, Math.max(0, allowedProducts))
+			console.warn(
+				`[sitemap] URL limit exceeded: ${totalUrls}. Truncated products to ${truncatedProducts.length}. Consider splitting into sitemap index.`,
+			)
+		}
+
 		const staticLastModified = [
-			...filteredProducts.map(product => product.updatedAt),
+			...truncatedProducts.map(product => product.updatedAt),
 			...filteredCategories.map(category => category.updatedAt),
 			...filteredPages.map(page => page.updatedAt),
 		].reduce<Date>((latest, current) => {
@@ -117,8 +112,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			},
 		]
 
-		const productPages: MetadataRoute.Sitemap = filteredProducts.map(
-			(product: SitemapProductEntity) => {
+		const productPages: MetadataRoute.Sitemap = truncatedProducts.map(
+			product => {
 				const images = product.images
 					.map(image => resolveStorageFileUrl(image.url))
 					.filter((value): value is string => Boolean(value))
@@ -135,7 +130,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		)
 
 		const categoryPages: MetadataRoute.Sitemap = filteredCategories.map(
-			(category: SitemapEntity) => ({
+			category => ({
 				url: `${BASE_URL}/catalog/${category.slug}`,
 				lastModified: category.updatedAt,
 				changeFrequency: 'weekly' as const,
@@ -144,7 +139,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		)
 
 		const cmsPages: MetadataRoute.Sitemap = filteredPages.map(
-			(page: SitemapEntity) => ({
+			page => ({
 				url: `${BASE_URL}/pages/${page.slug}`,
 				lastModified: page.updatedAt,
 				changeFrequency: 'monthly' as const,

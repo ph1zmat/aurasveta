@@ -77,7 +77,12 @@ describe('seoToMetadata', () => {
 
 		expect(metadata.openGraph?.title).toBe('Страница')
 		expect(metadata.openGraph?.images).toBeUndefined()
-		expect(metadata.alternates).toBeUndefined()
+		expect(metadata.alternates).toEqual({
+			languages: {
+				'ru-by': 'https://aurasveta.by',
+				'x-default': 'https://aurasveta.by',
+			},
+		})
 		expect(metadata.robots).toBeUndefined()
 	})
 })

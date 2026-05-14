@@ -85,6 +85,13 @@ export function buildRootMetadata(
 			google: 'fA8h5x9FAQDa6OFp09Tvp67Fc9KEF3MvBLZMH3e-OUg',
 			yandex: 'ee70a2896ab83afb',
 		},
+		alternates: {
+			canonical: CANONICAL_BASE_URL,
+			languages: {
+				'ru-by': CANONICAL_BASE_URL,
+				'x-default': CANONICAL_BASE_URL,
+			},
+		},
 		other: {
 			'theme-color': '#ffffff',
 			'geo.region': 'BY',
