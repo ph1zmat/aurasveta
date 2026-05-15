@@ -20,6 +20,8 @@ export type SeoEditState = Record<string, SeoEditFields>
 export function useSeoList(typeFilter: SeoTargetType | 'all', filter: SeoFilter, searchQuery: string) {
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 	const [editing, setEditing] = useState<SeoEditState>({})
+	const [page, setPage] = useState(1)
+	const [itemsPerPage, setItemsPerPage] = useState(20)
 
 	const { data: rawList, isLoading, refetch } = trpc.seo.listAll.useQuery(
 		typeFilter !== 'all' ? { targetType: typeFilter } : undefined,
@@ -51,6 +53,13 @@ export function useSeoList(typeFilter: SeoTargetType | 'all', filter: SeoFilter,
 
 		return items
 	}, [rawList, filter, searchQuery])
+
+	const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / itemsPerPage)), [filtered.length, itemsPerPage])
+
+	const paginatedItems = useMemo(() => {
+		const start = (page - 1) * itemsPerPage
+		return filtered.slice(start, start + itemsPerPage)
+	}, [filtered, page, itemsPerPage])
 
 	const handleEdit = useCallback(<K extends keyof SeoEditFields>(id: string, field: K, value: SeoEditFields[K]) => {
 		setEditing((prev) => ({
@@ -102,7 +111,13 @@ export function useSeoList(typeFilter: SeoTargetType | 'all', filter: SeoFilter,
 	)
 
 	return {
-		items: filtered,
+		items: paginatedItems,
+		totalItems: filtered.length,
+		totalPages,
+		page,
+		itemsPerPage,
+		setPage,
+		setItemsPerPage,
 		isLoading,
 		refetch,
 		expandedId,

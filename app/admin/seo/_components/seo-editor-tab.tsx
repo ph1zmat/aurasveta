@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { ChevronDown, ChevronUp, Download, Pencil } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ChevronDown, ChevronUp, Download, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SeoEditForm } from './seo-edit-form'
 import { ScoreBadge, computeScore } from './seo-score-badge'
 import { useSeoList } from '../_hooks/use-seo-list'
@@ -17,8 +18,15 @@ export function SeoEditorTab() {
 	const [typeFilter, setTypeFilter] = useState<SeoTargetType | 'all'>('all')
 	const [searchQuery, setSearchQuery] = useState('')
 
-	const { items, isLoading, expandedId, editing, handleEdit, handleExpand, handleSave } = useSeoList(typeFilter, filter, searchQuery)
+	const {
+		items, totalItems, totalPages, page, itemsPerPage, setPage, setItemsPerPage,
+		isLoading, expandedId, editing, handleEdit, handleExpand, handleSave,
+	} = useSeoList(typeFilter, filter, searchQuery)
 	const { handleExportCsv, isExporting } = useSeoExport(typeFilter, filter)
+
+	useEffect(() => {
+		setPage(1)
+	}, [typeFilter, filter, searchQuery, setPage])
 
 	return (
 		<div className='space-y-4'>
@@ -140,6 +148,54 @@ export function SeoEditorTab() {
 					})
 				)}
 			</div>
+
+			{/* Pagination */}
+			{totalPages > 1 && (
+				<div className='flex items-center justify-between pt-2 border-t'>
+					<div className='text-xs text-muted-foreground'>
+						Показано {Math.min((page - 1) * itemsPerPage + 1, totalItems)}–{Math.min(page * itemsPerPage, totalItems)} из {totalItems}
+					</div>
+					<div className='flex items-center gap-2'>
+						<Select
+							value={String(itemsPerPage)}
+							onValueChange={(v) => {
+								setItemsPerPage(Number(v))
+								setPage(1)
+							}}
+						>
+							<SelectTrigger className='h-7 text-xs w-20'>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='10'>10</SelectItem>
+								<SelectItem value='25'>25</SelectItem>
+								<SelectItem value='50'>50</SelectItem>
+							</SelectContent>
+						</Select>
+						<Button
+							variant='ghost'
+							size='sm'
+							className='h-7 w-7 p-0'
+							onClick={() => setPage((p) => Math.max(1, p - 1))}
+							disabled={page <= 1}
+						>
+							<ChevronLeft className='h-4 w-4' />
+						</Button>
+						<span className='text-xs tabular-nums min-w-[4rem] text-center'>
+							{page} / {totalPages}
+						</span>
+						<Button
+							variant='ghost'
+							size='sm'
+							className='h-7 w-7 p-0'
+							onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+							disabled={page >= totalPages}
+						>
+							<ChevronRight className='h-4 w-4' />
+						</Button>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

@@ -16,16 +16,10 @@ export default function SeoPage() {
 
 			<div className='bg-card border rounded-lg'>
 				<Tabs value={activeTab} onValueChange={setActiveTab}>
-					<TabsList className='w-full justify-start rounded-none border-b bg-transparent px-4 h-11'>
-						<TabsTrigger value='editor' className='rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent px-0 py-0 mr-6 h-11 text-sm'>
-							Редактор
-						</TabsTrigger>
-						<TabsTrigger value='bulk' className='rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent px-0 py-0 mr-6 h-11 text-sm'>
-							Массовая генерация
-						</TabsTrigger>
-						<TabsTrigger value='history' className='rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent px-0 py-0 mr-6 h-11 text-sm'>
-							История
-						</TabsTrigger>
+					<TabsList variant='line' className='w-full justify-start px-4 pt-1'>
+						<TabsTrigger value='editor'>Редактор</TabsTrigger>
+						<TabsTrigger value='bulk'>Массовая генерация</TabsTrigger>
+						<TabsTrigger value='history'>История</TabsTrigger>
 					</TabsList>
 					<div className='p-4'>
 						<TabsContent value='editor' className='mt-0'><SeoEditorTab /></TabsContent>
