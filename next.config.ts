@@ -91,6 +91,11 @@ const nextConfig: NextConfig = {
 				destination: '/:slug*',
 				permanent: true,
 			},
+			{
+				source: '/admin/seo/advanced',
+				destination: '/admin/seo',
+				permanent: true,
+			},
 		]
 	},
 	async headers() {
