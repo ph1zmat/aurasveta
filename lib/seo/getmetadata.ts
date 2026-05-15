@@ -215,7 +215,7 @@ export function seoToMetadata(seo: SeoResult): Metadata {
 		alternates: seo.canonicalUrl
 			? { canonical: seo.canonicalUrl, languages: HREFLANG_LANGUAGES }
 			: { languages: HREFLANG_LANGUAGES },
-		robots: seo.noIndex ? { index: false, follow: false } : undefined,
+		robots: seo.noIndex ? { index: false, follow: false } : { index: true, follow: true },
 	}
 }
 

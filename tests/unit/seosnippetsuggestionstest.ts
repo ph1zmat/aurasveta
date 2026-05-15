@@ -33,7 +33,7 @@ describe('seo snippet suggestions', () => {
 			targetType: 'page',
 			targetId: 'pg1',
 			entityName: 'Доставка',
-			url: 'https://aurasveta.by/pages/delivery',
+			url: 'https://aurasveta.by/delivery',
 			currentTitle: 'Доставка по Беларуси и России очень длинный title который выходит далеко за лимит',
 			currentDescription: 'Коротко',
 			entityDescription: 'Подробные условия доставки, сроки, стоимость и полезные уточнения по регионам.',

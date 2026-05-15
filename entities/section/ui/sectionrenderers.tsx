@@ -221,6 +221,8 @@ export const HeroSectionRenderer: SectionRendererComponent<'hero'> = ({
 							src={image}
 							alt={heading}
 							fill
+							priority
+							sizes='(max-width: 1024px) 100vw, 40vw'
 							imageClassName='object-cover'
 							fallbackClassName='rounded-none'
 						/>
@@ -308,7 +310,7 @@ export const FeaturedCategoriesSectionRenderer: SectionRendererComponent<
 				</h2>
 			) : null}
 			<div className='grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4'>
-				{categories.map(category => (
+				{categories.map((category, index) => (
 					<Link
 						key={category.id}
 						href={category.href}
@@ -319,6 +321,8 @@ export const FeaturedCategoriesSectionRenderer: SectionRendererComponent<
 								src={category.image}
 								alt={category.name}
 								fill
+								priority={index < 4}
+								sizes='(max-width: 768px) 50vw, 25vw'
 								imageClassName='object-cover transition-transform duration-300 group-hover:scale-[1.03]'
 								fallbackClassName='rounded-none'
 							/>
@@ -412,6 +416,8 @@ export const GallerySectionRenderer: SectionRendererComponent<'gallery'> = ({
 							src={item.url}
 							alt={item.alt ?? title ?? 'Изображение галереи'}
 							fill
+							priority={index === 0}
+							sizes='(max-width: 768px) 50vw, 33vw'
 							imageClassName='object-cover transition-transform duration-500 hover:scale-[1.02]'
 							fallbackClassName='rounded-none'
 						/>

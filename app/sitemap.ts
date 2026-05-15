@@ -140,7 +140,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 		const cmsPages: MetadataRoute.Sitemap = filteredPages.map(
 			page => ({
-				url: `${BASE_URL}/pages/${page.slug}`,
+				url: `${BASE_URL}/${page.slug}`,
 				lastModified: page.updatedAt,
 				changeFrequency: 'monthly' as const,
 				priority: 0.5,

@@ -41,7 +41,7 @@ describe('seo stale content queue', () => {
 					targetType: 'page',
 					targetId: 'pg1',
 					entityName: 'Доставка',
-					url: 'https://aurasveta.by/pages/delivery',
+					url: 'https://aurasveta.by/delivery',
 					currentImpressions: 500,
 					previousImpressions: 450,
 					currentCtr: 0.051,

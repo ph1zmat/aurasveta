@@ -83,6 +83,6 @@ describe('seoToMetadata', () => {
 				'x-default': 'https://aurasveta.by',
 			},
 		})
-		expect(metadata.robots).toBeUndefined()
+		expect(metadata.robots).toEqual({ index: true, follow: true })
 	})
 })

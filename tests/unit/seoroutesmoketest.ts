@@ -88,6 +88,6 @@ describe('SEO route smoke', () => {
 		expect(urls).toContain('https://aurasveta.by/catalog')
 		expect(urls).toContain('https://aurasveta.by/product/product-1')
 		expect(urls).toContain('https://aurasveta.by/catalog/cat-1')
-		expect(urls).toContain('https://aurasveta.by/pages/delivery')
+		expect(urls).toContain('https://aurasveta.by/delivery')
 	})
 })

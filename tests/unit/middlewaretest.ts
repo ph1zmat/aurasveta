@@ -21,7 +21,7 @@ vi.mock('next/server', () => ({
 }))
 
 // Need to re-import after mock
-const { proxy } = await import('@/proxy')
+const { proxy } = await import('@/lib/middleware/proxy')
 
 describe('proxy (middleware)', () => {
 	beforeEach(() => {

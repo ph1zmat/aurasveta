@@ -61,7 +61,7 @@ export async function generateMetadata({
 		alternates: {
 			...(metadata.alternates ?? {}),
 			canonical:
-				metadata.alternates?.canonical ?? `https://aurasveta.by/pages/${slug}`,
+				metadata.alternates?.canonical ?? `https://aurasveta.by/${slug}`,
 		},
 	}
 }

@@ -142,6 +142,7 @@ export default function BannerSection({ config }: BannerSectionProps) {
 												alt={slide.title ?? 'Баннер'}
 												className='h-full w-full object-cover'
 												loading={idx === 0 ? 'eager' : 'lazy'}
+												{...(idx === 0 ? { fetchPriority: 'high' } : {})}
 												decoding='async'
 											/>
 										</picture>
@@ -152,6 +153,7 @@ export default function BannerSection({ config }: BannerSectionProps) {
 											alt={slide.title ?? 'Баннер'}
 											className='h-full w-full object-cover'
 											loading={idx === 0 ? 'eager' : 'lazy'}
+											{...(idx === 0 ? { fetchPriority: 'high' } : {})}
 											decoding='async'
 										/>
 									)}

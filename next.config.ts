@@ -86,6 +86,11 @@ const nextConfig: NextConfig = {
 				destination: '/:path+',
 				permanent: true,
 			},
+			{
+				source: '/pages/:slug*',
+				destination: '/:slug*',
+				permanent: true,
+			},
 		]
 	},
 	async headers() {
@@ -194,6 +199,11 @@ const nextConfig: NextConfig = {
 						// HSTS: 1 год, includeSubDomains, preload (SEO-CLAIM-044)
 						key: 'Strict-Transport-Security',
 						value: 'max-age=31536000; includeSubDomains; preload',
+					},
+					{
+						// Базовый CSP — разрешает Next.js inline scripts/styles и S3-изображения
+						key: 'Content-Security-Policy',
+						value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
 					},
 				],
 			},

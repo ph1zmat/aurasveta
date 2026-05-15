@@ -109,6 +109,11 @@ export default async function Home() {
 				<Header />
 				<CategoryNav />
 
+				{/* SEO: H1 заголовок главной страницы */}
+				<h1 className='py-6 text-xl font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
+					Светотехника и осветительные приборы в Мозыре — Аура Света
+				</h1>
+
 				{unifiedSections.length > 0 ? (
 					unifiedSections.map(section => (
 						<PublicSectionRenderer key={section.id} section={section} />
@@ -130,7 +135,7 @@ export default async function Home() {
 							Популярные категории
 						</h2>
 						<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4'>
-							{popularCategories.map(cat => {
+							{popularCategories.map((cat, index) => {
 								const imageSrc =
 									resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
 									'/bulb.svg'
@@ -146,6 +151,8 @@ export default async function Home() {
 											width={120}
 											height={120}
 											className='mb-3 h-24 w-24 rounded-lg object-cover'
+											priority={index < 4}
+											sizes='(max-width: 768px) 50vw, 25vw'
 										/>
 										<span className='text-center text-sm font-medium text-foreground group-hover:text-accent'>
 											{cat.name}
@@ -164,7 +171,7 @@ export default async function Home() {
 							Новинки
 						</h2>
 						<div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6'>
-							{featuredProducts.map(product => {
+							{featuredProducts.map((product, index) => {
 								const imageSrc =
 									product.images[0]?.url ?? '/bulb.svg'
 								return (
@@ -179,6 +186,8 @@ export default async function Home() {
 											width={200}
 											height={200}
 											className='mb-2 aspect-square w-full rounded-lg object-cover'
+											priority={index < 3}
+											sizes='(max-width: 768px) 50vw, 16vw'
 										/>
 										<span className='line-clamp-2 text-xs font-medium text-foreground group-hover:text-accent'>
 											{product.name}
@@ -192,6 +201,30 @@ export default async function Home() {
 						</div>
 					</section>
 				)}
+
+				{/* SEO: текстовый блок для улучшения индексации */}
+				<section className='py-10 border-t border-border/60'>
+					<div className='prose prose-neutral dark:prose-invert max-w-none'>
+						<h2 className='text-xl font-semibold uppercase tracking-widest text-foreground md:text-2xl mb-4'>
+							О магазине Аура Света
+						</h2>
+						<p className='text-sm leading-relaxed text-muted-foreground'>
+							Аура Света — это специализированный магазин светотехники в Мозыре, 
+							где вы можете купить люстры, бра, споты, потолочные и настенные светильники 
+							по доступным ценам. Мы предлагаем широкий ассортимент осветительных приборов 
+							для дома, квартиры, офиса и коммерческих помещений. В каталоге представлены 
+							как классические модели, так и современные LED-светильники с экономичным 
+							потреблением энергии.
+						</p>
+						<p className='text-sm leading-relaxed text-muted-foreground mt-3'>
+							Наши преимущества — быстрая доставка по всей Беларуси, профессиональная 
+							консультация при выборе, гарантия качества на всю продукцию и удобная 
+							система оплаты. Если вам нужно освещение для гостиной, спальни, кухни 
+							или ванной комнаты — в Ауре Света вы найдёте идеальное решение. 
+							Оформляйте заказ онлайн или посетите наш шоу-рум в Мозыре.
+						</p>
+					</div>
+				</section>
 			</main>
 
 			<Footer />

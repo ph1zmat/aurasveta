@@ -5,7 +5,7 @@ import Skeleton from '@/shared/ui/skeleton'
 import { trpc, HydrateClient } from '@/lib/trpc/server'
 
 export const metadata: Metadata = {
-	title: 'Поиск товаров | Aura Sveta',
+	title: 'Поиск товаров | Аура Света',
 	description: 'Поиск по каталогу товаров',
 	alternates: {
 		canonical: 'https://aurasveta.by/search',

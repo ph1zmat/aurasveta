@@ -123,7 +123,12 @@ export async function generateMetadata({
 	const canonical =
 		metadata.alternates?.canonical ?? `https://aurasveta.by/catalog/${slug}`
 
+	const page = Number(sp.page ?? '1')
 	const hasQueryParams = hasActiveQueryParams(sp)
+
+	if (page > 1 && metadata.title) {
+		metadata.title = `${metadata.title} — Страница ${page}`
+	}
 
 	if (!hasQueryParams) {
 		return {

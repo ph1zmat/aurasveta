@@ -26,7 +26,7 @@ describe('seo weekly triage', () => {
 					title: 'Доставка',
 					description: 'Описание',
 					ogImage: 'https://aurasveta.by/img/p.jpg',
-					canonicalUrl: 'https://aurasveta.by/pages/delivery',
+					canonicalUrl: 'https://aurasveta.by/delivery',
 					noIndex: false,
 				},
 			],

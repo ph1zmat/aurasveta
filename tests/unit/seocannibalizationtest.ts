@@ -38,7 +38,7 @@ describe('seo cannibalization detection', () => {
 			signals: [
 				{
 					query: 'доставка',
-					url: 'https://aurasveta.by/pages/delivery',
+					url: 'https://aurasveta.by/delivery',
 					impressions: 300,
 					clicks: 40,
 					ctr: 0.133,

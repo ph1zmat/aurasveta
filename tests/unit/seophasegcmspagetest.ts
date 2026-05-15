@@ -76,7 +76,7 @@ describe('phase G: CMS page metadata + FAQ schema consistency', () => {
 		})
 
 		expect(metadata.alternates?.canonical).toBe(
-			'https://aurasveta.by/pages/delivery',
+			'https://aurasveta.by/delivery',
 		)
 	})
 

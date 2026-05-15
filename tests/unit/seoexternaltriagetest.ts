@@ -40,7 +40,7 @@ describe('seo external triage', () => {
 		const result = prioritizeExternalSignal({
 			targetType: 'page',
 			targetId: 'pg1',
-			url: 'https://aurasveta.by/pages/delivery',
+			url: 'https://aurasveta.by/delivery',
 			impressions: 240,
 			clicks: 5,
 			ctr: 0.02,
