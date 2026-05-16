@@ -33,6 +33,7 @@ interface ShopFormState {
 	aboutUs: string
 	logoUrl: string
 	faviconUrl: string
+	homeH1: string
 }
 
 const DEFAULT_WORKING_HOURS: WorkingHours = {
@@ -61,6 +62,7 @@ function createEmptyForm(): ShopFormState {
 		aboutUs: '',
 		logoUrl: '',
 		faviconUrl: '',
+		homeH1: '',
 	}
 }
 
@@ -99,6 +101,7 @@ function normalizeShopInfoToForm(shopInfo: unknown): ShopFormState {
 		aboutUs: typeof typed.aboutUs === 'string' ? typed.aboutUs : '',
 		logoUrl: typeof typed.logoUrl === 'string' ? typed.logoUrl : '',
 		faviconUrl: typeof typed.faviconUrl === 'string' ? typed.faviconUrl : '',
+		homeH1: typeof typed.homeH1 === 'string' ? typed.homeH1 : '',
 	}
 }
 
@@ -234,6 +237,7 @@ export default function ShopSettingsCard() {
 			aboutUs: form.aboutUs || undefined,
 			logoUrl: form.logoUrl || undefined,
 			faviconUrl: form.faviconUrl || undefined,
+			homeH1: form.homeH1 || undefined,
 		})
 	}
 
@@ -442,6 +446,17 @@ export default function ShopSettingsCard() {
 							onChange={(e) => setField('aboutUs', e.target.value)}
 							placeholder='Расскажите о вашем магазине...'
 						/>
+					</div>
+					<div className='space-y-2'>
+						<label className='text-sm font-medium'>Заголовок H1 главной страницы</label>
+						<Input
+							value={form.homeH1}
+							onChange={(e) => setField('homeH1', e.target.value)}
+							placeholder='Аура Света — магазин люстр и светильников в Мозыре'
+						/>
+						<p className='text-xs text-muted-foreground'>
+							Если не указан — на главной не будет отдельного H1.
+						</p>
 					</div>
 				</CardContent>
 			</Card>

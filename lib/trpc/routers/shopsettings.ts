@@ -23,6 +23,7 @@ const ShopInfoSchema = z.object({
 	legalInfo: z.record(z.string(), z.string()).optional(),
 	logoUrl: z.string().optional(),
 	faviconUrl: z.string().optional(),
+	homeH1: z.string().optional(),
 })
 
 export type ShopInfo = z.infer<typeof ShopInfoSchema>

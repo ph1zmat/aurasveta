@@ -13,6 +13,7 @@ export type PublicStoreSettings = {
 	socialLinks: Array<{ platform: string; url: string }>
 	logoUrl: string | null
 	faviconUrl: string | null
+	homeH1: string | null
 }
 
 function asStringRecord(value: unknown): Record<string, string> {
@@ -67,6 +68,7 @@ const getPublicStoreSettingsCached = cache(
 			socialLinks: asSocialLinks(settings.socialLinks),
 			logoUrl: settings.logoUrl,
 			faviconUrl: settings.faviconUrl,
+			homeH1: settings.homeH1,
 		}
 	} catch {
 		return null

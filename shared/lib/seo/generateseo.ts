@@ -143,7 +143,7 @@ export function generateCategorySeo(category: CategorySeoInput) {
 	// Enhanced keywords: category + location + commercial intent
 	const keywordParts = [
 		category.name,
-		'мозырь', // geo
+		'Мозырь', // geo
 		'купить', // commercial intent
 		'каталог', // type signal
 		// Extract first few words from description
@@ -181,10 +181,10 @@ export function generatePageSeo(page: PageSeoInput) {
 	const description =
 		page.metaDesc ??
 		(page.content ? truncate(stripHtml(page.content), 160) : null) ??
-		`${page.title} — Аура Света`
+		`${page.title} — Аура Света, Мозырь`
 
-	// Extract keywords from title and content
-	const keywordParts = [
+	// Extract keywords from title and content (бренд не является ключевиком)
+	const rawKeywordParts = [
 		page.title,
 		// Extract first few words from content
 		page.content
@@ -193,6 +193,8 @@ export function generatePageSeo(page: PageSeoInput) {
 	]
 		.filter(Boolean)
 		.map(k => k!.trim().toLowerCase())
+
+	const keywordParts = rawKeywordParts.filter(k => k !== 'аура света')
 
 	const keywords = [...new Set(keywordParts)].join(', ')
 

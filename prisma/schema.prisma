@@ -379,6 +379,7 @@ model StoreSettings {
   legalInfo       Json?    @map("legal_info")
   logoUrl         String?  @map("logo_url")
   faviconUrl      String?  @map("favicon_url")
+  homeH1          String?  @map("home_h1")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("store_settings")

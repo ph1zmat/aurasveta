@@ -27,6 +27,7 @@ const updateStoreSettingsSchema = z.object({
 	legalInfo: legalInfoSchema.optional().nullable(),
 	logoUrl: z.string().optional().nullable(),
 	faviconUrl: z.string().optional().nullable(),
+	homeH1: z.string().optional().nullable(),
 })
 
 type LegacyShopInfo = {
@@ -43,6 +44,7 @@ type LegacyShopInfo = {
 	legalInfo?: Record<string, string> | null
 	logoUrl?: string | null
 	faviconUrl?: string | null
+	homeH1?: string | null
 }
 
 function asStringRecord(value: unknown): Record<string, string> | null {
@@ -92,6 +94,7 @@ function getLegacyShopInfo(value: unknown): LegacyShopInfo | null {
 		legalInfo: asStringRecord(record.legalInfo),
 		logoUrl: typeof record.logoUrl === 'string' ? record.logoUrl : null,
 		faviconUrl: typeof record.faviconUrl === 'string' ? record.faviconUrl : null,
+		homeH1: typeof record.homeH1 === 'string' ? record.homeH1 : null,
 	}
 }
 
@@ -155,6 +158,7 @@ function mergeSettingsSources(
 		logoUrl: pickNonEmptyString(storeSettings?.logoUrl, legacy?.logoUrl) ?? null,
 		faviconUrl:
 			pickNonEmptyString(storeSettings?.faviconUrl, legacy?.faviconUrl) ?? null,
+		homeH1: pickNonEmptyString(storeSettings?.homeH1, legacy?.homeH1) ?? null,
 	}
 }
 
@@ -173,6 +177,7 @@ function toLegacyShopInfoPayload(storeSettings: StoreSettings) {
 		legalInfo: asStringRecord(storeSettings.legalInfo) ?? {},
 		logoUrl: storeSettings.logoUrl,
 		faviconUrl: storeSettings.faviconUrl,
+		homeH1: storeSettings.homeH1,
 	}
 }
 

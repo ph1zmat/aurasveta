@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import type { Prisma } from '@prisma/client'
-import Link from 'next/link'
-import Image from 'next/image'
 import TopBar from '@/widgets/header/ui/topbar'
 import Header from '@/widgets/header/ui/headerserver'
 import CategoryNav from '@/widgets/navigation/ui/categorynav'
@@ -11,7 +9,7 @@ import DynamicHomeSection from '@/widgets/home-sections/ui/dynamichomesection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/publicpagedata'
 import { logDatabaseFallback } from '@/lib/utils/dbfallbacklogger'
 import { prisma } from '@/lib/prisma'
-import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
+import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 
 export const metadata: Metadata = {
 	title: 'Аура Света — магазин люстр и светильников в Мозыре',
@@ -42,6 +40,9 @@ type HomeSectionWithType = Prisma.HomeSectionGetPayload<{
 }>
 
 export default async function Home() {
+	const storeSettings = await getPublicStoreSettings()
+	const homeH1 = storeSettings?.homeH1
+
 	let unifiedPage = null
 
 	try {
@@ -66,55 +67,6 @@ export default async function Home() {
 		}
 	}
 
-	// SEO: дополнительные внутренние ссылки на популярные категории и товары
-	let popularCategories: Array<{
-		id: string
-		name: string
-		slug: string
-		imagePath: string | null
-		image: string | null
-	}> = []
-	let featuredProducts: Array<{
-		id: string
-		name: string
-		slug: string
-		price: number | null
-		images: Array<{ url: string }>
-	}> = []
-
-	try {
-		popularCategories = await prisma.category.findMany({
-			where: { parentId: null },
-			take: 8,
-			select: {
-				id: true,
-				name: true,
-				slug: true,
-				imagePath: true,
-				image: true,
-			},
-		})
-	} catch {
-		/* игнорируем — это дополнительный SEO-блок */
-	}
-
-	try {
-		featuredProducts = await prisma.product.findMany({
-			where: { isActive: true },
-			take: 6,
-			orderBy: { createdAt: 'desc' },
-			select: {
-				id: true,
-				name: true,
-				slug: true,
-				price: true,
-				images: { select: { url: true }, take: 1 },
-			},
-		})
-	} catch {
-		/* игнорируем — это дополнительный SEO-блок */
-	}
-
 	return (
 		<div className='flex flex-col bg-background'>
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
@@ -123,9 +75,11 @@ export default async function Home() {
 				<CategoryNav />
 
 				{/* SEO: H1 заголовок главной страницы */}
-				<h1 className='py-6 text-xl font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
-					Светотехника и осветительные приборы в Мозыре — Аура Света
-				</h1>
+				{homeH1 ? (
+					<h1 className='py-6 text-xl font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
+						{homeH1}
+					</h1>
+				) : null}
 
 				{unifiedSections.length > 0 ? (
 					unifiedSections.map(section => (
