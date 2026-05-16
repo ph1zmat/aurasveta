@@ -46,7 +46,7 @@ describe('generateProductSeo', () => {
 		})
 		expect(result.title).toContain('Люстра Классика')
 		expect(result.description).toContain('150')
-		expect(result.ogTitle).toBe('Люстра Классика')
+		expect(result.ogTitle).toBe('Люстра Классика — Аура Света')
 	})
 
 	it('handles product without description', () => {

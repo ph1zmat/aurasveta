@@ -58,7 +58,7 @@ describe('SEO schema builders + validator', () => {
 		)
 	})
 
-	it('даёт предупреждения для Product без offers/image', () => {
+	it('всегда включает offers и image fallback даже без цены/фото', () => {
 		const payload = buildProductSchema({
 			name: 'Люстра без цены',
 			images: [],
@@ -68,8 +68,15 @@ describe('SEO schema builders + validator', () => {
 
 		const result = validateSchema('Product', payload)
 		expect(result.ok).toBe(true)
-		expect(result.warnings.map(w => w.code)).toEqual(
-			expect.arrayContaining(['MISSING_OFFERS', 'MISSING_IMAGE']),
+		expect(result.warnings).toEqual([])
+		expect(payload).toEqual(
+			expect.objectContaining({
+				image: ['https://aurasveta.by/product-placeholder.png'],
+				offers: expect.objectContaining({
+					price: '0.00',
+					availability: 'https://schema.org/InStock',
+				}),
+			}),
 		)
 	})
 

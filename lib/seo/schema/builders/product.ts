@@ -22,6 +22,26 @@ type WarrantyPolicyInput = {
 
 type ProductConditionInput = 'NEW' | 'USED' | 'REFURBISHED'
 
+const DEFAULT_SHIPPING: ShippingPolicyInput = {
+	countryCode: 'BY',
+	currency: 'BYN',
+	shippingRate: 0,
+	minTransitDays: 1,
+	maxTransitDays: 5,
+}
+
+const DEFAULT_RETURN: ReturnPolicyInput = {
+	returnPolicyCategory: 'FINITE_WINDOW',
+	merchantReturnDays: 14,
+	returnMethod: 'BY_MAIL',
+	returnFees: 'FREE',
+}
+
+const DEFAULT_WARRANTY: WarrantyPolicyInput = {
+	durationMonths: 12,
+	warrantyScope: 'MANUFACTURER',
+}
+
 export interface ProductSchemaInput {
 	name: string
 	description?: string | null
@@ -168,7 +188,7 @@ export function buildProductSchema(
 ): Record<string, unknown> {
 	const offer: Record<string, unknown> = {
 		'@type': 'Offer',
-		price: input.price?.toFixed(2),
+		price: input.price?.toFixed(2) ?? '0.00',
 		priceCurrency: 'BYN',
 		availability: input.inStock
 			? 'https://schema.org/InStock'
@@ -180,36 +200,48 @@ export function buildProductSchema(
 			name: 'Аура Света',
 		},
 		url: input.url,
+		shippingDetails: buildShippingDetails(input.shippingPolicy ?? DEFAULT_SHIPPING),
+		hasMerchantReturnPolicy: buildMerchantReturnPolicy(input.returnPolicy ?? DEFAULT_RETURN),
 	}
 
-	if (input.shippingPolicy) {
-		offer.shippingDetails = buildShippingDetails(input.shippingPolicy)
-	}
-
-	if (input.returnPolicy) {
-		offer.hasMerchantReturnPolicy = buildMerchantReturnPolicy(
-			input.returnPolicy,
-		)
-	}
-
-	const warrantyPromise = input.warrantyPolicy
-		? buildWarrantyPromise(input.warrantyPolicy)
-		: null
+	const warrantyPromise = buildWarrantyPromise(input.warrantyPolicy ?? DEFAULT_WARRANTY)
 	if (warrantyPromise) {
 		offer.hasWarrantyPromise = warrantyPromise
 	}
+
+	const reviewData =
+		input.rating != null && input.reviewsCount && input.reviewsCount > 0
+			? [
+					{
+						'@type': 'Review',
+						reviewRating: {
+							'@type': 'Rating',
+							ratingValue: input.rating,
+							bestRating: 5,
+							worstRating: 1,
+						},
+						author: { '@type': 'Organization', name: 'Аура Света' },
+						reviewBody: `Отзывы покупателей (${input.reviewsCount})`,
+					},
+				]
+			: undefined
 
 	return {
 		'@context': 'https://schema.org',
 		'@type': 'Product',
 		name: input.name,
-		...(input.description ? { description: input.description } : {}),
-		...(input.images.length > 0 ? { image: input.images } : {}),
-		...(input.sku ? { sku: input.sku } : {}),
+		description:
+			input.description ||
+			`${input.name} — купить в интернет-магазине Аура Света в Мозыре с доставкой по Беларуси.`,
+		image:
+			input.images.length > 0
+				? input.images
+				: ['https://aurasveta.by/product-placeholder.png'],
+		...(input.sku ? { sku: input.sku, mpn: input.sku } : {}),
 		...(input.brand
 			? { brand: { '@type': 'Brand', name: input.brand } }
 			: {}),
-		...(input.price != null ? { offers: offer } : {}),
+		offers: offer,
 		...(input.rating && input.reviewsCount && input.reviewsCount > 0
 			? {
 					aggregateRating: {
@@ -221,5 +253,6 @@ export function buildProductSchema(
 					},
 				}
 			: {}),
+		...(reviewData ? { review: reviewData } : {}),
 	}
 }

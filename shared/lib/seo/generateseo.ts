@@ -52,36 +52,85 @@ function getFirstImage(images: ProductSeoInput['images']): string | null {
 	return null
 }
 
+function smartTitle(parts: string[], maxLen: number): string {
+	const separator = ' | '
+	for (let i = parts.length; i > 0; i--) {
+		const shortened = parts.slice(0, i).join(separator)
+		if (shortened.length <= maxLen) return shortened
+	}
+	return truncate(parts[0], maxLen)
+}
+
 export function generateProductSeo(product: ProductSeoInput) {
-	const description = product.description
-		? truncate(stripHtml(product.description), 160)
-		: `${product.name} — купить в интернет-магазине Аура Света`
+	const price = product.price ?? null
+	const hasPrice = price !== null && price > 0
 
-	const priceStr = product.price
-		? ` по цене ${product.price.toLocaleString('ru-RU')} Br.`
-		: ''
+	// --- TITLE ---
+	const titleParts: string[] = [
+		product.name,
+		product.categoryName || 'светильник',
+	]
+	if (hasPrice) {
+		titleParts.push(`${price.toLocaleString('ru-RU')} Br`)
+	}
+	titleParts.push('Аура Света')
 
-	// Extract keywords from name, category, brand
-	const keywordParts = [
+	const title = smartTitle(titleParts, 65)
+
+	// --- DESCRIPTION ---
+	const baseDesc = product.description
+		? truncate(stripHtml(product.description), 130)
+		: `${product.name} — ${product.categoryName || 'светильник'}`
+
+	const priceStr = hasPrice
+		? `за ${price.toLocaleString('ru-RU')} Br`
+		: 'по выгодной цене'
+
+	const description = truncate(
+		`${baseDesc} ${priceStr}. Доставка 1–3 дня по Мозыру и Беларуси. ` +
+			`Шоурум в центре города. Гарантия. Закажите онлайн!`,
+		158,
+	)
+
+	// --- KEYWORDS --- (без slug-артефактов)
+	const seen = new Set<string>()
+	const keywordParts: string[] = []
+	for (const part of [
 		product.name,
 		product.categoryName,
 		product.brand,
-		// Extract first few words from description
-		product.description
-			? stripHtml(product.description).split(/\s+/).slice(0, 3).join(' ')
-			: null,
-	]
-		.filter(Boolean)
-		.map(k => k!.trim().toLowerCase())
+		'купить',
+		'цена',
+		'Мозырь',
+		'Беларусь',
+	]) {
+		if (!part) continue
+		const clean = part
+			.trim()
+			.toLowerCase()
+			.replace(/\b[a-z]+-\d+[a-z-]*\b/gi, '')
+			.replace(/\s+/g, ' ')
+			.trim()
+		if (clean && !seen.has(clean) && clean.length > 1) {
+			seen.add(clean)
+			keywordParts.push(clean)
+		}
+	}
+	const keywords = keywordParts.join(', ')
 
-	const keywords = [...new Set(keywordParts)].join(', ')
+	// --- OG ---
+	const ogTitle = `${product.name} — ${product.brand || 'Аура Света'}`
+	const ogDescription = truncate(
+		`${product.name}. ${priceStr}. Доставка по РБ.`,
+		200,
+	)
 
 	return {
-		title: `${product.name} — купить в Мозыре`,
-		description: `${description}${priceStr}`,
+		title,
+		description,
 		keywords,
-		ogTitle: product.name,
-		ogDescription: description,
+		ogTitle,
+		ogDescription,
 		ogImage: getFirstImage(product.images),
 	}
 }
@@ -107,15 +156,23 @@ export function generateCategorySeo(category: CategorySeoInput) {
 
 	const keywords = [...new Set(keywordParts)].join(', ')
 
-	// More commercial title: "Купить [категория] в Мозыре | каталог с ценами"
-	const commercialTitle = `Купить ${category.name.toLowerCase()} в Мозыре — каталог с ценами`
+	const title = smartTitle(
+		[`Купить ${category.name.toLowerCase()} в Мозыре`, 'каталог с ценами', 'Аура Света'],
+		65,
+	)
+
+	const categoryDescription = truncate(
+		`${description}. Актуальные цены в Br. Доставка по Мозыру и РБ. ` +
+			`Консультация по выбору. Шоурум в центре города.`,
+		158,
+	)
 
 	return {
-		title: commercialTitle,
-		description,
+		title,
+		description: categoryDescription,
 		keywords,
 		ogTitle: category.name,
-		ogDescription: description,
+		ogDescription: categoryDescription,
 		ogImage: getFirstImage(category.images),
 	}
 }
@@ -140,7 +197,7 @@ export function generatePageSeo(page: PageSeoInput) {
 	const keywords = [...new Set(keywordParts)].join(', ')
 
 	return {
-		title: page.metaTitle ?? page.title,
+		title: page.metaTitle ?? `${page.title} — Аура Света`,
 		description,
 		keywords,
 		ogTitle: page.title,

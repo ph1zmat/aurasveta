@@ -57,6 +57,7 @@ describe('SEO route smoke', () => {
 					'/search',
 					'/login',
 					'/register',
+					'/*?returnTo=*',
 				],
 			},
 		])

@@ -13,6 +13,7 @@ import RootThemeProvider from '@/shared/ui/rootthemeprovider'
 import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 import { buildOrganizationSchema } from '@/lib/seo/schema/builders/organization'
 import { buildWebSiteSchema } from '@/lib/seo/schema/builders/website'
+import { buildNavigationSchema } from '@/lib/seo/schema/builders/navigation'
 import { buildRootMetadata } from '@/lib/seo/sitemetadata'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,7 @@ export default async function RootLayout({
 	const storeSettings = await getPublicStoreSettings()
 	const organizationSchema = buildOrganizationSchema(storeSettings)
 	const webSiteSchema = buildWebSiteSchema()
+	const navigationSchema = buildNavigationSchema()
 
 	return (
 		<html lang='ru' suppressHydrationWarning>
@@ -44,6 +46,11 @@ export default async function RootLayout({
 				<script
 					type='application/ld+json'
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }}
+				/>
+				{/* JSON-LD: SiteNavigationElement (sitelinks) */}
+				<script
+					type='application/ld+json'
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(navigationSchema) }}
 				/>
 			</head>
 			<body className='font-sans antialiased'>

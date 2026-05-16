@@ -17,6 +17,14 @@ function isValidPublicHttpUrl(value: string): boolean {
 	}
 }
 
+function normalizePhone(phone: string): string {
+	const digits = phone.replace(/\D/g, '')
+	if (digits.startsWith('375')) return `+${digits}`
+	if (digits.startsWith('80')) return `+375${digits.slice(2)}`
+	if (digits.length === 9) return `+375${digits}`
+	return phone
+}
+
 /**
  * Генерирует JSON-LD объект `Organization` на основе публичных настроек магазина.
  * Используется в корневом layout для глобального schema.
@@ -43,19 +51,38 @@ export function buildOrganizationSchema(
 		'@id': `${CANONICAL_BASE_URL}/#organization`,
 		name: 'Аура Света',
 		url: CANONICAL_BASE_URL,
+		priceRange: '$$',
+		hasOfferCatalog: {
+			'@type': 'OfferCatalog',
+			name: 'Каталог светильников',
+			url: `${CANONICAL_BASE_URL}/catalog`,
+		},
 		...(logoUrl
 			? { logo: { '@type': 'ImageObject', url: logoUrl } }
 			: {}),
 		...(email ? { email } : {}),
 		...(contactPhones.length > 0
 			? {
-					telephone: contactPhones[0],
+					telephone: normalizePhone(contactPhones[0]),
 					contactPoint: contactPhones.map(phone => ({
 						'@type': 'ContactPoint',
-						telephone: phone,
+						telephone: normalizePhone(phone),
 						contactType: 'customer service',
 						areaServed: 'BY',
-						availableLanguage: 'Russian',
+						availableLanguage: ['Russian', 'Belarusian'],
+						hoursAvailable: {
+							'@type': 'OpeningHoursSpecification',
+							dayOfWeek: [
+								'Monday',
+								'Tuesday',
+								'Wednesday',
+								'Thursday',
+								'Friday',
+								'Saturday',
+							],
+							opens: '09:00',
+							closes: '18:00',
+						},
 					})),
 				}
 			: {}),
