@@ -15,8 +15,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 **Аура Света** — интернет-магазин освещения (люстры, светильники, бра). Это монорепозиторий, содержащий:
 
 - **Веб-приложение** (основное) — Next.js 16 App Router с SSR/SSG, расположено в корне репозитория
-- **Десктоп CMS** — Electron-приложение в `desktop/` (отдельный package.json, Vite + Electron Builder)
-- **Мобильное приложение** — Expo / React Native в `mobile/` (отдельный package.json)
+- **Десктоп CMS** — директория `desktop/` содержит артефакты сборки Electron (dist, dist-electron, release, node_modules), но на момент написания файла `package.json` в корне `desktop/` отсутствует
+- **Мобильное приложение** — директория `mobile/` содержит артефакты Expo / React Native (android, .expo, node_modules), но на момент написания файла `package.json` в корне `mobile/` отсутствует
+- **Shared-admin пакет** — `packages/shared-admin/` — общие UI-компоненты и хуки для админок (web + desktop)
 
 Веб-приложение реализует каталог товаров, корзину, избранное, сравнение, CMS-страницы с секциями, админ-панель с аналитикой, импорт/экспорт CSV, управление вебхуками, SEO-метаданными, push-уведомлениями и политиками магазина (доставка, возврат, гарантия).
 
@@ -47,9 +48,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Storage | AWS S3 SDK | 3.x (совместимо с MinIO) |
 | Push | web-push | 3.6.7 |
 | Testing | Vitest | 4.1.3 + jsdom + `@testing-library/*` |
-| E2E | Playwright | 1.59.1 |
-| Desktop | Electron | 36 + Vite 6 |
-| Mobile | Expo | 55 + React Native 0.83 |
+| E2E | Playwright | 1.59.1 (установлен, но не сконфигурирован для E2E) |
 
 ---
 
@@ -63,16 +62,16 @@ app/ → widgets/ → features/ → entities/ → shared/
 
 ```
 app/                 — маршруты Next.js (pages, layouts, API routes, loading, error, not-found)
-entities/            — бизнес-сущности: product, category, cart, spec, page-block
-features/            — пользовательские фичи: cart, favorites, catalog-filter, compare, product-details, admin
+entities/            — бизнес-сущности: product, category, cart, spec, page-block, section
+features/            — пользовательские фичи: cart, favorites, catalog-filter, compare, product-details, admin (order-editor, page-blocks, page-sections)
 widgets/             — компоновочные виджеты: header, footer, navigation, product-carousel, home-sections, page-renderer
 shared/              — переиспользуемый UI, утилиты, типы, конфигурация
-lib/                 — инфраструктура: prisma, auth, trpc, store, storage, seo, sections, push, utils
+lib/                 — инфраструктура: prisma, auth, trpc, store, storage, seo, sections, push, utils, middleware, realtime
 prisma/              — схема (schema.prisma), миграции, сиды (seed.ts, seedcatalog.ts)
-scripts/             — TS-скрипты для миграций, бэкфилла SEO, конвертации изображений
+scripts/             — TS-скрипты для миграций, бэкфилла SEO, конвертации изображений, guardrails
 packages/            — shared-admin (код, общий для админок web + desktop)
-desktop/             — Electron CMS-приложение (отдельный package.json)
-mobile/              — Expo/React Native приложение (отдельный package.json)
+desktop/             — артефакты Electron-приложения (dist, dist-electron, release, node_modules). package.json отсутствует
+mobile/              — артефакты Expo/React Native (android, .expo, node_modules). package.json отсутствует
 tools/               — @aurasveta/db-cli и другие внутренние инструменты
 ```
 
@@ -126,10 +125,10 @@ import ProductCard from '@/entities/product/ui/productcard'
 | `/favorites` | Избранное |
 | `/compare` | Сравнение товаров |
 | `/pages/[slug]` | CMS-страницы (О нас, Доставка и т.д.) |
+| `/:slug` | Алиас для CMS-страниц (dual routing) |
 | `/search` | Поиск |
-| `/blog/[slug]` | Блог |
 | `/login`, `/register` | Авторизация (группа `(auth)`) |
-| `/admin/*` | Админ-панель (защищена прокси) |
+| `/admin/*` | Админ-панель (защищена прокси и RSC-гвардами) |
 | `/api/trpc/*` | tRPC API endpoint |
 | `/api/auth/*` | better-auth endpoint |
 | `/api/upload` | Загрузка файлов |
@@ -177,27 +176,19 @@ npm run seo:smoke                       # Post-deploy SEO smoke tests
 npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
 ```
 
-### Десктоп-приложение
+### Shared-admin пакет
 
 ```bash
-cd desktop
-npm run dev                    # Vite dev + Electron
-npm run build                  # Сборка + electron-builder
-npm run build:win              # Сборка под Windows
-npm run build:mac              # Сборка под macOS
-npm run build:linux            # Сборка под Linux
+# Нет отдельных скриптов — собирается как часть веб-приложения через алиас @aurasveta/shared-admin
 ```
+
+### Десктоп-приложение
+
+> **Внимание:** на момент написания файла `desktop/package.json` отсутствует. Директория содержит только артефакты сборки (`dist/`, `dist-electron/`, `release/`, `node_modules/`).
 
 ### Мобильное приложение
 
-```bash
-cd mobile
-npm run start                  # Expo dev server
-npm run android                # Сборка под Android
-npm run ios                    # Сборка под iOS
-npm run build:android          # EAS build (production)
-npm run build:apk              # EAS build (preview APK)
-```
+> **Внимание:** на момент написания файла `mobile/package.json` отсутствует. Директория содержит только артефакты (`android/`, `.expo/`, `node_modules/`).
 
 ---
 
@@ -236,7 +227,7 @@ npm run build:apk              # EAS build (preview APK)
 - Сессия: 1 день, обновление каждый час
 - `trustedOrigins` включает localhost, production URL, desktop и mobile deeplink-схемы (`exp+auracms://`, `aurasveta://`)
 
-Утилиты в `lib/auth/authutils.ts`: `getSession`, `requireAuth`, `requireAdmin`.
+Утилиты в `lib/auth/authutils.ts`: `getSession`, `requireAuth`, `requireAdmin`, `requireEditor`, `requireCmsAccess`.
 
 ### Prisma
 
@@ -293,9 +284,9 @@ npm run build:apk              # EAS build (preview APK)
 
 Prisma использует адаптер Neon (`@prisma/adapter-pg`) для serverless PostgreSQL. Конфигурация в `prisma.config.ts`.
 
-### Прокси / middleware (`proxy.ts`)
+### Middleware / proxy (`lib/middleware/proxy.ts`)
 
-Файл `proxy.ts` реализует защиту маршрутов и rate limiting (не `middleware.ts`):
+Файл `proxy.ts` реализует защиту маршрутов и rate limiting. Вызывается из `middleware.ts` (корень проекта):
 
 - Защита `/admin/*` — редирект на `/login` без сессии
 - Редирект авторизованных пользователей с `/login` и `/register` на `/`
@@ -315,6 +306,15 @@ Prisma использует адаптер Neon (`@prisma/adapter-pg`) для se
 
 Для локальной разработки S3 доступен через `docker-compose.yml` (MinIO на портах 9000/9001).
 
+### SEO-инфраструктура
+
+- `lib/seo/getmetadata.ts` — генерация Next.js `Metadata` для товаров, категорий, страниц (объединяет auto-generated + legacy + `SeoMetadata`)
+- `shared/lib/seo/generateseo.ts` — rule-based русскоязычный генератор SEO
+- `lib/seo/metadatapersistence.ts` — upsert в `SeoMetadata`
+- `lib/trpc/routers/seo.ts` — admin SEO router (аудит, bulk-операции, cannibalization, stale content, weekly triage)
+- `lib/seo/schema/builders/` — JSON-LD builders (breadcrumb, product, organization, website, itemlist, FAQ, navigation)
+- `app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts` — динамические SEO-файлы
+
 ---
 
 ## Фронтенд-архитектура
@@ -323,11 +323,23 @@ Prisma использует адаптер Neon (`@prisma/adapter-pg`) для se
 
 - **RSC** используются для страниц, layout, данных (prefetch через `trpc` из `lib/trpc/server`)
 - **Client Components** помечены `'use client'` и используют `trpc` из `lib/trpc/client`
-- Корневой `layout.tsx` — RSC, оборачивает в `TRPCProvider` + `HydrateClient`
+- Корневой `layout.tsx` — RSC, оборачивает в `TRPCProvider` + `HydrateClient` + `RootThemeProvider`
+
+### ISR-стратегия
+
+| Маршрут | Revalidate |
+|---|---|
+| `/` | 3600s (1ч) |
+| `/catalog` | 300s (5мин) |
+| `/catalog/[slug]` | 3600s (1ч) |
+| `/product/[slug]` | 1800s (30мин) |
+| `/pages/[slug]` | 3600s (1ч) |
+
+Статические параметры генерируются через `generateStaticParams()` в каталоге, товарах и CMS-страницах.
 
 ### Состояние
 
-- **Анонимные данные** (корзина, избранное) — Jotai + `atomWithStorage` (localStorage) в `lib/store/anonymous.ts`
+- **Анонимные данные** (корзина, избранное, сравнение) — Jotai + `atomWithStorage` (localStorage) в `lib/store/anonymous.ts`
 - **Авторизованные данные** — tRPC + TanStack Query (кэширование, инвалидация)
 - **Миграция** — при входе/регистрации анонимные данные автоматически мигрируют через `anonymous.migrateToUser`
 
@@ -343,8 +355,8 @@ Next.js Image настроен в `next.config.ts` для:
 
 - Конфигурация через CSS (`app/globals.css`), нет `tailwind.config.ts`
 - PostCSS конфиг в `postcss.config.mjs` — плагин `@tailwindcss/postcss`
-- Кастомная дизайн-система с CSS-переменными для light/dark тем
-- Основной шрифт: Chiron GoRound TC WS
+- Кастомная дизайн-система с CSS-переменными для light/dark тем (префикс `--nl-*` для Noir Ligne токенов)
+- Основной шрифт: Chiron GoRound TC WS / Manrope
 - shadcn/ui реестр: `radix-nova`, базовый цвет `neutral`
 
 ---
@@ -387,12 +399,12 @@ Next.js Image настроен в `next.config.ts` для:
 Конфиг: `vitest.config.ts`
 - Environment: `node`
 - Паттерны: `__tests__/**/*.test.ts`, `tests/**/*.test.ts`
-- Setup файл: `tests/setup.ts` (подключает `@testing-library/jest-dom/vitest`)
+- Setup файл: `tests/setup.ts` (подключает `@testing-library/jest-dom/vitest`, задаёт fallback `DATABASE_URL`)
 
 **Структура тестов:**
 - `__tests__/` — общие тесты (SEO, безопасность)
-- `tests/unit/` — юнит-тесты (корзина, заказы, фильтры, поиск, SEO, админка, схемы, утилиты)
-- `tests/integration/` — интеграционные тесты
+- `tests/unit/` — юнит-тесты (корзина, заказы, фильтры, поиск, SEO, админка, схемы, утилиты, компоненты)
+- `tests/integration/` — интеграционные тесты (SEO smoke, bulk SEO операции)
 
 **Примеры покрытых областей:**
 - Валидация webhook URL (блокировка localhost, private IPs)
@@ -402,10 +414,11 @@ Next.js Image настроен в `next.config.ts` для:
 - Схемы tRPC и Zod
 - Админ-импорт/экспорт CSV
 - Компоненты (ConfirmDialog, AdminPagination)
+- Next.js middleware/config (headers, redirects, robots, cache-control)
 
 ### Playwright
 
-Установлен как devDependency. Конфигурация отсутствует в корне — используется для SEO smoke tests (`npm run seo:smoke`).
+Установлен как devDependency, но **не сконфигурирован** для E2E-тестов в корне проекта (нет `playwright.config.*`). Используется только как dependency для SEO smoke tests (`npm run seo:smoke`), которые реализованы как standalone Node.js скрипт (`scripts/seo-post-deploy-smoke.mjs`).
 
 ### Запуск тестов
 
@@ -474,14 +487,15 @@ npm run test:watch  # watch mode
 ## Безопасность
 
 1. **Аутентификация:** better-auth с cookie-based сессиями. Поддержка Bearer-токена и `X-Session-Token` для desktop/mobile.
-2. **Авторизация:** ролевая модель (USER / EDITOR / ADMIN) на уровне tRPC-процедур.
-3. **Rate limiting:** в `proxy.ts` для upload, auth и search эндпоинтов (in-memory, single-instance).
+2. **Авторизация:** ролевая модель (USER / EDITOR / ADMIN) на уровне tRPC-процедур и RSC-гвардов (`requireAdmin`, `requireCmsAccess`).
+3. **Rate limiting:** в `lib/middleware/proxy.ts` для upload, auth и search эндпоинтов (in-memory, single-instance).
 4. **CORS:** строгая проверка origin для API-роутов.
-5. **Security headers:** X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Strict-Transport-Policy (в `next.config.ts`).
+5. **Security headers:** X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Strict-Transport-Policy (HSTS), Content-Security-Policy — настроены в `next.config.ts` и `proxy.ts`.
 6. **Валидация URL:** webhook URL валидируются на предмет localhost, private IPs, metadata endpoints.
 7. **Запрет моков:** ESLint блокирует импорт `@/shared/mocks/*` в production-коде.
 8. **SVG:** `dangerouslyAllowSVG: true` с CSP для изображений.
 9. **Robots:** страницы `/admin`, `/cart`, `/favorites`, `/compare`, `/search`, `/login`, `/register`, `/forbidden` отдают `X-Robots-Tag: noindex, nofollow`.
+10. **Guardrails:** скрипт `scripts/checkguardrails.ts` сканирует код на запрещённые паттерны (например, `fallback-secret`).
 
 ---
 
@@ -491,8 +505,9 @@ npm run test:watch  # watch mode
 - **Prisma 7** — использует `prisma.config.ts`, адаптер Neon.
 - **Zod v4** — синтаксис может отличаться от v3.
 - **Tailwind CSS 4** — конфигурация через CSS, нет классического `tailwind.config.ts`.
-- **Desktop и Mobile** — отдельные приложения со своими `package.json`. Они подключаются к тому же tRPC API и используют тот же better-auth (через токены).
-- **Анонимная сессия** — не путать с `better-auth` сессией. Это отдельная сущность `AnonymousSession` в БД (или localStorage на клиенте), которая мигрирует при входе.
+- **Desktop и Mobile** — директории `desktop/` и `mobile/` существуют, но в них отсутствуют `package.json`. Они подключаются к тому же tRPC API и используют тот же better-auth (через токены) при наличии сборки.
+- **Анонимная сессия** — не путать с `better-auth` сессией. Это отдельная сущность `AnonymousSession` в БД (или localStorage на клиенте), которая мигрирует при входе. Серверная подпись HMAC-SHA256 через `BETTER_AUTH_SECRET`.
 - **Page Sections** — CMS-страницы (`Page`) используют блочную систему секций (`Section`) для гибкой компоновки контента.
 - **Home Sections** — главная страница (`/`) собирается из `HomeSection` с разными `SectionType`.
 - **SEO** — в проекте развёрнута SEO-инфраструктура: `SeoMetadata`, SEO-роутер, sitemap, robots.txt, smoke tests, weekly triage. Изменения в роутах или метаданных должны учитывать SEO-проверки.
+- **Dual CMS Routing** — CMS-страницы доступны и по `/pages/:slug`, и по топ-левел `/:slug`. Корневой `[slug]/page.tsx` реэкспортирует `pages/[slug]/page.tsx`.

@@ -96,6 +96,21 @@ const nextConfig: NextConfig = {
 				destination: '/admin/seo',
 				permanent: true,
 			},
+			{
+				source: '/magiziny',
+				destination: '/stores',
+				permanent: true,
+			},
+			{
+				source: '/o-nas',
+				destination: '/about',
+				permanent: true,
+			},
+			{
+				source: '/dostavka',
+				destination: '/delivery',
+				permanent: true,
+			},
 		]
 	},
 	async headers() {

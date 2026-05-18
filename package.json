@@ -27,6 +27,8 @@
 		"seo:roadmap:backfill:apply": "tsx scripts/seo-roadmap-backfill.ts --apply",
 		"seo:smoke": "node scripts/seo-post-deploy-smoke.mjs",
 		"seo:backfill-metadata": "tsx scripts/seo-roadmap-backfill.ts --apply",
+		"fix:magiziny-nav": "tsx scripts/fix-magiziny-nav.ts",
+		"fix:magiziny-nav:apply": "tsx scripts/fix-magiziny-nav.ts --apply",
 		"check:web": "npm run guardrails:web && npm run prisma:generate && npm run lint && npm run test && npm run build"
 	},
 	"dependencies": {

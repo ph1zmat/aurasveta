@@ -6,6 +6,26 @@ export function isAbsoluteStorageUrl(value: string): boolean {
 	return /^https?:\/\//i.test(value)
 }
 
+/**
+ * Обрезает S3 query-параметры подписи (X-Amz-Algorithm и т.д.)
+ * из абсолютных URL. Возвращает оригинал, если подписи нет.
+ */
+function stripS3Signature(value: string): string {
+	if (!isAbsoluteStorageUrl(value)) return value
+
+	try {
+		const url = new URL(value)
+		if (url.searchParams.has('X-Amz-Algorithm')) {
+			url.search = ''
+			return url.toString()
+		}
+	} catch {
+		// ignore invalid URL
+	}
+
+	return value
+}
+
 function safeDecode(value: string): string {
 	try {
 		return decodeURIComponent(value)
@@ -69,7 +89,7 @@ export function resolveStorageFileUrl(value?: string | null): string | null {
 		isAbsoluteStorageUrl(normalizedCandidate) ||
 		normalizedCandidate.startsWith('/')
 	) {
-		return normalizedCandidate
+		return stripS3Signature(normalizedCandidate)
 	}
 
 	return getStorageFileUrl(normalizedCandidate)

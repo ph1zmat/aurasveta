@@ -231,8 +231,8 @@ async function backfillTopProducts(): Promise<BackfillStats> {
 
 			const generatedWithLegacy = {
 				...generated,
-				title: product.metaTitle ?? generated.title,
-				description: product.metaDesc ?? generated.description,
+				title: generated.title ?? product.metaTitle ?? null,
+				description: generated.description ?? product.metaDesc ?? null,
 			}
 
 			const existing = existingSeoMap.get(product.id) ?? null

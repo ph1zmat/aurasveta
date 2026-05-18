@@ -29,6 +29,12 @@ export function useSeoBulk() {
 		},
 	})
 
+	const { mutateAsync: clearLegacy, isPending: isClearing } = trpc.seo.clearLegacyFields.useMutation({
+		onSuccess: () => {
+			void utils.seo.listAll.invalidate()
+		},
+	})
+
 	const handlePreview = useCallback(async () => {
 		await runPreview()
 		setPreviewDone(true)
@@ -77,6 +83,12 @@ export function useSeoBulk() {
 		}
 	}, [applyBulk, getApplyInput, isApplyingAll])
 
+	const handleClearLegacy = useCallback(async () => {
+		const effectiveTarget = targetType === 'product' || targetType === 'page' ? targetType : 'all'
+		const result = await clearLegacy({ targetType: effectiveTarget })
+		return result
+	}, [clearLegacy, targetType])
+
 	const reset = useCallback(() => {
 		setPreviewDone(false)
 	}, [])
@@ -93,9 +105,11 @@ export function useSeoBulk() {
 		isPreviewing,
 		isApplying,
 		isApplyingAll,
+		isClearing,
 		handlePreview,
 		handleApplyCurrentBatch,
 		handleApplyAll,
+		handleClearLegacy,
 		reset,
 	}
 }

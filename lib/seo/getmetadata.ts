@@ -83,8 +83,8 @@ export async function getMetadataForProduct(product: {
 	const override = await getSeoOverride('product', product.id)
 	const merged = mergeSeoFields(
 		{
-			title: product.metaTitle ?? auto.title,
-			description: product.metaDesc ?? auto.description,
+			title: auto.title ?? product.metaTitle ?? '',
+			description: auto.description ?? product.metaDesc ?? null,
 			ogTitle: auto.ogTitle,
 			ogDescription: auto.ogDescription,
 			ogImage: auto.ogImage,

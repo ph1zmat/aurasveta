@@ -84,11 +84,11 @@ export function generateProductResult(
 		images: product.images,
 	})
 
-	// Legacy поля продукта (metaTitle/metaDesc) учитываем в auto
+	// Legacy поля продукта (metaTitle/metaDesc) — fallback, auto имеет приоритет
 	const autoWithLegacy = {
 		...auto,
-		title: product.metaTitle ?? auto.title,
-		description: product.metaDesc ?? auto.description,
+		title: auto.title ?? product.metaTitle ?? null,
+		description: auto.description ?? product.metaDesc ?? null,
 	}
 
 	const after = mergeWithMode(autoWithLegacy, existing, mode)

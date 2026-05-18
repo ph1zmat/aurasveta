@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { AlertTriangle, CheckCircle2, Eye, FileCheck } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Eye, FileCheck, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSeoBulk } from '../_hooks/use-seo-bulk'
 import { TARGET_TYPE_OPTIONS, BULK_MODES, BULK_TARGET_LABELS, BULK_MODE_LABELS } from '../_lib/constants'
@@ -15,7 +15,8 @@ export function SeoBulkTab() {
 		onlyMissing, setOnlyMissing,
 		previewDone, previewData,
 		isPreviewing, isApplying, isApplyingAll,
-		handlePreview, handleApplyCurrentBatch, handleApplyAll,
+		isClearing,
+		handlePreview, handleApplyCurrentBatch, handleApplyAll, handleClearLegacy,
 		reset,
 	} = useSeoBulk()
 
@@ -38,6 +39,16 @@ export function SeoBulkTab() {
 			}
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Не удалось обработать весь список')
+		}
+	}
+
+	const onClearLegacy = async () => {
+		if (!confirm('Очистить legacy metaTitle/metaDesc в выбранном типе сущностей? Это необратимо.')) return
+		try {
+			const result = await handleClearLegacy()
+			toast.success(`Очищено legacy-полей: ${result.cleared} записей. Теперь auto-generated SEO будет применяться.`)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Не удалось очистить legacy-поля')
 		}
 	}
 
@@ -107,6 +118,10 @@ export function SeoBulkTab() {
 				</Button>
 				<Button variant='secondary' onClick={onApplyAll} disabled={isApplying || isApplyingAll} className='gap-2'>
 					{isApplyingAll ? 'Обрабатываем всё…' : 'Обработать всё'}
+				</Button>
+				<Button variant='destructive' onClick={onClearLegacy} disabled={isClearing} className='gap-2'>
+					<Trash2 className='h-4 w-4' />
+					{isClearing ? 'Очищаем…' : 'Очистить legacy SEO'}
 				</Button>
 			</div>
 

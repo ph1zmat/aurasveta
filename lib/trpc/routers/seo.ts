@@ -2509,5 +2509,50 @@ export const seoRouter = createTRPCRouter({
 
 			return { items }
 		}),
+
+	/**
+	 * Очищает legacy metaTitle/metaDesc в Product и/или Category.
+	 * Используется для миграции на auto-generated SEO с приоритетом.
+	 */
+	clearLegacyFields: adminProcedure
+		.input(
+			z.object({
+				targetType: z.enum(['product', 'page', 'all']).default('all'),
+				ids: z.array(z.string()).optional(),
+			}).default({ targetType: 'all' }),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const where = input.ids?.length ? { id: { in: input.ids } } : {}
+			let cleared = 0
+
+			if (input.targetType === 'product' || input.targetType === 'all') {
+				const result = await ctx.prisma.product.updateMany({
+					where: { ...where, metaTitle: { not: null } },
+					data: { metaTitle: null, metaDesc: null },
+				})
+				cleared += result.count
+			}
+
+			if (input.targetType === 'page' || input.targetType === 'all') {
+				const result = await ctx.prisma.page.updateMany({
+					where: { ...where, metaTitle: { not: null } },
+					data: { metaTitle: null, metaDesc: null },
+				})
+				cleared += result.count
+			}
+
+			await createSeoOperationLog(ctx, {
+				type: 'seo-clear-legacy',
+				status: 'COMPLETED',
+				count: cleared,
+				meta: {
+					action: 'clearLegacyFields',
+					targetType: input.targetType,
+					idsCount: input.ids?.length ?? null,
+				},
+			})
+
+			return { cleared }
+		}),
 })
 

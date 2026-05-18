@@ -11,7 +11,7 @@ export function buildNavigationSchema(): Record<string, unknown>[] {
 		{ name: 'Трековые системы', url: '/catalog/trekovye-sistemy' },
 		{ name: 'Уличное освещение', url: '/catalog/ulichnoe-osveshenie' },
 		{ name: 'Лампочки', url: '/catalog/lampochki' },
-		{ name: 'Доставка', url: '/dostavka' },
+		{ name: 'Доставка', url: '/delivery' },
 		{ name: 'Контакты', url: '/contacts' },
 	]
 
