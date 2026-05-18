@@ -7,6 +7,26 @@ interface PushPayload {
 	data?: Record<string, string>
 }
 
+export type PushDeliveryDiagnostic =
+	| 'NO_ACTIVE_DEVICES'
+	| 'MISSING_FIREBASE_SERVER_KEY'
+	| 'MISSING_VAPID_KEYS'
+	| 'WEB_PUSH_PACKAGE_UNAVAILABLE'
+	| 'MISSING_WEB_PUSH_SUBSCRIPTION_DETAILS'
+
+type PushSendOutcome =
+	| { status: 'sent' }
+	| { status: 'skipped'; diagnostic: PushDeliveryDiagnostic }
+
+export interface PushSendResult {
+	sent: number
+	failed: number
+	skipped: number
+	totalDevices: number
+	deactivatedDevices: number
+	diagnostics: PushDeliveryDiagnostic[]
+}
+
 /**
  * Отправка push-уведомлений всем зарегистрированным устройствам администраторов/редакторов.
  */
@@ -19,13 +39,42 @@ export async function sendPushToAdmins(payload: PushPayload) {
 		include: { user: { select: { id: true, role: true } } },
 	})
 
+	if (devices.length === 0) {
+		return {
+			sent: 0,
+			failed: 0,
+			skipped: 0,
+			totalDevices: 0,
+			deactivatedDevices: 0,
+			diagnostics: ['NO_ACTIVE_DEVICES'],
+		} satisfies PushSendResult
+	}
+
 	const results = await Promise.allSettled(
 		devices.map(device => sendToDevice(device, payload)),
 	)
 
 	// Деактивировать устройства с ошибками (невалидный токен)
 	const failedDeviceIds: string[] = []
+	const diagnostics = new Set<PushDeliveryDiagnostic>()
+	let sent = 0
+	let failed = 0
+	let skipped = 0
+
 	results.forEach((result, index) => {
+		if (result.status === 'fulfilled') {
+			if (result.value.status === 'sent') {
+				sent++
+				return
+			}
+
+			skipped++
+			diagnostics.add(result.value.diagnostic)
+			return
+		}
+
+		failed++
+
 		if (result.status === 'rejected') {
 			const reason = String(result.reason)
 			if (
@@ -47,9 +96,13 @@ export async function sendPushToAdmins(payload: PushPayload) {
 	}
 
 	return {
-		sent: results.filter(r => r.status === 'fulfilled').length,
-		failed: results.filter(r => r.status === 'rejected').length,
-	}
+		sent,
+		failed,
+		skipped,
+		totalDevices: devices.length,
+		deactivatedDevices: failedDeviceIds.length,
+		diagnostics: [...diagnostics],
+	} satisfies PushSendResult
 }
 
 async function sendToDevice(
@@ -61,12 +114,15 @@ async function sendToDevice(
 		authKey: string | null
 	},
 	payload: PushPayload,
-) {
+): Promise<PushSendOutcome> {
 	if (device.platform === 'FCM') {
 		return sendFCM(device.token, payload)
 	} else if (device.platform === 'WEB_PUSH') {
 		if (!device.endpoint || !device.p256dh || !device.authKey) {
-			throw new Error('Missing Web Push subscription details')
+			return {
+				status: 'skipped',
+				diagnostic: 'MISSING_WEB_PUSH_SUBSCRIPTION_DETAILS',
+			}
 		}
 		return sendWebPush(
 			{
@@ -76,12 +132,18 @@ async function sendToDevice(
 			payload,
 		)
 	}
+
+	return {
+		status: 'skipped',
+		diagnostic: 'NO_ACTIVE_DEVICES',
+	}
 }
 
 async function sendFCM(token: string, payload: PushPayload) {
 	// Expo Push tokens are NOT FCM tokens. Detect and route accordingly.
 	if (isExpoPushToken(token)) {
-		return sendExpoPush(token, payload)
+		await sendExpoPush(token, payload)
+		return { status: 'sent' } satisfies PushSendOutcome
 	}
 
 	// Firebase Admin SDK — если установлен firebase-admin
@@ -90,7 +152,10 @@ async function sendFCM(token: string, payload: PushPayload) {
 
 	if (!serverKey) {
 		console.warn('[Push] FIREBASE_SERVER_KEY не настроен, FCM пропущен')
-		return
+		return {
+			status: 'skipped',
+			diagnostic: 'MISSING_FIREBASE_SERVER_KEY',
+		} satisfies PushSendOutcome
 	}
 
 	const response = await fetch('https://fcm.googleapis.com/fcm/send', {
@@ -114,7 +179,8 @@ async function sendFCM(token: string, payload: PushPayload) {
 		throw new Error(`FCM error: ${response.status} ${text}`)
 	}
 
-	return response.json()
+	await response.json().catch(() => null)
+	return { status: 'sent' } satisfies PushSendOutcome
 }
 
 function isExpoPushToken(token: string) {
@@ -164,27 +230,34 @@ async function sendExpoPush(token: string, payload: PushPayload) {
 async function sendWebPush(
 	subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
 	payload: PushPayload,
-) {
+	): Promise<PushSendOutcome> {
 	// Используем web-push, если установлен
+	let webpush: typeof import('web-push')
 	try {
-		const webpush = await import('web-push')
-
-		const vapidPublicKey = process.env.VAPID_PUBLIC_KEY
-		const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
-		const vapidSubject =
-			process.env.VAPID_SUBJECT || 'mailto:admin@aurasveta.ru'
-
-		if (!vapidPublicKey || !vapidPrivateKey) {
-			console.warn('[Push] VAPID ключи не настроены, Web Push пропущен')
-			return null
-		}
-
-		webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
-
-		return webpush.sendNotification(subscription, JSON.stringify(payload))
+		webpush = await import('web-push')
 	} catch {
 		console.warn('[Push] web-push не установлен, Web Push пропущен')
-		return null
+		return {
+			status: 'skipped',
+			diagnostic: 'WEB_PUSH_PACKAGE_UNAVAILABLE',
+		} satisfies PushSendOutcome
 	}
+
+	const vapidPublicKey = process.env.VAPID_PUBLIC_KEY
+	const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+	const vapidSubject =
+		process.env.VAPID_SUBJECT || 'mailto:admin@aurasveta.ru'
+
+	if (!vapidPublicKey || !vapidPrivateKey) {
+		console.warn('[Push] VAPID ключи не настроены, Web Push пропущен')
+		return {
+			status: 'skipped',
+			diagnostic: 'MISSING_VAPID_KEYS',
+		} satisfies PushSendOutcome
+	}
+
+	webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+	await webpush.sendNotification(subscription, JSON.stringify(payload))
+	return { status: 'sent' } satisfies PushSendOutcome
 }
 

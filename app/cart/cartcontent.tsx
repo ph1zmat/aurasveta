@@ -176,11 +176,17 @@ export default function CartContent() {
 		setTestPushLoading(true)
 		try {
 			const res = await fetch('/api/desktop/test-push', { method: 'POST' })
+			const data = (await res.json().catch(() => ({}))) as {
+				message?: string
+				error?: string
+				result?: { sent?: number; totalDevices?: number; diagnostics?: string[] }
+			}
 			if (res.ok) {
-				toast.success('Тестовое уведомление отправлено')
+				toast.success(data.message || 'Тестовое уведомление отправлено')
 			} else {
-				const data = await res.json().catch(() => ({}))
-				toast.error(data.error || 'Не удалось отправить тестовое уведомление')
+				toast.error(
+					data.message || data.error || 'Не удалось отправить тестовое уведомление',
+				)
 			}
 		} catch {
 			toast.error('Ошибка сети')

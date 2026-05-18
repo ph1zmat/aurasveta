@@ -4,6 +4,7 @@ import {
 	getCmsRoleForUserId,
 	getSessionFromRequestHeaders,
 } from '@/lib/auth/request-auth'
+import { sendPushToAdmins, type PushDeliveryDiagnostic } from '@/lib/push/send'
 
 function corsHeaders() {
 	return {
@@ -15,6 +16,30 @@ function corsHeaders() {
 
 export async function OPTIONS() {
 	return new Response(null, { status: 204, headers: corsHeaders() })
+}
+
+function getDiagnosticMessage(diagnostics: PushDeliveryDiagnostic[]) {
+	if (diagnostics.includes('NO_ACTIVE_DEVICES')) {
+		return 'Нет активных push-устройств для администраторов или редакторов.'
+	}
+
+	if (diagnostics.includes('MISSING_VAPID_KEYS')) {
+		return 'Не настроены VAPID-ключи для Web Push.'
+	}
+
+	if (diagnostics.includes('MISSING_FIREBASE_SERVER_KEY')) {
+		return 'Не настроен FIREBASE_SERVER_KEY для FCM/Expo push.'
+	}
+
+	if (diagnostics.includes('WEB_PUSH_PACKAGE_UNAVAILABLE')) {
+		return 'Пакет web-push недоступен в серверной среде.'
+	}
+
+	if (diagnostics.includes('MISSING_WEB_PUSH_SUBSCRIPTION_DETAILS')) {
+		return 'В push-устройствах есть неполные Web Push подписки.'
+	}
+
+	return 'Тестовый push не был доставлен ни на одно устройство.'
 }
 
 export async function POST(request: Request) {
@@ -30,6 +55,15 @@ export async function POST(request: Request) {
 		}
 
 		const testOrderId = `test-${Date.now()}`
+		const pushResult = await sendPushToAdmins({
+			title: 'Тестовый push',
+			body: `Проверка push-уведомлений для CMS (#${testOrderId.slice(-6)})`,
+			data: {
+				type: 'test_push',
+				orderId: testOrderId,
+			},
+		})
+
 		adminEventBus.publish({
 			type: 'order.created',
 			orderId: testOrderId,
@@ -37,8 +71,28 @@ export async function POST(request: Request) {
 			createdAt: new Date().toISOString(),
 		})
 
+		if (pushResult.sent === 0) {
+			return NextResponse.json(
+				{
+					error: 'PUSH_NOT_DELIVERED',
+					message: getDiagnosticMessage(pushResult.diagnostics),
+					result: pushResult,
+					orderId: testOrderId,
+				},
+				{ status: 409, headers: corsHeaders() },
+			)
+		}
+
 		return NextResponse.json(
-			{ ok: true, orderId: testOrderId },
+			{
+				ok: true,
+				message:
+					pushResult.sent === 1
+						? 'Тестовый push доставлен на 1 устройство.'
+						: `Тестовый push доставлен на ${pushResult.sent} устройств.`,
+				result: pushResult,
+				orderId: testOrderId,
+			},
 			{ headers: corsHeaders() },
 		)
 	} catch {
