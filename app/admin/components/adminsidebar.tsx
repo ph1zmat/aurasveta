@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X, LogOut } from 'lucide-react'
@@ -8,6 +9,8 @@ import { getAdminNavGroups } from './adminnav'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { authClient } from '@/lib/auth/authclient'
+import { toast } from 'sonner'
 
 interface AdminSidebarProps {
 	userRole: string
@@ -19,6 +22,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 	const groups = getAdminNavGroups(userRole)
 	const pathname = usePathname()
 	const router = useRouter()
+	const [isSigningOut, setIsSigningOut] = useState(false)
 
 	const { data: pendingData } = trpc.orders.getAllOrders.useQuery(
 		{ status: 'PENDING', page: 1, limit: 1 },
@@ -47,6 +51,23 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 		return pathname.startsWith(href)
 	}
 
+	const handleSignOut = async () => {
+		if (isSigningOut) {
+			return
+		}
+
+		setIsSigningOut(true)
+
+		try {
+			await authClient.signOut()
+			router.replace('/login')
+		} catch {
+			toast.error('Не удалось завершить сессию. Попробуйте ещё раз.')
+		} finally {
+			setIsSigningOut(false)
+		}
+	}
+
 	return (
 		<>
 			{sidebarOpen && (
@@ -57,7 +78,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 			)}
 
 			<aside
-				className={`fixed inset-y-0 left-0 z-50 w-[260px] flex-shrink-0 flex flex-col
+				className={`fixed inset-y-0 left-0 z-50 flex w-[260px] shrink-0 flex-col
 					border-r border-border bg-card
 					transition-transform duration-200 ease-out
 					lg:relative lg:translate-x-0
@@ -65,8 +86,8 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 				`}
 			>
 				{/* Logo */}
-				<div className='flex h-16 items-center gap-3 px-5 border-b border-border'>
-					<div className='flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-accent text-accent-foreground font-extrabold text-lg select-none'>
+				<div className='flex h-16 items-center gap-3 border-b border-border px-5'>
+					<div className='flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground font-extrabold text-lg select-none'>
 						A
 					</div>
 					<span className='text-lg font-bold tracking-tight'>Aura Admin</span>
@@ -101,7 +122,7 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 											key={item.href}
 											href={item.href}
 											onClick={onClose}
-											className={`flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2
+											className={`flex items-center gap-3 rounded-md px-3 py-2
 												text-sm font-medium transition-colors relative
 												${active
 													? 'bg-accent/10 text-accent before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-0.5 before:rounded-full before:bg-accent'
@@ -124,8 +145,8 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 				</nav>
 
 				{/* User */}
-				<div className='p-3 border-t border-border'>
-					<div className='flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 hover:bg-secondary transition-colors cursor-pointer'>
+				<div className='border-t border-border p-3'>
+					<div className='flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-secondary'>
 						<div className='flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-bold text-sm select-none'>
 							{initials}
 						</div>
@@ -137,7 +158,8 @@ export default function AdminSidebar({ userRole, sidebarOpen, onClose }: AdminSi
 							variant='ghost'
 							size='icon'
 							className='ml-auto h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground'
-							onClick={() => router.push('/login')}
+							onClick={() => void handleSignOut()}
+							disabled={isSigningOut}
 							title='Выйти'
 						>
 							<LogOut className='h-4 w-4' />

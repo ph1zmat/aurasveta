@@ -25,7 +25,7 @@ export const ORDER_STATUS_CONFIG: Record<
 		icon: CircleDot,
 	},
 	PAID: {
-		label: 'Оплачен',
+		label: 'Принят',
 		color: 'text-emerald-500',
 		bg: 'bg-emerald-500/10',
 		border: 'border-emerald-500/30',
@@ -63,7 +63,7 @@ export const ORDER_TRANSITIONS: Record<
 	}[]
 > = {
 	PENDING: [
-		{ next: 'PAID', label: 'Оплачен', icon: CreditCard },
+		{ next: 'PAID', label: 'Принять', icon: CreditCard },
 		{ next: 'CANCELLED', label: 'Отменить', icon: Ban },
 	],
 	PAID: [

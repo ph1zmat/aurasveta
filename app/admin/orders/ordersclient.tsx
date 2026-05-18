@@ -79,7 +79,7 @@ export default function OrdersClient() {
 	const handleStatusChange = (orderId: string, newStatus: string) => {
 		updateStatus.mutate({
 			id: orderId,
-			status: newStatus as 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+			status: newStatus as 'PENDING' | 'PAID',
 		})
 	}
 
@@ -126,7 +126,7 @@ export default function OrdersClient() {
 				{/* Kanban or list */}
 				<div className={`flex-1 min-w-0 ${selectedOrder ? 'hidden xl:block' : ''}`}>
 					{view === 'kanban' && kanbanLoading ? (
-						<KanbanSkeleton />
+						<KanbanSkeleton columns={2} />
 					) : view === 'kanban' && filteredKanbanData ? (
 						<OrderKanbanBoard
 							ordersByStatus={filteredKanbanData as OrderKanbanBoardProps['ordersByStatus']}

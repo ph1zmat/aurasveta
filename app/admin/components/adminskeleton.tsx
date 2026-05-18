@@ -76,11 +76,14 @@ export function FormSkeleton({ fields = 4 }: { fields?: number }) {
 	)
 }
 
-/** Skeleton для Kanban-доски (5 колонок) */
-export function KanbanSkeleton() {
+/** Skeleton для Kanban-доски */
+export function KanbanSkeleton({ columns = 5 }: { columns?: number }) {
 	return (
-		<div className='grid grid-cols-1 md:grid-cols-5 gap-3'>
-			{Array.from({ length: 5 }).map((_, i) => (
+		<div
+			className='grid grid-cols-1 gap-3'
+			style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+		>
+			{Array.from({ length: columns }).map((_, i) => (
 				<div key={i} className='space-y-3'>
 					<Skeleton className='h-6 w-full' />
 					{Array.from({ length: 3 }).map((_, j) => (

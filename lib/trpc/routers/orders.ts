@@ -308,10 +308,10 @@ export const ordersRouter = createTRPCRouter({
 		}),
 
 	getAllByStatuses: adminProcedure.query(async ({ ctx }) => {
-		const statuses = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const
-		// Один запрос вместо 5 отдельных; группируем в JS
+		const statuses = ['PENDING', 'PAID'] as const
+		// Канбан заказов намеренно ограничен двумя рабочими статусами.
 		const orders = await ctx.prisma.order.findMany({
-			where: { status: { in: statuses as unknown as ('PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED')[] } },
+			where: { status: { in: statuses as unknown as ('PENDING' | 'PAID')[] } },
 			include: {
 				user: { select: { name: true, email: true } },
 				items: { include: { product: { select: { name: true, slug: true } } } },

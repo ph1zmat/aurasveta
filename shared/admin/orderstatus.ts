@@ -16,7 +16,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
 export const statusLabels: Record<OrderStatus, string> = {
 	PENDING: 'Новый',
-	PAID: 'Оплачен',
+	PAID: 'Принят',
 	SHIPPED: 'Отправлен',
 	DELIVERED: 'Доставлен',
 	CANCELLED: 'Отменён',

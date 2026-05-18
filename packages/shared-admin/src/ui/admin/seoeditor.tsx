@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { Loader2 } from 'lucide-react'
 import { trpc } from '@/lib/trpc/client'
 import type { SeoTargetType, SeoFormValues } from '@/shared/types/seo'
 import { Button } from '@/shared/ui/button'
@@ -89,10 +90,20 @@ function ManagedSeoEditor({
 	submitLabel = 'Сохранить SEO',
 	onSaved,
 }: ManagedSeoEditorProps) {
-	const { data: existing, refetch } = trpc.seo.getByTarget.useQuery({
-		targetType,
-		targetId,
-	})
+	const {
+		data: existing,
+		isLoading,
+		isFetching,
+		refetch,
+	} = trpc.seo.getByTarget.useQuery(
+		{
+			targetType,
+			targetId,
+		},
+		{
+			enabled: Boolean(targetId),
+		},
+	)
 	const updateMutation = trpc.seo.update.useMutation({
 		onSuccess: () => {
 			void refetch()
@@ -101,6 +112,7 @@ function ManagedSeoEditor({
 	const [submitError, setSubmitError] = useState<string | null>(null)
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 	const initialValues = useMemo(() => getInitialValues(existing), [existing])
+	const isInitialLoading = (isLoading || isFetching) && existing === undefined
 	useUnsavedChangesGuard(hasUnsavedChanges)
 
 	const form = useForm({
@@ -167,6 +179,13 @@ function ManagedSeoEditor({
 				</div>
 			) : null}
 
+			{isInitialLoading ? (
+				<div className='flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground'>
+					<Loader2 className='h-4 w-4 animate-spin' aria-hidden='true' />
+					<span>Загружаем SEO-данные…</span>
+				</div>
+			) : null}
+
 			<SeoInlineEditor
 				value={form.state.values}
 				onChange={next => {
@@ -207,7 +226,7 @@ function ManagedSeoEditor({
 
 export function SeoEditor(props: SeoEditorProps) {
 	if (props.mode === 'managed') {
-		return <ManagedSeoEditor {...props} />
+		return <ManagedSeoEditor key={`${props.targetType}-${props.targetId}`} {...props} />
 	}
 
 	return (

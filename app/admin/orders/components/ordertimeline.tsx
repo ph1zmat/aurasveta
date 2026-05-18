@@ -4,7 +4,7 @@ import { Check, Circle } from 'lucide-react'
 
 const STEPS = [
 { key: 'PENDING', label: 'Новый' },
-{ key: 'PAID', label: 'Оплачен' },
+{ key: 'PAID', label: 'Принят' },
 { key: 'SHIPPED', label: 'Отправлен' },
 { key: 'DELIVERED', label: 'Доставлен' },
 ]

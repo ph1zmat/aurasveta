@@ -8,7 +8,7 @@ import { FaPhoneAlt, FaViber } from 'react-icons/fa'
 
 const statusLabels: Record<string, string> = {
 	PENDING: 'Новый',
-	PAID: 'Оплачен',
+	PAID: 'Принят',
 	SHIPPED: 'Отправлен',
 	DELIVERED: 'Доставлен',
 	CANCELLED: 'Отменён',

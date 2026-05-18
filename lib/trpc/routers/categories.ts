@@ -9,7 +9,6 @@ import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
 	buildCategoryProductWhere,
 	getCategoryFilterSummary,
-	isFilteringCategory,
 	type CategoryFilterAware,
 } from '@/lib/categories/categoryfilters'
 import { productImageSelect } from '@/lib/products/productimages'
@@ -248,16 +247,22 @@ async function batchResolveCategoryFallbackImages(
 	return resolved
 }
 
-/** Batch-вычисление counts для filtering-категорий (параллельно) */
+/** Batch-вычисление counts для всех категорий (с учётом дочерних, где это применимо) */
 async function batchResolveCategoryProductCounts(
 	ctx: { prisma: PrismaClient },
 	categories: CategoryWithFilterMeta[],
 ) {
 	const counts = new Map<string, number>()
-	const filtering = categories.filter(isFilteringCategory)
+	const uniqueCategories = new Map<string, CategoryWithFilterMeta>()
+
+	for (const category of categories) {
+		if (!uniqueCategories.has(category.id)) {
+			uniqueCategories.set(category.id, category)
+		}
+	}
 
 	await Promise.all(
-		filtering.map(async (cat) => {
+		[...uniqueCategories.values()].map(async (cat) => {
 			const count = await ctx.prisma.product.count({
 				where: {
 					isActive: true,

@@ -16,12 +16,11 @@ import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
 import { GripVertical } from 'lucide-react'
 
-const COLUMNS: Array<{ key: string; label: string; color: string; badgeClass: string }> = [
+type KanbanStatus = 'PENDING' | 'PAID'
+
+const COLUMNS: Array<{ key: KanbanStatus; label: string; color: string; badgeClass: string }> = [
 	{ key: 'PENDING', label: 'Новый', color: 'border-t-warning', badgeClass: 'bg-warning/15 text-warning border-warning/20' },
-	{ key: 'PAID', label: 'Оплачен', color: 'border-t-success', badgeClass: 'bg-success/15 text-success border-success/20' },
-	{ key: 'SHIPPED', label: 'Отправлен', color: 'border-t-info', badgeClass: 'bg-info/15 text-info border-info/20' },
-	{ key: 'DELIVERED', label: 'Доставлен', color: 'border-t-accent', badgeClass: 'bg-accent/15 text-accent border-accent/20' },
-	{ key: 'CANCELLED', label: 'Отменён', color: 'border-t-destructive', badgeClass: 'bg-destructive/15 text-destructive border-destructive/20' },
+	{ key: 'PAID', label: 'Принят', color: 'border-t-success', badgeClass: 'bg-success/15 text-success border-success/20' },
 ]
 
 interface Order {
@@ -94,9 +93,9 @@ function KanbanCard({ order, onClick, isDragging }: KanbanCardProps) {
 }
 
 export interface OrderKanbanBoardProps {
-	ordersByStatus: Record<string, Order[]>
+	ordersByStatus: Record<KanbanStatus, Order[]>
 	onOrderClick: (orderId: string) => void
-	onStatusChange: (orderId: string, newStatus: string) => void
+	onStatusChange: (orderId: string, newStatus: KanbanStatus) => void
 }
 
 export function OrderKanbanBoard({
@@ -107,7 +106,7 @@ export function OrderKanbanBoard({
 	const [activeId, setActiveId] = useState<string | null>(null)
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-	const findColumn = (id: string): string | null => {
+	const findColumn = (id: string): KanbanStatus | null => {
 		for (const col of COLUMNS) {
 			if ((ordersByStatus[col.key] ?? []).some((o) => o.id === id)) return col.key
 		}
@@ -138,14 +137,14 @@ export function OrderKanbanBoard({
 			onDragStart={handleDragStart}
 			onDragEnd={handleDragEnd}
 		>
-			<div className='flex gap-3 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]'>
+			<div className='grid min-h-[calc(100vh-220px)] gap-3 overflow-x-auto pb-4 md:grid-cols-2'>
 				{COLUMNS.map((col) => {
 					const orders = ordersByStatus[col.key] ?? []
 					return (
 						<div
 							key={col.key}
 							id={col.key}
-							className={`flex w-64 shrink-0 flex-col rounded-lg border border-border border-t-2 bg-secondary/30 ${col.color}`}
+							className={`flex min-w-0 flex-col rounded-lg border border-border border-t-2 bg-secondary/30 ${col.color}`}
 							aria-live='polite'
 							aria-label={`Колонка ${col.label}`}
 						>
