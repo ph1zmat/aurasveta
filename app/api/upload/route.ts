@@ -1,21 +1,14 @@
 ﻿import path from 'path'
 import { randomBytes, randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/auth'
 import { headers } from 'next/headers'
 import { uploadFile, deleteFile } from '@/lib/storage'
 import { getStorageFileUrl } from '@/shared/lib/storagefileurl'
+import { getCmsAccessFromRequestHeaders } from '@/lib/auth/request-auth'
+import { API_CORS_ALLOWED_ORIGINS, getAllowedOrigin } from '@/lib/config/origins'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
-const PROD_ORIGINS = ['https://aurasveta.ru']
-const DEV_ORIGINS = [
-	'http://localhost:3000',
-	'http://localhost:5173',
-	'http://localhost:8081',
-	'http://127.0.0.1:5173',
-	'http://127.0.0.1:8081',
-]
 const EXT_TO_MIME: Record<string, string> = {
 	'.jpg': 'image/jpeg',
 	'.jpeg': 'image/jpeg',
@@ -59,12 +52,7 @@ function getFilesFromFormData(formData: FormData): File[] {
 }
 
 function getCorsOrigin(origin: string | null): string {
-	if (!origin) return ''
-	const allowedOrigins =
-		process.env.NODE_ENV !== 'production'
-			? [...PROD_ORIGINS, ...DEV_ORIGINS]
-			: PROD_ORIGINS
-	return allowedOrigins.includes(origin) ? origin : ''
+	return getAllowedOrigin(origin, API_CORS_ALLOWED_ORIGINS)
 }
 
 function withCors(response: NextResponse, origin: string | null): NextResponse {
@@ -86,41 +74,8 @@ function jsonWithCors(
 }
 
 async function requireEditorRole() {
-	// Allow desktop clients to send the session token via Authorization header.
-	const incoming = await headers()
-	const effective = new Headers(incoming)
-	const tokenFromAuth =
-		effective
-			.get('authorization')
-			?.match(/^Bearer\s+(.+)$/i)?.[1]
-			?.trim() ??
-		effective.get('x-session-token')?.trim() ??
-		null
-
-	if (tokenFromAuth) {
-		const existingCookie = effective.get('cookie') ?? ''
-		if (!/better-auth\.session_token=/.test(existingCookie)) {
-			const cookieToAdd = `better-auth.session_token=${tokenFromAuth}`
-			effective.set(
-				'cookie',
-				existingCookie ? `${existingCookie}; ${cookieToAdd}` : cookieToAdd,
-			)
-		}
-	}
-
-	const session = await auth.api.getSession({ headers: effective })
-	if (!session?.user) {
-		return null
-	}
-	const { prisma } = await import('@/lib/prisma')
-	const user = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { role: true },
-	})
-	if (user?.role !== 'ADMIN' && user?.role !== 'EDITOR') {
-		return null
-	}
-	return session
+	const access = await getCmsAccessFromRequestHeaders(await headers())
+	return access?.session ?? null
 }
 
 export async function POST(req: Request) {

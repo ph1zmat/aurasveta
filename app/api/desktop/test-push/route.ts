@@ -1,6 +1,9 @@
-import { auth } from '@/lib/auth/auth'
 import { adminEventBus } from '@/lib/realtime/adminevents'
 import { NextResponse } from 'next/server'
+import {
+	getCmsRoleForUserId,
+	getSessionFromRequestHeaders,
+} from '@/lib/auth/request-auth'
 
 function corsHeaders() {
 	return {
@@ -10,39 +13,20 @@ function corsHeaders() {
 	}
 }
 
-function getTokenFromRequest(request: Request): string | null {
-	const authHeader = request.headers.get('authorization')
-	const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim()
-	if (bearer) return bearer
-	const xToken = request.headers.get('x-session-token')?.trim()
-	if (xToken) return xToken
-	// Cookie-based auth (web app) — support both plain and __Secure- prefixed cookie names
-	const cookie = request.headers.get('cookie')
-	if (cookie) {
-		const match =
-			cookie.match(/(?:__Secure-)?better-auth\.session_token=([^;]+)/) ??
-			cookie.match(/better-auth%2Esession_token=([^;]+)/)
-		if (match?.[1]) return decodeURIComponent(match[1])
-	}
-	return null
-}
-
 export async function OPTIONS() {
 	return new Response(null, { status: 204, headers: corsHeaders() })
 }
 
 export async function POST(request: Request) {
 	try {
-		const token = getTokenFromRequest(request)
-		if (!token) {
+		const session = await getSessionFromRequestHeaders(request.headers)
+		if (!session?.user) {
 			return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401, headers: corsHeaders() })
 		}
 
-		const authHeaders = new Headers()
-		authHeaders.set('cookie', `better-auth.session_token=${token}`)
-		const session = await auth.api.getSession({ headers: authHeaders })
-		if (!session?.user) {
-			return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401, headers: corsHeaders() })
+		const role = await getCmsRoleForUserId(session.user.id)
+		if (!role) {
+			return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403, headers: corsHeaders() })
 		}
 
 		const testOrderId = `test-${Date.now()}`

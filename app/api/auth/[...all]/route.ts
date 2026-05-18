@@ -1,20 +1,11 @@
 import { auth } from '@/lib/auth/auth'
 import { toNextJsHandler } from 'better-auth/next-js'
+import { getAllowedOrigin } from '@/lib/config/origins'
 
 const handlers = toNextJsHandler(auth)
 
-const ALLOWED_ORIGINS = new Set([
-	'http://localhost:3000',
-	'http://localhost:5173',
-	'http://localhost:8081',
-	'http://127.0.0.1:5173',
-	'http://127.0.0.1:8081',
-	'https://aurasveta.ru',
-])
-
 function getCorsOrigin(req: Request): string {
-	const origin = req.headers.get('origin') ?? ''
-	return ALLOWED_ORIGINS.has(origin) ? origin : ''
+	return getAllowedOrigin(req.headers.get('origin'))
 }
 
 function withCors(res: Response, origin: string) {

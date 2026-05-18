@@ -1,46 +1,11 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { auth } from '@/lib/auth/auth'
 import { deleteFile } from '@/lib/storage'
+import { getCmsAccessFromRequestHeaders } from '@/lib/auth/request-auth'
 
 async function requireEditorRole() {
-	const incoming = await headers()
-	const effective = new Headers(incoming)
-	const tokenFromAuth =
-		effective
-			.get('authorization')
-			?.match(/^Bearer\s+(.+)$/i)?.[1]
-			?.trim() ??
-		effective.get('x-session-token')?.trim() ??
-		null
-
-	if (tokenFromAuth) {
-		const existingCookie = effective.get('cookie') ?? ''
-		if (!/better-auth\.session_token=/.test(existingCookie)) {
-			const cookieToAdd = `better-auth.session_token=${tokenFromAuth}`
-			effective.set(
-				'cookie',
-				existingCookie ? `${existingCookie}; ${cookieToAdd}` : cookieToAdd,
-			)
-		}
-	}
-
-	const session = await auth.api.getSession({ headers: effective })
-	if (!session?.user) {
-		return null
-	}
-
-	const { prisma } = await import('@/lib/prisma')
-	const user = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { role: true },
-	})
-
-	if (user?.role !== 'ADMIN' && user?.role !== 'EDITOR') {
-		return null
-	}
-
-	return session
+	const access = await getCmsAccessFromRequestHeaders(await headers())
+	return access?.session ?? null
 }
 
 function validateKey(key: string | null | undefined): key is string {

@@ -1,15 +1,9 @@
-import { auth } from '@/lib/auth/auth'
 import { adminEventBus } from '@/lib/realtime/adminevents'
-import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-
-function getTokenFromRequestHeaders(headers: Headers): string | null {
-	const authHeader = headers.get('authorization')
-	const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim()
-	if (bearer) return bearer
-	const xToken = headers.get('x-session-token')?.trim()
-	return xToken || null
-}
+import {
+	getCmsRoleForUserId,
+	getSessionFromRequestHeaders,
+} from '@/lib/auth/request-auth'
 
 function encodeSseEvent(eventName: string, data: unknown) {
 	return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`
@@ -29,25 +23,14 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
 	try {
-		const token = getTokenFromRequestHeaders(request.headers)
-		if (!token) {
-			return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401, headers: corsHeaders() })
-		}
-
-		// Validate session using better-auth by injecting cookie
-		const headers = new Headers()
-		headers.set('cookie', `better-auth.session_token=${token}`)
-		const session = await auth.api.getSession({ headers })
+		const session = await getSessionFromRequestHeaders(request.headers)
 		if (!session?.user) {
 			return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401, headers: corsHeaders() })
 		}
 
 		// Role guard (ADMIN/EDITOR)
-		const user = await prisma.user.findUnique({
-			where: { id: session.user.id },
-			select: { role: true },
-		})
-		if (user?.role !== 'ADMIN' && user?.role !== 'EDITOR') {
+		const role = await getCmsRoleForUserId(session.user.id)
+		if (!role) {
 			return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403, headers: corsHeaders() })
 		}
 

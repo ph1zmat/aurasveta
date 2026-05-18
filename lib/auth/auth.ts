@@ -1,21 +1,15 @@
 ﻿import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { bearer } from 'better-auth/plugins'
 import { prisma } from '@/lib/prisma'
+import { AUTH_TRUSTED_ORIGINS } from '@/lib/config/origins'
 
 export const auth = betterAuth({
-	trustedOrigins: [
-		'http://localhost:3000',
-		'http://localhost:5173',
-		'http://localhost:8081',
-		'http://127.0.0.1:5173',
-		process.env.NEXT_PUBLIC_APP_URL || 'https://aurasveta.ru',
-		'https://aurasveta.ru',
-		'exp+auracms://',
-		'aurasveta://',
-	],
+	trustedOrigins: AUTH_TRUSTED_ORIGINS,
 	database: prismaAdapter(prisma, {
 		provider: 'postgresql',
 	}),
+	plugins: [bearer()],
 	user: {
 		additionalFields: {
 			role: {
