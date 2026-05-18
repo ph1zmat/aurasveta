@@ -1,8 +1,4 @@
-import { auth } from '@/lib/auth/auth'
-import { toNextJsHandler } from 'better-auth/next-js'
 import { NextResponse } from 'next/server'
-
-const handlers = toNextJsHandler(auth)
 
 function corsHeaders() {
 	return {
@@ -17,9 +13,7 @@ function extractSessionTokenFromSetCookie(
 	setCookie: string | null,
 ): string | null {
 	if (!setCookie) return null
-	// Take the first cookie only (it’s the one we need)
-	const first = setCookie.split(',')[0]
-	const match = first.match(/better-auth\.session_token=([^;]+)/)
+	const match = setCookie.match(/better-auth\.session_token=([^;]+)/)
 	return match?.[1] ?? null
 }
 
@@ -29,23 +23,22 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
 	try {
-		// Call better-auth handler on the canonical /api/auth/* path,
-		// then return the full session cookie value in JSON for desktop.
+		// Проксируем в canonical better-auth endpoint, чтобы desktop и web
+		// проходили один и тот же путь аутентификации.
 		const url = new URL(req.url)
 		const targetUrl = new URL('/api/auth/sign-in/email', url.origin)
 
-		const body = await req.arrayBuffer()
-		const headers = new Headers(req.headers)
-		if (!headers.get('origin')) headers.set('origin', url.origin)
+		const bodyText = await req.text()
+		const forwardHeaders = new Headers()
+		forwardHeaders.set('content-type', req.headers.get('content-type') ?? 'application/json')
+		forwardHeaders.set('accept', 'application/json')
+		forwardHeaders.set('origin', req.headers.get('origin') ?? url.origin)
 
-		const forwardReq = new Request(targetUrl.toString(), {
+		const res = await fetch(targetUrl.toString(), {
 			method: 'POST',
-			headers,
-			body,
-			duplex: 'half',
+			headers: forwardHeaders,
+			body: bodyText,
 		} as RequestInit)
-
-		const res = await handlers.POST(forwardReq)
 		const text = await res.text()
 
 		let json: unknown = null
@@ -80,11 +73,23 @@ export async function POST(req: Request) {
 		}
 
 		// 3. Fallback: extract session token from response body
-		const bodyToken =
-			(json as Record<string, unknown> | null) && typeof json === 'object'
-				? (((json as Record<string, Record<string, unknown>>)?.session
-						?.token as string | undefined) ?? null)
-				: null
+		const bodyToken = (() => {
+			if (!json || typeof json !== 'object') return null
+			const payload = json as Record<string, unknown>
+
+			const tokenFromTopLevel = payload.token
+			if (typeof tokenFromTopLevel === 'string' && tokenFromTopLevel.length > 0) {
+				return tokenFromTopLevel
+			}
+
+			const session = payload.session as Record<string, unknown> | undefined
+			const tokenFromSession = session?.token
+			if (typeof tokenFromSession === 'string' && tokenFromSession.length > 0) {
+				return tokenFromSession
+			}
+
+			return null
+		})()
 
 		const sessionToken = cookieToken || cookieTokenAlt || bodyToken
 
