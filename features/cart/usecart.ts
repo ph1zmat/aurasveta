@@ -36,6 +36,7 @@ export function useCart() {
 	const [anonCart, setAnonCart] = useAtom(anonymousCartAtom)
 
 	useAnonymousDataSync({
+		syncKey: 'cart',
 		isAuth,
 		items: anonCart,
 		clearLocal: () => setAnonCart([]),
@@ -109,10 +110,9 @@ export function useCart() {
 	)
 
 	const clear = useCallback(() => {
+		setAnonCart([])
 		if (isAuth) {
 			clearMut.mutate()
-		} else {
-			setAnonCart([])
 		}
 	}, [isAuth, clearMut, setAnonCart])
 

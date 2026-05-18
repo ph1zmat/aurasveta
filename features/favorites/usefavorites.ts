@@ -29,6 +29,7 @@ export function useFavorites() {
 	const [anonFavorites, setAnonFavorites] = useAtom(anonymousFavoritesAtom)
 
 	useAnonymousDataSync({
+		syncKey: 'favorites',
 		isAuth,
 		items: anonFavorites,
 		clearLocal: () => setAnonFavorites([]),
@@ -73,12 +74,11 @@ export function useFavorites() {
 	)
 
 	const clear = useCallback(() => {
+		setAnonFavorites([])
 		if (isAuth && serverFavorites) {
 			serverFavorites.forEach((favorite: ServerFavoriteItem) =>
 				removeMut.mutate(favorite.productId),
 			)
-		} else {
-			setAnonFavorites([])
 		}
 	}, [isAuth, serverFavorites, removeMut, setAnonFavorites])
 

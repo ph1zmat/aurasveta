@@ -2,7 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 
+const activeAnonymousSyncKeys = new Set<string>()
+
 interface UseAnonymousDataSyncOptions<TItem> {
+	syncKey: string
 	isAuth: boolean
 	items: TItem[]
 	clearLocal: () => void
@@ -13,6 +16,7 @@ interface UseAnonymousDataSyncOptions<TItem> {
  * Синхронизирует локальную анонимную коллекцию с сервером после логина.
  */
 export function useAnonymousDataSync<TItem>({
+	syncKey,
 	isAuth,
 	items,
 	clearLocal,
@@ -21,9 +25,17 @@ export function useAnonymousDataSync<TItem>({
 	const syncedRef = useRef(false)
 
 	useEffect(() => {
-		if (!isAuth || items.length === 0 || syncedRef.current) return
+		if (!isAuth || items.length === 0) {
+			syncedRef.current = false
+			return
+		}
+
+		if (syncedRef.current || activeAnonymousSyncKeys.has(syncKey)) {
+			return
+		}
 
 		syncedRef.current = true
+		activeAnonymousSyncKeys.add(syncKey)
 		let cancelled = false
 
 		const sync = async () => {
@@ -36,6 +48,8 @@ export function useAnonymousDataSync<TItem>({
 				if (!cancelled) clearLocal()
 			} catch {
 				syncedRef.current = false
+			} finally {
+				activeAnonymousSyncKeys.delete(syncKey)
 			}
 		}
 
@@ -44,5 +58,5 @@ export function useAnonymousDataSync<TItem>({
 		return () => {
 			cancelled = true
 		}
-	}, [clearLocal, isAuth, items, migrateItem])
+	}, [clearLocal, isAuth, items, migrateItem, syncKey])
 }

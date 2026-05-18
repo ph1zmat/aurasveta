@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useAtom } from 'jotai'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/authclient'
 import { anonymousCompareAtom } from '@/lib/store/anonymous'
+import { useAnonymousDataSync } from '@/features/shared/useanonymousdatasync'
 
 type ServerCompareItem = RouterOutputs['compare']['getAll'][number]
 
@@ -30,19 +31,13 @@ export function useCompare() {
 	// Anon compare (localStorage via Jotai)
 	const [anonCompare, setAnonCompare] = useAtom(anonymousCompareAtom)
 
-	// Sync anon → server on login
-	const syncedRef = useRef(false)
-	useEffect(() => {
-		if (isAuth && anonCompare.length > 0 && !syncedRef.current) {
-			syncedRef.current = true
-			const items = [...anonCompare]
-			Promise.all(items.map(id => toggleMut.mutateAsync(id)))
-				.then(() => setAnonCompare([]))
-				.catch(() => {
-					syncedRef.current = false
-				})
-		}
-	}, [isAuth]) // eslint-disable-line react-hooks/exhaustive-deps
+	useAnonymousDataSync({
+		syncKey: 'compare',
+		isAuth,
+		items: anonCompare,
+		clearLocal: () => setAnonCompare([]),
+		migrateItem: toggleMut.mutateAsync,
+	})
 
 	// Unified product IDs list
 	const productIds = useMemo<string[]>(
@@ -80,10 +75,9 @@ export function useCompare() {
 	)
 
 	const clear = useCallback(() => {
+		setAnonCompare([])
 		if (isAuth) {
 			clearMut.mutate()
-		} else {
-			setAnonCompare([])
 		}
 	}, [isAuth, clearMut, setAnonCompare])
 
