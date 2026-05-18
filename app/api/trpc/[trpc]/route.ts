@@ -1,10 +1,10 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 import { createTRPCContext } from '@/lib/trpc/init'
 import { appRouter } from '@/lib/trpc/routers/app'
-import { getAllowedOrigin } from '@/lib/config/origins'
+import { API_CORS_ALLOWED_ORIGINS, getAllowedOrigin } from '@/lib/config/origins'
 
 function getCorsOrigin(req: Request): string {
-	return getAllowedOrigin(req.headers.get('origin'))
+	return getAllowedOrigin(req.headers.get('origin'), API_CORS_ALLOWED_ORIGINS)
 }
 
 function withCors(res: Response, origin: string) {

@@ -13,6 +13,10 @@ const STATIC_PRODUCTION_ORIGINS = [
 	'https://aurasveta.ru',
 ] as const
 
+// Electron packaged renderer runs under file:// and Chromium sends Origin: null
+// for cross-origin API requests. This origin must be allowed for desktop data fetches.
+const DESKTOP_RUNTIME_ORIGINS = ['null'] as const
+
 function normalizeOrigin(value: string | null | undefined): string | null {
 	const trimmed = value?.trim()
 	if (!trimmed) {
@@ -47,8 +51,12 @@ export const AUTH_ROUTE_ALLOWED_ORIGINS = uniqueOrigins([
 
 export const API_CORS_ALLOWED_ORIGINS =
 	process.env.NODE_ENV !== 'production'
-		? AUTH_ROUTE_ALLOWED_ORIGINS
-		: uniqueOrigins([...STATIC_PRODUCTION_ORIGINS, ...configuredBrowserOrigins])
+		? uniqueOrigins([...AUTH_ROUTE_ALLOWED_ORIGINS, ...DESKTOP_RUNTIME_ORIGINS])
+		: uniqueOrigins([
+			...STATIC_PRODUCTION_ORIGINS,
+			...configuredBrowserOrigins,
+			...DESKTOP_RUNTIME_ORIGINS,
+		])
 
 export const AUTH_TRUSTED_ORIGINS = uniqueOrigins([
 	...AUTH_ROUTE_ALLOWED_ORIGINS,
