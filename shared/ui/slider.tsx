@@ -14,6 +14,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 
+const SWIPE_THRESHOLD_PX = 50
+
 export interface SliderHandle {
 	next: () => void
 	prev: () => void
@@ -99,23 +101,54 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 		const viewportRef = useRef<HTMLDivElement>(null)
 
 		/* Measure viewport */
+		const measureViewportWidth = useCallback(() => {
+			const el = viewportRef.current
+			if (!el) return
+
+			const nextWidth = Math.round(
+				el.getBoundingClientRect().width || el.clientWidth || 0,
+			)
+			setContainerWidth(currentWidth =>
+				currentWidth === nextWidth ? currentWidth : nextWidth,
+			)
+		}, [])
+
 		useEffect(() => {
 			const el = viewportRef.current
 			if (!el) return
-			setContainerWidth(el.clientWidth)
-			const observer = new ResizeObserver(entries => {
-				setContainerWidth(entries[0].contentRect.width)
-			})
-			observer.observe(el)
-			return () => observer.disconnect()
-		}, [])
 
-		const { visibleItems, gap } = resolveBreakpoints(
+			const frameId = window.requestAnimationFrame(measureViewportWidth)
+			const handleViewportResize = () => measureViewportWidth()
+
+			let observer: ResizeObserver | null = null
+			if (typeof ResizeObserver !== 'undefined') {
+				observer = new ResizeObserver(() => {
+					measureViewportWidth()
+				})
+				observer.observe(el)
+			}
+
+			window.addEventListener('resize', handleViewportResize)
+			window.visualViewport?.addEventListener('resize', handleViewportResize)
+
+			return () => {
+				window.cancelAnimationFrame(frameId)
+				observer?.disconnect()
+				window.removeEventListener('resize', handleViewportResize)
+				window.visualViewport?.removeEventListener(
+					'resize',
+					handleViewportResize,
+				)
+			}
+		}, [measureViewportWidth])
+
+		const { visibleItems: resolvedVisibleItems, gap } = resolveBreakpoints(
 			containerWidth,
 			breakpoints,
 			defaultVisibleItems,
 			defaultGap,
 		)
+		const visibleItems = Math.max(1, resolvedVisibleItems)
 
 		const maxIndex = Math.max(0, total - visibleItems)
 
@@ -125,12 +158,14 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 
 		/* Touch swipe */
 		const touchStartX = useRef<number | null>(null)
+		const touchStartY = useRef<number | null>(null)
 		const touchDelta = useRef(0)
+		const touchDeltaY = useRef(0)
 
-		const slideWidth =
-			containerWidth > 0
-				? (containerWidth - gap * (visibleItems - 1)) / visibleItems
-				: 0
+		const measuredTrackWidth = containerWidth - gap * (visibleItems - 1)
+		const slideWidth = measuredTrackWidth > 0 ? measuredTrackWidth / visibleItems : 0
+		const fallbackSlideWidth = `calc((100% - ${Math.max(0, visibleItems - 1) * gap}px) / ${Math.max(1, visibleItems)})`
+		const trackStep = slideWidth > 0 ? slideWidth + gap : 0
 
 		/* Navigation */
 		const goTo = useCallback(
@@ -159,27 +194,44 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 		}, [autoPlay, autoPlayInterval, next, paused, total, visibleItems])
 
 		/* Computed values */
-		const trackOffset = -(currentIndex * (slideWidth + gap))
+		const trackOffset = -(currentIndex * trackStep)
 		const canGoPrev = loop || currentIndex > 0
 		const canGoNext = loop || currentIndex < maxIndex
 		const dotCount = Math.max(1, total - visibleItems + 1)
 		const showArrows = arrows && total > visibleItems
 
+		const resetTouchTracking = () => {
+			touchStartX.current = null
+			touchStartY.current = null
+			touchDelta.current = 0
+			touchDeltaY.current = 0
+		}
+
 		/* Touch handlers */
 		const handleTouchStart = (e: React.TouchEvent) => {
 			touchStartX.current = e.touches[0].clientX
+			touchStartY.current = e.touches[0].clientY
+			touchDelta.current = 0
+			touchDeltaY.current = 0
 		}
 		const handleTouchMove = (e: React.TouchEvent) => {
-			if (touchStartX.current === null) return
+			if (touchStartX.current === null || touchStartY.current === null) return
 			touchDelta.current = e.touches[0].clientX - touchStartX.current
+			touchDeltaY.current = e.touches[0].clientY - touchStartY.current
 		}
 		const handleTouchEnd = () => {
-			if (Math.abs(touchDelta.current) > 50) {
+			const isHorizontalSwipe =
+				Math.abs(touchDelta.current) > Math.abs(touchDeltaY.current) &&
+				Math.abs(touchDelta.current) > SWIPE_THRESHOLD_PX
+
+			if (isHorizontalSwipe) {
 				if (touchDelta.current < 0) next()
 				else prev()
 			}
-			touchStartX.current = null
-			touchDelta.current = 0
+			resetTouchTracking()
+		}
+		const handleTouchCancel = () => {
+			resetTouchTracking()
 		}
 
 		/* Keyboard */
@@ -247,23 +299,28 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 					<div
 						ref={viewportRef}
 						className='flex-1 overflow-hidden'
+						style={{ touchAction: 'pan-y' }}
 						onTouchStart={handleTouchStart}
 						onTouchMove={handleTouchMove}
 						onTouchEnd={handleTouchEnd}
+						onTouchCancel={handleTouchCancel}
 					>
 						<div
-							className={cn('flex', containerWidth === 0 && 'opacity-0')}
+							className='flex'
 							style={{
 								gap: `${gap}px`,
 								transform: `translateX(${trackOffset}px)`,
-								transition: 'transform 300ms ease-out',
+								transition:
+									trackStep > 0 ? 'transform 300ms ease-out' : undefined,
 							}}
 						>
 							{slides.map((slide, i) => (
 								<div
 									key={i}
 									className={cn('shrink-0', slideClassName)}
-									style={{ width: slideWidth > 0 ? slideWidth : undefined }}
+									style={{
+										width: slideWidth > 0 ? slideWidth : fallbackSlideWidth,
+									}}
 									role='group'
 									aria-roledescription='slide'
 									aria-label={`Слайд ${i + 1} из ${total}`}

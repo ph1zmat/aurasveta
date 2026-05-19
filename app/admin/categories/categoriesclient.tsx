@@ -298,7 +298,7 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 								</TabsContent>
 
 								{/* SEO tab */}
-								<TabsContent value='seo' className='space-y-4' forceMount>
+								<TabsContent value='seo' className='space-y-4'>
 									<SeoEditor mode='managed' targetType='category' targetId={selected.id} />
 								</TabsContent>
 								{/* Image tab */}
