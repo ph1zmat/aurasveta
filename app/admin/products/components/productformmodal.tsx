@@ -27,6 +27,7 @@ import MultiImageUploader, {
 	type ProductImageDraft,
 } from '../../components/multiimageuploader'
 import { generateProductSeo } from '@/shared/lib/seo/generateseo'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import { SeoFieldsBlock } from '@aurasveta/shared-admin'
 import type { SeoFormValues } from '@/shared/types/seo'
 import {
@@ -61,6 +62,7 @@ interface ProductFormModalProps {
 			id?: string
 			url: string
 			key: string
+			displayUrl?: string | null
 			originalName?: string | null
 			size?: number | null
 			mimeType?: string | null
@@ -142,6 +144,7 @@ function productToFormValues(
 			id: img.id ?? undefined,
 			url: img.url,
 			key: img.key,
+			displayUrl: img.displayUrl ?? null,
 			originalName: img.originalName ?? null,
 			size: img.size ?? null,
 			mimeType: img.mimeType ?? null,
@@ -690,9 +693,7 @@ export default function ProductFormModal({
 								<div className='flex gap-6'>
 									<div>
 										<div className='text-xs text-muted-foreground'>Прибыль</div>
-										<div className='text-lg font-bold text-success'>
-											{profit.toLocaleString('ru-RU')} Br
-										</div>
+										<PriceBYN value={profit} className='text-lg font-bold text-success' />
 									</div>
 									<div>
 										<div className='text-xs text-muted-foreground'>Маржа</div>

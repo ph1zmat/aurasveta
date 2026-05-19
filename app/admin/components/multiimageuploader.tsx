@@ -3,6 +3,10 @@
 import { useState, useRef, useCallback } from 'react'
 import { ImagePlus, Trash2, ArrowUp, ArrowDown, Star, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  isAbsoluteStorageUrl,
+  resolveStorageFileUrl,
+} from '@/shared/lib/storagefileurl'
 
 const ALLOWED_CLIENT_TYPES = [
   'image/png',
@@ -16,6 +20,7 @@ export interface ProductImageDraft {
   id?: string
   url: string
   key: string
+  displayUrl?: string | null
   originalName?: string | null
   size?: number | null
   mimeType?: string | null
@@ -30,8 +35,20 @@ interface MultiImageUploaderProps {
 }
 
 function getImageUrl(img: ProductImageDraft): string {
-  if (img.url) return img.url
-  if (img.key) return `/api/storage/file?key=${encodeURIComponent(img.key)}`
+  const resolvedCandidate = img.displayUrl?.trim() || img.url?.trim()
+
+  if (resolvedCandidate) {
+    if (
+      isAbsoluteStorageUrl(resolvedCandidate) ||
+      resolvedCandidate.startsWith('/')
+    ) {
+      return resolvedCandidate
+    }
+
+    return resolveStorageFileUrl(resolvedCandidate) ?? resolvedCandidate
+  }
+
+  if (img.key) return resolveStorageFileUrl(img.key) ?? ''
   return ''
 }
 
@@ -235,7 +252,7 @@ export default function MultiImageUploader({ images, onChange, disabled }: Multi
                 </div>
               )}
 
-              <div className='absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 p-1 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity'>
+              <div className='absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 p-1 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity'>
                 <button
                   type='button'
                   onClick={(e) => {

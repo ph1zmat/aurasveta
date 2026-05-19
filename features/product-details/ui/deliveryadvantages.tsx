@@ -19,7 +19,7 @@ export type DeliveryAdvantage = {
 const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
 	{
 		icon: 'Truck',
-		title: 'Доставка по Мозырю от 100 Br — бесплатно',
+		title: 'Доставка по Мозырю от 100 BYN — бесплатно',
 		description: 'Доставим товар прямо до двери в удобное для вас время.',
 	},
 	{

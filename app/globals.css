@@ -236,6 +236,26 @@
 		overflow-x: hidden;
 		@apply bg-background text-foreground;
 	}
+
+	a[href],
+	area[href],
+	button:not(:disabled),
+	[role='button']:not([aria-disabled='true']),
+	input[type='button']:not(:disabled),
+	input[type='submit']:not(:disabled),
+	input[type='reset']:not(:disabled) {
+		cursor: pointer;
+	}
+
+	a[href][aria-disabled='true'],
+	button:disabled,
+	[role='button'][aria-disabled='true'],
+	input[type='button']:disabled,
+	input[type='submit']:disabled,
+	input[type='reset']:disabled {
+		cursor: not-allowed;
+	}
+
 	* {
 		@apply border-border outline-ring/50;
 	}

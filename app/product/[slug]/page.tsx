@@ -50,6 +50,7 @@ import {
 } from '@/lib/seo/getmetadata'
 import {
 	getProductImageUrl,
+	getResolvedProductImageUrl,
 	normalizeProductImages,
 } from '@/shared/lib/productutils'
 import { ProductCarouselSkeleton } from '@/shared/ui/storefrontskeletons'
@@ -133,9 +134,9 @@ export default async function ProductPage({
 			getEffectiveMerchantPolicies(prisma, productId),
 		])
 
-	const allImages = normalizeProductImages(product.images).map(
-		image => image.url,
-	)
+	const allImages = normalizeProductImages(product.images)
+		.map(image => getResolvedProductImageUrl(image))
+		.filter((imageUrl): imageUrl is string => Boolean(imageUrl))
 	const productImages = allImages.length > 0 ? allImages : ['/bulb.svg']
 	return (
 		<div className='flex flex-col bg-background'>

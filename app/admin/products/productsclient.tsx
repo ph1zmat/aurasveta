@@ -28,6 +28,8 @@ import {
 	Minus,
 	Plus as PlusIcon,
 } from 'lucide-react'
+import { getProductImageUrl } from '@/shared/lib/productutils'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import { useSelection } from '../hooks/useselection'
 import dynamic from 'next/dynamic'
 
@@ -391,7 +393,7 @@ export default function ProductsClient() {
 											{Array.isArray(p.images) && p.images.length > 0 ? (
 												// eslint-disable-next-line @next/next/no-img-element
 												<img
-													src={p.images[0].url || `/api/storage/file?key=${encodeURIComponent(p.images[0].key)}`}
+													src={getProductImageUrl(p)}
 													alt=''
 													className='h-12 w-12 rounded-md object-cover border border-border'
 												/>
@@ -412,7 +414,7 @@ export default function ProductsClient() {
 										{p.sku || '—'}
 									</TableCell>
 									<TableCell className='font-bold'>
-										{p.price?.toLocaleString('ru-RU') ?? 0} Br
+										<PriceBYN value={p.price ?? 0} className='font-bold' />
 									</TableCell>
 									<TableCell>
 										<div className='flex items-center gap-2'>

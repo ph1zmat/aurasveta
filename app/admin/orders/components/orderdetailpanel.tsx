@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { OrderTimeline } from './ordertimeline'
 import { Printer, MessageCircle, RefreshCw, X } from 'lucide-react'
 import { FaPhoneAlt, FaViber } from 'react-icons/fa'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 const statusLabels: Record<string, string> = {
 	PENDING: 'Новый',
@@ -138,9 +139,10 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 								<span className='truncate text-sm'>{item.product?.name ?? '—'}</span>
 								<div className='flex items-center gap-3 shrink-0 ml-2'>
 									<span className='text-muted-foreground text-xs'>×{item.quantity}</span>
-									<span className='font-semibold'>
-										{(item.price * item.quantity).toLocaleString('ru-RU')} Br
-									</span>
+									<PriceBYN
+										value={item.price * item.quantity}
+										className='font-semibold'
+									/>
 								</div>
 							</div>
 						))}
@@ -151,9 +153,7 @@ export function OrderDetailPanel({ order, onClose, onMessage, onRefund }: OrderD
 			{/* Total */}
 			<div className='flex items-center justify-between rounded-lg border border-border bg-accent/5 px-4 py-3'>
 				<span className='font-semibold text-sm'>Итого</span>
-				<span className='font-extrabold text-lg text-accent'>
-					{order.total.toLocaleString('ru-RU')} Br
-				</span>
+				<PriceBYN value={order.total} className='font-extrabold text-lg text-accent' />
 			</div>
 
 			{/* Comment */}

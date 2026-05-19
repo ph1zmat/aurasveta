@@ -3,6 +3,7 @@
 import { ChevronRight, Clock, Package, User } from 'lucide-react'
 import type { RouterOutputs } from '@/lib/trpc/client'
 import { ORDER_STATUS_CONFIG } from '../model/orderstatus'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 type OrderListItem = RouterOutputs['orders']['getAllOrders']['items'][number]
 
@@ -44,9 +45,7 @@ export function OrderCard({
 						<StatusIcon className={`h-3.5 w-3.5 ${st.color}`} />
 					</div>
 				</div>
-				<div className='text-xl font-bold tabular-nums text-foreground'>
-					{order.total.toLocaleString('ru-RU')} Br
-				</div>
+				<PriceBYN value={order.total} className='text-xl font-bold tabular-nums text-foreground' />
 				<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
 					<User className='h-3 w-3' />
 					<span className='truncate'>{customerName}</span>

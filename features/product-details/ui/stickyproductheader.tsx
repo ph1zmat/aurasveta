@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { Button } from '@/shared/ui/button'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 interface StickyProductHeaderProps {
 	name: string
@@ -64,16 +64,15 @@ export default function StickyProductHeader({
 
 				{/* Price + bonus */}
 				<div className='flex items-center gap-2'>
-					<span className='text-lg font-semibold text-foreground'>
-						{formatPriceBYN(price)}
-					</span>
+					<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
 					{discountPercent && bonusAmount ? (
 						<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-normal text-foreground'>
 							{discountPercent}%
-							<span className='font-semibold'>
-								{bonusAmount.toLocaleString('ru-RU')}
-							</span>
-							<span className='text-primary'>Br</span>
+							<PriceBYN
+								value={bonusAmount}
+								className='font-semibold text-primary'
+								iconClassName='text-primary opacity-100'
+							/>
 						</span>
 					) : null}
 				</div>

@@ -35,7 +35,7 @@ import { cn } from '@/shared/lib/utils'
  */
 
 const buttonVariants = cva(
-	'inline-flex items-center justify-center transition-colors disabled:pointer-events-none',
+	'inline-flex cursor-pointer items-center justify-center transition-colors disabled:pointer-events-none disabled:cursor-not-allowed',
 	{
 		variants: {
 			variant: {

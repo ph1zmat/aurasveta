@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 
 interface RoomItem {
 	label?: string
@@ -18,8 +19,7 @@ interface RoomsSectionProps {
 }
 
 function resolveImageSrc(key: string): string {
-	if (key.startsWith('http') || key.startsWith('/')) return key
-	return `/api/storage/file?key=${encodeURIComponent(key)}`
+	return resolveStorageFileUrl(key) ?? key
 }
 
 const COLS_MAP: Record<number, string> = {

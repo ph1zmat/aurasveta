@@ -5,6 +5,7 @@ export const productImageDraftSchema = z.object({
 	id: z.string().optional(),
 	url: z.string(),
 	key: z.string(),
+	displayUrl: z.string().nullable().optional(),
 	originalName: z.string().nullable().optional(),
 	size: z.number().nullable().optional(),
 	mimeType: z.string().nullable().optional(),

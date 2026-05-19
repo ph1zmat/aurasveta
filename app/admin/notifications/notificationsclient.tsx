@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { ShoppingCart, Package, AlertCircle, CheckCheck } from 'lucide-react'
+import { formatPriceBYNAmount } from '@/shared/lib/currency'
 
 type NotificationItem = {
 	id: string
@@ -105,7 +106,7 @@ export default function NotificationsClient() {
 						title: 'Новый заказ',
 						desc:
 							`Заказ #${data.orderId?.slice(-6) ?? '??????'}` +
-							(data.total ? ` на ${data.total} Br` : ''),
+							(data.total ? ` на ${formatPriceBYNAmount(data.total)} BYN` : ''),
 						meta: data,
 					})
 					toast.success('Новый заказ')

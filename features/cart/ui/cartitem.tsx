@@ -3,9 +3,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, X } from 'lucide-react'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { Button } from '@/shared/ui/button'
 import { Checkbox } from '@/shared/ui/checkbox'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { CartItemData } from '@/entities/cart/model/types'
 
 export type { CartItemData }
@@ -83,13 +83,15 @@ export default function CartItem({
 						</div>
 
 						<div className='text-right'>
-							<p className='text-sm font-semibold tracking-wide text-foreground'>
-								{formatPriceBYN(item.price)}
-							</p>
+							<PriceBYN
+								value={item.price}
+								className='text-sm font-semibold tracking-wide text-foreground'
+							/>
 							{item.oldPrice && (
-								<p className='text-xs tracking-wider text-muted-foreground line-through'>
-									{formatPriceBYN(item.oldPrice)}
-								</p>
+								<PriceBYN
+									value={item.oldPrice}
+									className='text-xs tracking-wider text-muted-foreground line-through'
+								/>
 							)}
 						</div>
 					</div>
@@ -124,13 +126,15 @@ export default function CartItem({
 
 				{/* Desktop: Price */}
 				<div className='hidden shrink-0 text-right md:block'>
-					<p className='text-lg font-semibold tracking-wide text-foreground'>
-						{formatPriceBYN(item.price)}
-					</p>
+					<PriceBYN
+						value={item.price}
+						className='text-lg font-semibold tracking-wide text-foreground'
+					/>
 					{item.oldPrice && (
-						<p className='text-lg tracking-wider text-muted-foreground line-through'>
-							{formatPriceBYN(item.oldPrice)}
-						</p>
+						<PriceBYN
+							value={item.oldPrice}
+							className='text-lg tracking-wider text-muted-foreground line-through'
+						/>
 					)}
 				</div>
 

@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { Check } from 'lucide-react'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { ReactNode } from 'react'
 
 interface ProductPriceBlockProps {
@@ -43,22 +43,22 @@ export default function ProductPriceBlock({
 			{/* Price row */}
 			<div className='mb-2 flex items-center justify-between'>
 				<div className='flex items-baseline gap-3'>
-					<span className='text-3xl font-semibold text-foreground'>
-						{formatPriceBYN(price)}
-					</span>
+					<PriceBYN value={price} className='text-3xl font-semibold text-foreground' />
 					{oldPrice && (
-						<span className='text-base text-muted-foreground line-through'>
-							{formatPriceBYN(oldPrice)}
-						</span>
+						<PriceBYN
+							value={oldPrice}
+							className='text-base text-muted-foreground line-through'
+						/>
 					)}
 				</div>
 				{discountPercent && bonusAmount ? (
 					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-foreground'>
 						{discountPercent}%
-						<span className='font-semibold'>
-							{bonusAmount.toLocaleString('ru-RU')}
-						</span>
-						<span className='text-primary'>Br</span>
+						<PriceBYN
+							value={bonusAmount}
+							className='font-semibold text-primary'
+							iconClassName='text-primary opacity-100'
+						/>
 					</span>
 				) : null}
 			</div>

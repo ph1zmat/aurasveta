@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import { Slider } from '@/shared/ui/slider'
 import { resolveCatalogLinkHref } from '@/lib/home-sections/cataloglinkresolver'
 
@@ -110,11 +111,7 @@ export default async function BrandCarouselByPropertySection({
 							{item.photo ? (
 								// eslint-disable-next-line @next/next/no-img-element
 								<img
-									src={
-										item.photo.startsWith('http')
-											? item.photo
-											: `/api/storage/file?key=${item.photo}`
-									}
+									src={resolveStorageFileUrl(item.photo) ?? item.photo}
 									alt={item.value}
 									className='h-full w-full object-contain group-hover:brightness-95 transition'
 								/>

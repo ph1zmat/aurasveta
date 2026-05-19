@@ -7,8 +7,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/shared/ui/input'
 import { useDebounce } from '@/shared/lib/usedebounce'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { trpc } from '@/lib/trpc/client'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 const RECENT_KEY = 'aura-recent-searches'
 
@@ -330,9 +330,10 @@ export default function SearchBar({ className }: { className?: string }) {
 													)}
 												</div>
 												{item.price !== null && (
-													<span className='shrink-0 text-sm font-medium text-foreground'>
-														{formatPriceBYN(item.price)}
-													</span>
+													<PriceBYN
+														value={item.price}
+														className='shrink-0 text-sm font-medium text-foreground'
+													/>
 												)}
 											</Link>
 										</li>

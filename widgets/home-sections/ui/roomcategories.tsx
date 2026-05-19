@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { resolveCatalogLinkHref } from '@/lib/home-sections/cataloglinkresolver'
+import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import UnderlineAnimation from '@/shared/ui/underlineanimation'
 
 interface Room {
@@ -49,8 +50,7 @@ const DEFAULT_ROOMS: Room[] = [
 
 function resolveImage(image: string): string {
 	if (!image) return ''
-	if (image.startsWith('http') || image.startsWith('/')) return image
-	return `/api/storage/file?key=${image}`
+	return resolveStorageFileUrl(image) ?? image
 }
 
 export default async function RoomCategories({

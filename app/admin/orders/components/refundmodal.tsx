@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 const REFUND_REASONS = [
 	{ value: 'defect', label: 'Брак / повреждение' },
@@ -53,7 +54,7 @@ export function RefundModal({ open, orderId, orderTotal, onClose }: RefundModalP
 				</DialogHeader>
 				<div className='space-y-4'>
 					<div className='space-y-2'>
-						<label className='text-sm font-medium'>Сумма возврата (Br)</label>
+						<label className='text-sm font-medium'>Сумма возврата (BYN)</label>
 						<Input
 							type='number'
 							value={amount}
@@ -62,7 +63,7 @@ export function RefundModal({ open, orderId, orderTotal, onClose }: RefundModalP
 							max={orderTotal}
 						/>
 						<div className='text-xs text-muted-foreground'>
-							Максимум: {orderTotal.toLocaleString('ru-RU')} Br
+							Максимум: <PriceBYN value={orderTotal} className='text-xs text-muted-foreground' />
 						</div>
 					</div>
 					<div className='space-y-2'>

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import CatalogCategoryCarousel from '@/entities/category/ui/catalogcategorycarousel'
+import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 
 interface CategoryCarouselConfig {
 	parentId?: string
@@ -70,7 +71,7 @@ export default async function CategoryCarouselSection({
 		name: category.name,
 		href: `/catalog/${category.slug}`,
 		image: category.imagePath
-			? `/api/storage/file?key=${category.imagePath}`
+			? (resolveStorageFileUrl(category.imagePath) ?? category.imagePath)
 			: category.image || '/placeholder.svg',
 		subcategories: category.children.map(child => ({
 			name: child.name,

@@ -3,8 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, ShoppingBag } from 'lucide-react'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { Button } from '@/shared/ui/button'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { CartItemData } from '@/entities/cart/model/types'
 
 interface MiniCartProps {
@@ -53,13 +53,12 @@ export default function MiniCart({ items, onQuantityChange }: MiniCartProps) {
 								{item.name}
 							</Link>
 							<div className='mt-1'>
-								<span className='text-sm font-semibold text-foreground'>
-									{formatPriceBYN(item.price)}
-								</span>
+								<PriceBYN value={item.price} className='text-sm font-semibold text-foreground' />
 								{item.oldPrice && (
-									<span className='ml-2 text-xs text-muted-foreground line-through'>
-										{formatPriceBYN(item.oldPrice)}
-									</span>
+									<PriceBYN
+										value={item.oldPrice}
+										className='ml-2 text-xs text-muted-foreground line-through'
+									/>
 								)}
 							</div>
 						</div>
@@ -99,9 +98,7 @@ export default function MiniCart({ items, onQuantityChange }: MiniCartProps) {
 				{/* Total */}
 				<div className='flex items-center justify-between'>
 					<span className='text-sm font-medium text-foreground'>Итого:</span>
-					<span className='text-sm font-semibold text-foreground'>
-						{formatPriceBYN(total)}
-					</span>
+					<PriceBYN value={total} className='text-sm font-semibold text-foreground' />
 				</div>
 
 				{/* Actions */}

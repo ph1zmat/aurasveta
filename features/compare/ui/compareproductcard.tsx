@@ -1,9 +1,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, X } from 'lucide-react'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 export interface CompareProductCardProps {
 	name: string
@@ -75,18 +75,18 @@ export default function CompareProductCard({
 
 			{/* Price */}
 			<div className='mb-4 flex flex-wrap items-center gap-2'>
-				<span
+				<PriceBYN
+					value={price}
 					className={cn(
 						'text-base font-semibold',
 						hasDiscount ? 'text-primary' : 'text-foreground',
 					)}
-				>
-					{formatPriceBYN(price)}
-				</span>
+				/>
 				{hasDiscount && (
-					<span className='text-sm text-muted-foreground line-through'>
-						{formatPriceBYN(oldPrice)}
-					</span>
+					<PriceBYN
+						value={oldPrice}
+						className='text-sm text-muted-foreground line-through'
+					/>
 				)}
 			</div>
 

@@ -1,6 +1,6 @@
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
-import { formatPriceBYN } from '@/shared/lib/currency'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 interface CartSummaryProps {
 	itemsCount: number
@@ -30,16 +30,14 @@ export default function CartSummary({
 			<div className='space-y-3 text-sm'>
 				<div className='flex items-center justify-between'>
 					<span className='text-muted-foreground'>Товары ({itemsCount})</span>
-					<span className='text-foreground'>
-						{formatPriceBYN(subtotal)}
-					</span>
+					<PriceBYN value={subtotal} className='text-foreground' />
 				</div>
 
 				{discount > 0 && (
 					<div className='flex items-center justify-between'>
 						<span className='text-muted-foreground'>Скидка</span>
 						<span className='text-primary'>
-							- {formatPriceBYN(discount)}
+							- <PriceBYN value={discount} className='text-primary' />
 						</span>
 					</div>
 				)}
@@ -55,24 +53,8 @@ export default function CartSummary({
 				<span className='text-base font-semibold uppercase text-foreground'>
 					Итого
 				</span>
-				<span className='text-lg font-semibold text-foreground'>
-					{formatPriceBYN(total)}
-				</span>
+				<PriceBYN value={total} className='text-lg font-semibold text-foreground' />
 			</div>
-
-			{/* Bonus */}
-			{/* {bonusAmount && (
-					<div className='mt-3 flex items-center justify-between text-sm'>
-						<span className='flex items-center gap-1 text-muted-foreground'>
-							Вернется бонусами
-							<Info className='h-3.5 w-3.5 cursor-help' strokeWidth={1.5} />
-						</span>
-						<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-foreground'>
-							{bonusAmount.toLocaleString('ru-RU')}
-							<span className='text-primary'>Br</span>
-						</span>
-					</div>
-				)} */}
 
 			{/* CTA */}
 			<div className='mt-6 border-t border-border pt-6'>

@@ -21,6 +21,7 @@ const OrderKanbanBoard = dynamic(
 import { OrderEditorModal } from '@/features/admin/order-editor'
 import { KanbanSkeleton, TableSkeleton } from '../components/adminskeleton'
 import { statusLabels, statusColors } from '@/shared/admin/orderstatus'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 export default function OrdersClient() {
 	const [view, setView] = useState<'kanban' | 'list'>('kanban')
@@ -159,7 +160,7 @@ export default function OrdersClient() {
 											</td>
 											<td className='py-3 px-4'>{order.user?.name ?? 'Гость'}</td>
 											<td className='py-3 px-4 text-right font-bold'>
-												{order.total.toLocaleString('ru-RU')} Br
+												<PriceBYN value={order.total} className='justify-end font-bold' />
 											</td>
 											<td className='py-3 px-4 pr-5'>
 												<Badge className={`text-[10px] border ${statusColors[order.status] ?? 'bg-secondary'}`} variant='outline'>

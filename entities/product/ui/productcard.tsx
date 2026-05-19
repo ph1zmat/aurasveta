@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/shared/lib/utils'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import DeferredImage from '@/shared/ui/deferredimage'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 export interface ProductCardProps {
 	name: string
@@ -45,18 +45,18 @@ export default function ProductCard({
 			</h3>
 
 			<div className='flex items-center gap-2 z-10'>
-				<span
+				<PriceBYN
+					value={price}
 					className={cn(
 						'font-medium',
 						hasDiscount ? 'text-destructive' : 'text-foreground',
 					)}
-				>
-					{formatPriceBYN(price)}
-				</span>
+				/>
 				{hasDiscount && (
-					<span className='text-sm text-muted-foreground line-through'>
-						{formatPriceBYN(oldPrice)}
-					</span>
+					<PriceBYN
+						value={oldPrice}
+						className='text-sm text-muted-foreground line-through'
+					/>
 				)}
 			</div>
 		</Link>

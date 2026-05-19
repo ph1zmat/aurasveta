@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { Eye, BarChart3, Heart } from 'lucide-react'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import DeferredImage from '@/shared/ui/deferredimage'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 export interface CatalogProductCardProps {
 	name: string
@@ -115,16 +115,15 @@ export default function CatalogProductCard({
 			)}
 
 			<div className='mb-3 flex flex-wrap items-center gap-2'>
-				<span className='text-lg font-semibold text-foreground'>
-					{formatPriceBYN(price)}
-				</span>
+				<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
 				{discountPercent && bonusAmount ? (
 					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white'>
 						{discountPercent}%
-						<span className='font-semibold'>
-							{bonusAmount.toLocaleString('ru-RU')}
-						</span>
-						<span className='text-white'>Br</span>
+						<PriceBYN
+							value={bonusAmount}
+							className='font-semibold text-white'
+							iconClassName='text-white opacity-100'
+						/>
 					</span>
 				) : null}
 			</div>

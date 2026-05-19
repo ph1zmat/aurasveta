@@ -25,6 +25,8 @@ import dynamic from 'next/dynamic'
 
 const CategoryFormModal = dynamic(() => import('./components/categoryformmodal'))
 import { MediaPicker, SeoEditor } from '@/packages/shared-admin/src/ui/admin'
+import { getProductImageUrl } from '@/shared/lib/productutils'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 type CategoryEditorValue = {
 	id: string
@@ -335,7 +337,7 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 														{p.images?.[0]?.url ? (
 															// eslint-disable-next-line @next/next/no-img-element
 															<img
-																src={p.images[0].url}
+																src={getProductImageUrl(p)}
 																alt={p.name}
 																className='h-full w-full object-cover'
 															/>
@@ -356,9 +358,10 @@ ${isSelected ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-secondary text
 															{p.sku ?? '—'}
 														</div>
 													</div>
-													<div className='text-sm font-bold shrink-0'>
-														{(p.price ?? 0).toLocaleString('ru-RU')} Br
-													</div>
+													<PriceBYN
+														value={p.price ?? 0}
+														className='text-sm font-bold shrink-0'
+													/>
 												</div>
 											))}
 										</div>

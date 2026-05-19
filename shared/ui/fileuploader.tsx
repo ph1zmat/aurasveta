@@ -2,6 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { ImagePlus, Trash2, AlertCircle, Loader2 } from 'lucide-react'
+import {
+	isAbsoluteStorageUrl,
+	resolveStorageFileUrl,
+} from '@/shared/lib/storagefileurl'
 import { cn } from '@/shared/lib/utils'
 
 // MIME-типы совпадают с серверным ALLOWED_TYPES (SVG исключён — XSS-риск)
@@ -13,23 +17,18 @@ const ALLOWED_CLIENT_TYPES = [
 	'image/gif',
 ]
 
-/** Проверяет, является ли строка S3-ключом (не URL и не legacy-путём) */
-function isS3Key(value: string): boolean {
-	return !value.startsWith('/') && !value.startsWith('http')
-}
+function resolvePreviewUrl(value: string): string | null {
+	const normalizedValue = value.trim()
+	if (!normalizedValue) return null
 
-/** Получает presigned URL для S3-ключа через /api/storage/signed-url */
-async function resolveS3Key(key: string): Promise<string | null> {
-	try {
-		const res = await fetch(
-			`/api/storage/signed-url?key=${encodeURIComponent(key)}`,
-		)
-		if (!res.ok) return null
-		const data = await res.json()
-		return (data.url as string) ?? null
-	} catch {
-		return null
+	if (
+		isAbsoluteStorageUrl(normalizedValue) ||
+		normalizedValue.startsWith('/')
+	) {
+		return normalizedValue
 	}
+
+	return resolveStorageFileUrl(normalizedValue)
 }
 
 interface FileUploaderProps {
@@ -75,18 +74,7 @@ export default function FileUploader({
 			setResolvedCurrent(null)
 			return
 		}
-		if (!isS3Key(currentImage)) {
-			setResolvedCurrent(currentImage)
-			return
-		}
-		// S3-ключ — получаем подписанный URL
-		let cancelled = false
-		resolveS3Key(currentImage).then(url => {
-			if (!cancelled) setResolvedCurrent(url)
-		})
-		return () => {
-			cancelled = true
-		}
+		setResolvedCurrent(resolvePreviewUrl(currentImage))
 	}, [currentImage])
 
 	// preview имеет приоритет (свежая загрузка), затем resolved existing

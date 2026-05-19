@@ -29,7 +29,7 @@ const ICON_OPTIONS = [
 ]
 
 const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
-	{ icon: 'Truck', title: 'Доставка по Мозырю от 100 Br — бесплатно', description: 'Доставим товар прямо до двери в удобное для вас время.' },
+	{ icon: 'Truck', title: 'Доставка по Мозырю от 100 BYN — бесплатно', description: 'Доставим товар прямо до двери в удобное для вас время.' },
 	{ icon: 'ShieldCheck', title: 'Расширенная гарантия', description: '18 месяцев гарантия от поставщика + 12 месяцев от магазина' },
 	{ icon: 'RotateCcw', title: 'Увеличенный срок возврата', description: 'Примем товар в течение 35 дней' },
 	{ icon: 'CreditCard', title: 'Оплата картой и онлайн', description: 'Оплачивайте заказ банковской картой или наличными при получении' },

@@ -11,9 +11,9 @@ import { toast } from 'sonner'
 import EmptyState from '@/shared/ui/emptystate'
 import { trpc } from '@/lib/trpc/client'
 import { getProductImageUrl } from '@/shared/lib/productutils'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import type { ProductImage } from '@/shared/types/product'
 import { CartContentSkeleton } from '@/shared/ui/storefrontskeletons'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 type AnonCartProduct = {
 	id: string
@@ -379,7 +379,7 @@ export default function CartContent() {
 							</div>
 							<div className='rounded-lg bg-muted/50 p-3 text-sm'>
 								<p>
-									Итого: <strong>{formatPriceBYN(total)}</strong>
+									Итого: <PriceBYN value={total} className='font-semibold' />
 								</p>
 							</div>
 							<div className='flex gap-3'>

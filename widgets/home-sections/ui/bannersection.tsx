@@ -11,7 +11,7 @@ export interface BannerSlide {
 	subtitle?: string
 	cta?: string
 	href?: string
-	/** Storage key (passed to /api/storage/file?key=…) */
+	/** Storage key (проходит через storage proxy/helper) */
 	imageKey?: string
 	/** External or absolute image URL */
 	imageUrl?: string

@@ -15,6 +15,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
 import { GripVertical } from 'lucide-react'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 type KanbanStatus = 'PENDING' | 'PAID'
 
@@ -81,9 +82,7 @@ function KanbanCard({ order, onClick, isDragging }: KanbanCardProps) {
 				</button>
 			</div>
 			<div className='mt-2 flex items-center justify-between'>
-				<span className='text-sm font-bold text-accent'>
-					{order.total.toLocaleString('ru-RU')} Br
-				</span>
+				<PriceBYN value={order.total} className='text-sm font-bold text-accent' />
 				<span className='text-[10px] text-muted-foreground'>
 					{(order.items as unknown[])?.length ?? 0} тов.
 				</span>
@@ -190,9 +189,7 @@ export function OrderKanbanBoard({
 						<div className='font-mono text-[10px] text-muted-foreground mt-0.5'>
 							#{activeOrder.id.slice(-6).toUpperCase()}
 						</div>
-						<div className='text-sm font-bold text-accent mt-2'>
-							{activeOrder.total.toLocaleString('ru-RU')} Br
-						</div>
+						<PriceBYN value={activeOrder.total} className='mt-2 text-sm font-bold text-accent' />
 					</div>
 				) : null}
 			</DragOverlay>

@@ -9,11 +9,11 @@ import { useCompare } from '@/features/compare/usecompare'
 import { useFavorites } from '@/features/favorites/usefavorites'
 import { useCart } from '@/features/cart/usecart'
 import { Button } from '@/shared/ui/button'
-import { formatPriceBYN } from '@/shared/lib/currency'
 import EmptyState from '@/shared/ui/emptystate'
 import { getProductImageUrl } from '@/shared/lib/productutils'
 import { CompareContentSkeleton } from '@/shared/ui/storefrontskeletons'
 import DeferredImage from '@/shared/ui/deferredimage'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { ProductImage } from '@/shared/types/product'
 
 /* ─────── types ─────── */
@@ -80,7 +80,7 @@ const FIXED_SPECS: {
 		key: '_price',
 		label: 'Цена',
 		group: 'Основные',
-		getter: p => (p.price ? formatPriceBYN(p.price) : null),
+		getter: p => (p.price ? String(p.price) : null),
 	},
 	{ key: '_brand', label: 'Бренд', group: 'Основные', getter: p => p.brand },
 	{
@@ -412,18 +412,18 @@ export default function CompareContent() {
 
 												{/* Price */}
 												<div className='mb-4 flex flex-wrap items-center gap-2'>
-													<span
+													<PriceBYN
+														value={product.price}
 														className={cn(
 															'text-base font-semibold',
 															hasDiscount ? 'text-primary' : 'text-foreground',
 														)}
-													>
-														{formatPriceBYN(product.price)}
-													</span>
+													/>
 													{hasDiscount && (
-														<span className='text-sm text-muted-foreground line-through'>
-																{formatPriceBYN(product.oldPrice!)}
-														</span>
+														<PriceBYN
+															value={product.oldPrice!}
+															className='text-sm text-muted-foreground line-through'
+														/>
 													)}
 												</div>
 
@@ -475,7 +475,13 @@ export default function CompareContent() {
 													key={i}
 													className='px-2 py-2 text-sm text-foreground'
 												>
-													{val ?? (
+													{val != null ? (
+														row.key === '_price' ? (
+															<PriceBYN value={Number(val)} />
+														) : (
+															val
+														)
+													) : (
 														<span className='text-muted-foreground'>—</span>
 													)}
 												</td>

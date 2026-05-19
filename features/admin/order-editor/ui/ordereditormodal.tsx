@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { Button } from '@/shared/ui/button'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 import { ORDER_STATUS_CONFIG, ORDER_TRANSITIONS } from '../model/orderstatus'
 import type { AdminOrderStatus } from '@/shared/types/order'
 
@@ -30,10 +31,6 @@ function formatDate(date: Date | string) {
 		hour: '2-digit',
 		minute: '2-digit',
 	})
-}
-
-function formatPrice(n: number) {
-	return `${n.toLocaleString('ru-RU')} Br`
 }
 
 function OrderDetailContent({
@@ -192,19 +189,19 @@ function OrderDetailContent({
 							<div className='min-w-0 flex-1'>
 								<p className='truncate text-sm text-foreground'>{item.product?.name ?? item.productId}</p>
 								<p className='text-xs text-muted-foreground'>
-									{item.quantity} шт. × {formatPrice(item.price)}
+									{item.quantity} шт. × <PriceBYN value={item.price} />
 								</p>
 							</div>
-							<p className='shrink-0 text-sm font-medium text-foreground'>
-								{formatPrice(item.price * item.quantity)}
-							</p>
+							<PriceBYN
+								value={item.price * item.quantity}
+								className='shrink-0 text-sm font-medium text-foreground'
+							/>
 						</div>
 					))}
 				</div>
 				<div className='mt-3 border-t border-border/60 pt-3 text-right'>
-					<span className='text-base font-bold text-foreground'>
-						Итого: {formatPrice(order.total)}
-					</span>
+					<span className='text-base font-bold text-foreground'>Итого: </span>
+					<PriceBYN value={order.total} className='text-base font-bold text-foreground' />
 				</div>
 			</div>
 

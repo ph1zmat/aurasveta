@@ -37,6 +37,7 @@ import { toast } from 'sonner'
 import Image from 'next/image'
 import { CardGridSkeleton, TableSkeleton } from './components/adminskeleton'
 import { statusLabels, statusColors } from '@/shared/admin/orderstatus'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 // Tiny SVG sparkline from an array of values
 function Sparkline({ values, color = '#c66a2b', ariaLabel }: { values: number[]; color?: string; ariaLabel?: string }) {
@@ -71,6 +72,30 @@ function Sparkline({ values, color = '#c66a2b', ariaLabel }: { values: number[];
 			<path d={fillD} fill={`url(#sg-${color.replace('#', '')})`} />
 			<path d={pathD} stroke={color} strokeWidth={2} strokeLinejoin='round' strokeLinecap='round' />
 		</svg>
+	)
+}
+
+function RevenueTooltip({
+	active,
+	payload,
+	label,
+}: {
+	active?: boolean
+	payload?: Array<{ value?: number | string }>
+	label?: string
+}) {
+	if (!active || !payload || payload.length === 0) return null
+
+	const rawValue = payload[0]?.value
+	const value = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0)
+
+	return (
+		<div
+			className='rounded-xl border border-border bg-card px-3 py-2 text-xs shadow-sm'
+		>
+			{label ? <div className='mb-1 text-muted-foreground'>{label}</div> : null}
+			<PriceBYN value={value} className='font-semibold text-foreground' />
+		</div>
 	)
 }
 
@@ -136,8 +161,7 @@ export default function DashboardClient() {
 		{
 			label: 'Выручка',
 			value: stats?.totalRevenue ?? 0,
-			format: (v: number) =>
-				new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v),
+			isCurrency: true,
 			icon: DollarSign,
 			iconColor: 'text-accent bg-accent/15',
 			trend: stats?.revenueTrend ?? 0,
@@ -168,8 +192,7 @@ export default function DashboardClient() {
 		{
 			label: 'Средний чек',
 			value: averageOrderValue,
-			format: (v: number) =>
-				new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v),
+			isCurrency: true,
 			icon: BarChart3,
 			iconColor: 'text-warning bg-warning/15',
 			trend: stats?.revenueTrend ?? 0,
@@ -241,9 +264,16 @@ export default function DashboardClient() {
 								</div>
 								<div className='flex items-end justify-between gap-2'>
 									<div>
-										<div className='text-2xl font-extrabold tracking-tight'>
-											{kpi.format ? kpi.format(kpi.value) : kpi.value.toLocaleString('ru-RU')}
-										</div>
+										{kpi.isCurrency ? (
+											<PriceBYN
+												value={kpi.value}
+												className='text-2xl font-extrabold tracking-tight'
+											/>
+										) : (
+											<div className='text-2xl font-extrabold tracking-tight'>
+												{kpi.value.toLocaleString('ru-RU')}
+											</div>
+										)}
 										<div className={`flex items-center gap-1 mt-1 text-xs font-semibold ${kpi.trend >= 0 ? 'text-success' : 'text-destructive'}`}>
 											{kpi.trend >= 0
 												? <TrendingUp className='h-3 w-3' />
@@ -311,17 +341,7 @@ export default function DashboardClient() {
 												new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 0 }).format(v as number)
 											}
 										/>
-										<Tooltip
-											contentStyle={{
-												background: 'var(--card)',
-												border: '1px solid var(--border)',
-												borderRadius: '12px',
-												fontSize: '12px',
-											}}
-											formatter={(value: unknown) =>
-												new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value as number)
-											}
-										/>
+										<Tooltip content={<RevenueTooltip />} />
 										<Area
 											type='monotone'
 											dataKey='revenue'
@@ -392,9 +412,11 @@ export default function DashboardClient() {
 											</td>
 											<td className='py-3 pr-5 text-right whitespace-nowrap'>
 												<div className='font-bold'>
-													{tp.product?.price
-														? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(tp.product.price)
-														: '—'}
+													{typeof tp.product?.price === 'number' ? (
+														<PriceBYN value={tp.product.price} className='justify-end font-bold' />
+													) : (
+														'—'
+													)}
 												</div>
 												<div className='text-xs text-muted-foreground'>{tp.salesCount} продаж</div>
 											</td>
@@ -471,7 +493,7 @@ export default function DashboardClient() {
 													{order.items?.length ?? 0} {order.items?.length === 1 ? 'товар' : 'товара'}
 												</td>
 												<td className='py-3 px-4 text-right font-bold whitespace-nowrap'>
-													{order.total.toLocaleString('ru-RU')} Br
+													<PriceBYN value={order.total} className='justify-end font-bold' />
 												</td>
 												<td className='py-3 px-4 hidden md:table-cell'>
 													<Badge className={`text-[10px] border ${statusColors[order.status] ?? 'bg-secondary'}`} variant='outline'>

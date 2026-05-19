@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { MediaPicker } from '@aurasveta/shared-admin'
 import { trpc } from '@/lib/trpc/client'
+import { PriceBYN } from '@/shared/ui/pricebyn'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -200,7 +201,10 @@ function ProductMultiSelect({
 						</span>
 						<span className='flex-1 truncate'>{p.name}</span>
 						{p.price != null && (
-							<span className='text-xs text-muted-foreground shrink-0'>{p.price} Br</span>
+							<PriceBYN
+								value={Number(p.price)}
+								className='text-xs text-muted-foreground shrink-0'
+							/>
 						)}
 					</button>
 				))}
