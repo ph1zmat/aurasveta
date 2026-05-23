@@ -97,3 +97,8 @@ HOSTER_API.md
 # исключить всю документацию кроме README
 docs/**
 !docs/README.md
+
+# импорт фото: большие файлы данных и скачанные фото
+data
+
+scripts/import

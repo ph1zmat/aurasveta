@@ -158,6 +158,36 @@ export const ordersRouter = createTRPCRouter({
 				update: { items: [] },
 			})
 
+			// Получаем полную информацию о созданном заказе для Telegram-уведомления
+			try {
+				const fullOrder = await ctx.prisma.order.findUnique({
+					where: { id: order.id },
+					include: {
+						user: { select: { name: true, email: true } },
+						items: {
+							include: {
+								product: {
+									select: {
+										id: true,
+										name: true,
+										slug: true,
+										category: { select: { id: true, name: true, slug: true } },
+									},
+								},
+							},
+						},
+					},
+				})
+				if (fullOrder) {
+					const { sendOrderNotification } = await import('@/lib/telegram/telegramservice')
+					sendOrderNotification(fullOrder as any).catch(err => {
+						console.error('[Telegram] Ошибка при отправке уведомления:', err)
+					})
+				}
+			} catch (telegramErr) {
+				console.error('[Telegram] Сбой инициализации отправки уведомления:', telegramErr)
+			}
+
 			// Отправить push-уведомление администраторам о новом заказе
 			sendPushToAdmins({
 				title: 'Новый заказ',
