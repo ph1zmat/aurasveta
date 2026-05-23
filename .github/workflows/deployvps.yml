@@ -130,31 +130,30 @@ jobs:
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
-            NEXT_BUILD_MAIN_PATTERN="$APP_DIR/node_modules/.bin/next build"
-            NEXT_BUILD_CHILD_PATTERN="$APP_DIR/.next/build/"
+            get_next_build_pids() {
+              ps -eo pid=,comm=,args= | awk '$2=="node" && ($0 ~ /next build|\\.next\/build\//) {print $1}'
+            }
 
-            if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
-              echo "Found conflicting Next.js build processes for $APP_DIR. Terminating stale build workers before starting a new build."
-              pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
-              pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
+            STALE_BUILD_PIDS="$(get_next_build_pids)"
+            if [ -n "$STALE_BUILD_PIDS" ]; then
+              echo "Found conflicting Next.js build processes. Terminating stale build workers before starting a new build."
+              ps -eo pid=,comm=,args= | awk '$2=="node" && ($0 ~ /next build|\\.next\/build\//) {print}' || true
 
-              pkill -TERM -f "$NEXT_BUILD_MAIN_PATTERN" || true
-              pkill -TERM -f "$NEXT_BUILD_CHILD_PATTERN" || true
+              echo "$STALE_BUILD_PIDS" | xargs -r kill -TERM || true
               sleep 5
 
-              if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
+              STALE_BUILD_PIDS="$(get_next_build_pids)"
+              if [ -n "$STALE_BUILD_PIDS" ]; then
                 echo "Some build workers are still alive after SIGTERM. Escalating to SIGKILL."
-                pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
-                pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
-                pkill -KILL -f "$NEXT_BUILD_MAIN_PATTERN" || true
-                pkill -KILL -f "$NEXT_BUILD_CHILD_PATTERN" || true
+                ps -eo pid=,comm=,args= | awk '$2=="node" && ($0 ~ /next build|\\.next\/build\//) {print}' || true
+                echo "$STALE_BUILD_PIDS" | xargs -r kill -KILL || true
                 sleep 2
               fi
 
-              if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
+              STALE_BUILD_PIDS="$(get_next_build_pids)"
+              if [ -n "$STALE_BUILD_PIDS" ]; then
                 echo "ERROR: failed to stop previous Next.js build processes"
-                pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
-                pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
+                ps -eo pid=,comm=,args= | awk '$2=="node" && ($0 ~ /next build|\\.next\/build\//) {print}' || true
                 exit 1
               fi
             else
@@ -163,10 +162,11 @@ jobs:
 
             # Не чистим .next перед сборкой — сохраняем статический кэш.
             # После аварийного прерывания у Next.js может остаться stale lock-файл.
-            if [ -f .next/build.lock ]; then
-              echo "Removing stale .next/build.lock"
-              rm -f .next/build.lock
+            if [ -d .next/build ]; then
+              echo "Removing stale .next/build directory"
+              rm -rf .next/build
             fi
+            rm -f .next/build.lock .next/lock || true
             NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
 
             if [ ! -f .next/BUILD_ID ]; then
