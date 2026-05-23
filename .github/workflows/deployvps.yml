@@ -130,6 +130,37 @@ jobs:
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
+            NEXT_BUILD_MAIN_PATTERN="$APP_DIR/node_modules/.bin/next build"
+            NEXT_BUILD_CHILD_PATTERN="$APP_DIR/.next/build/"
+
+            if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
+              echo "Found conflicting Next.js build processes for $APP_DIR. Terminating stale build workers before starting a new build."
+              pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
+              pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
+
+              pkill -TERM -f "$NEXT_BUILD_MAIN_PATTERN" || true
+              pkill -TERM -f "$NEXT_BUILD_CHILD_PATTERN" || true
+              sleep 5
+
+              if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
+                echo "Some build workers are still alive after SIGTERM. Escalating to SIGKILL."
+                pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
+                pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
+                pkill -KILL -f "$NEXT_BUILD_MAIN_PATTERN" || true
+                pkill -KILL -f "$NEXT_BUILD_CHILD_PATTERN" || true
+                sleep 2
+              fi
+
+              if pgrep -af "$NEXT_BUILD_MAIN_PATTERN" >/dev/null 2>&1 || pgrep -af "$NEXT_BUILD_CHILD_PATTERN" >/dev/null 2>&1; then
+                echo "ERROR: failed to stop previous Next.js build processes"
+                pgrep -af "$NEXT_BUILD_MAIN_PATTERN" || true
+                pgrep -af "$NEXT_BUILD_CHILD_PATTERN" || true
+                exit 1
+              fi
+            else
+              echo "No conflicting Next.js build processes found."
+            fi
+
             # Не чистим .next перед сборкой — сохраняем статический кэш.
             # После аварийного прерывания у Next.js может остаться stale lock-файл.
             if [ -f .next/build.lock ]; then
@@ -137,6 +168,12 @@ jobs:
               rm -f .next/build.lock
             fi
             NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+
+            if [ ! -f .next/BUILD_ID ]; then
+              echo "ERROR: build finished but .next/BUILD_ID is missing"
+              find .next -maxdepth 2 -type f | sort | head -n 200 || true
+              exit 1
+            fi
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
