@@ -108,7 +108,7 @@ jobs:
             echo "=== Phase: npm install ($(date -Is)) ==="
             # npm ci удаляет node_modules и может вызвать ошибки у работающего сервиса.
             # Для паттерна без остановки используем npm install с lockfile.
-            NODE_OPTIONS=--max-old-space-size=1024 npm install --include=dev --no-audit --no-fund
+            NPM_CONFIG_JOBS=1 NODE_OPTIONS=--max-old-space-size=768 npm install --include=dev --prefer-offline --no-audit --no-fund
 
             # Синхронизация схемы БД перед временными сид-скриптами.
             echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
@@ -167,7 +167,19 @@ jobs:
               rm -rf .next/build
             fi
             rm -f .next/build.lock .next/lock || true
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+            # Для VPS с 1 CPU / 1 GB RAM:
+            # 1) сначала пробуем Turbopack с ограниченным heap
+            # 2) при сбое автоматически откатываемся на стандартную сборку next build
+            # Это снижает риск падений деплоя из-за OOM.
+            if ! NODE_ENV=production CI=1 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=896 ./node_modules/.bin/next build --turbopack; then
+              echo "WARN: Turbopack build failed. Retrying with standard Next.js build for low-memory stability..."
+              if [ -d .next/build ]; then
+                echo "Removing stale .next/build directory before fallback build"
+                rm -rf .next/build
+              fi
+              rm -f .next/build.lock .next/lock || true
+              NODE_ENV=production CI=1 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=768 ./node_modules/.bin/next build
+            fi
 
             if [ ! -f .next/BUILD_ID ]; then
               echo "ERROR: build finished but .next/BUILD_ID is missing"
