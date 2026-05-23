@@ -108,7 +108,10 @@ jobs:
             echo "=== Phase: npm install ($(date -Is)) ==="
             # npm ci удаляет node_modules и может вызвать ошибки у работающего сервиса.
             # Для паттерна без остановки используем npm install с lockfile.
-            NPM_CONFIG_JOBS=1 NODE_OPTIONS=--max-old-space-size=768 npm install --include=dev --prefer-offline --no-audit --no-fund
+            # Снижаем параллелизм npm для 1 CPU / 1 GB RAM:
+            # меньше риск OOM во время установки ценой более долгого install.
+            # 768 MB оставляет запас памяти под ОС/SSH/systemd во время npm install.
+            NPM_CONFIG_JOBS=1 NODE_OPTIONS=--max-old-space-size=768 npm install --include=dev --no-audit --no-fund
 
             # Синхронизация схемы БД перед временными сид-скриптами.
             echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
@@ -130,6 +133,14 @@ jobs:
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
+            cleanup_next_build_artifacts() {
+              if [ -d .next/build ]; then
+                echo "Removing stale .next/build directory"
+                rm -rf .next/build
+              fi
+              rm -f .next/build.lock .next/lock || true
+            }
+
             get_next_build_pids() {
               ps -eo pid=,comm=,args= | awk '$2=="node" && ($0 ~ /next build|\\.next\/build\//) {print $1}'
             }
@@ -162,23 +173,25 @@ jobs:
 
             # Не чистим .next перед сборкой — сохраняем статический кэш.
             # После аварийного прерывания у Next.js может остаться stale lock-файл.
-            if [ -d .next/build ]; then
-              echo "Removing stale .next/build directory"
-              rm -rf .next/build
-            fi
-            rm -f .next/build.lock .next/lock || true
+            cleanup_next_build_artifacts
             # Для VPS с 1 CPU / 1 GB RAM:
             # 1) сначала пробуем Turbopack с ограниченным heap
             # 2) при сбое автоматически откатываемся на стандартную сборку next build
             # Это снижает риск падений деплоя из-за OOM.
-            if ! NODE_ENV=production CI=1 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=896 ./node_modules/.bin/next build --turbopack; then
-              echo "WARN: Turbopack build failed. Retrying with standard Next.js build for low-memory stability..."
-              if [ -d .next/build ]; then
-                echo "Removing stale .next/build directory before fallback build"
-                rm -rf .next/build
+            # 896 MB выбрано как верхняя граница для build при 1 GB RAM + swap,
+            # это компромисс между 768 MB (часто мало для next build) и 1024 MB (слишком агрессивно для 1 GB RAM).
+            # Для стабильности нужен корректно настроенный swap на сервере.
+            export NODE_ENV=production
+            export CI=1
+            export NEXT_TELEMETRY_DISABLED=1
+            export NODE_OPTIONS=--max-old-space-size=896
+            if ! ./node_modules/.bin/next build --turbopack; then
+              echo "WARN: Turbopack build failed (likely due to memory constraints on 1GB RAM). Retrying with standard Next.js build..."
+              cleanup_next_build_artifacts
+              if ! ./node_modules/.bin/next build; then
+                echo "ERROR: both Turbopack and standard Next.js build failed"
+                exit 1
               fi
-              rm -f .next/build.lock .next/lock || true
-              NODE_ENV=production CI=1 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=768 ./node_modules/.bin/next build
             fi
 
             if [ ! -f .next/BUILD_ID ]; then
