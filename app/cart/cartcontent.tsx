@@ -111,6 +111,14 @@ export default function CartContent() {
 	}, [isAuth, serverCartWithProducts, rawItems, anonProductsData])
 
 	const itemsCount = cartItems.length
+	const orderItems = useMemo(
+		() =>
+			cartItems.map(item => ({
+				productId: item.id,
+				quantity: item.quantity,
+			})),
+		[cartItems],
+	)
 	const subtotal = cartItems.reduce(
 		(sum, item) => sum + (item.oldPrice ?? item.price) * item.quantity,
 		0,
@@ -201,12 +209,16 @@ export default function CartContent() {
 			toast.error('Проверьте данные доставки')
 			return
 		}
+		if (orderItems.length === 0) {
+			toast.error('В корзине нет доступных товаров для оформления')
+			return
+		}
 		createOrderMut.mutate({
 			address,
 			phone,
 			contactMethod,
 			comment: comment || undefined,
-			items: rawItems,
+			items: orderItems,
 		})
 	}
 

@@ -41,8 +41,18 @@ export const cartRouter = createTRPCRouter({
 			},
 		})
 		const productMap = new Map(products.map(p => [p.id, p]))
+		const validItems = items.filter(item => productMap.has(item.productId))
 
-		return items.map(item => {
+		if (validItems.length !== items.length) {
+			const itemsJson = validItems as unknown as Prisma.InputJsonValue
+			await ctx.prisma.cart.upsert({
+				where: { userId: ctx.userId },
+				create: { userId: ctx.userId, items: itemsJson },
+				update: { items: itemsJson },
+			})
+		}
+
+		return validItems.map(item => {
 			const p = productMap.get(item.productId)
 			return {
 				productId: item.productId,

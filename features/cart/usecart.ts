@@ -44,16 +44,18 @@ export function useCart() {
 	})
 
 	const rawItems: AnonymousCartItem[] = isAuth
-		? (serverItems ?? []).map(item => ({
-				productId:
-					typeof item === 'object' && item !== null && 'productId' in item
-						? String((item as Record<string, unknown>).productId)
-						: '',
-				quantity:
-					typeof item === 'object' && item !== null && 'quantity' in item
-						? Number((item as Record<string, unknown>).quantity)
-						: 1,
-			}))
+		? (serverItems ?? [])
+				.filter(item => {
+					if (typeof item !== 'object' || item === null) return false
+					if (!('productId' in item) || !('quantity' in item)) return false
+					if (!('product' in item)) return false
+					const product = (item as Record<string, unknown>).product
+					return typeof product === 'object' && product !== null
+				})
+				.map(item => ({
+					productId: String((item as Record<string, unknown>).productId),
+					quantity: Number((item as Record<string, unknown>).quantity),
+				}))
 		: anonCart
 
 	// Expose enriched items with product data from cart.get (auth only)

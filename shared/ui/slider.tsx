@@ -195,6 +195,7 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 
 		/* Computed values */
 		const trackOffset = -(currentIndex * trackStep)
+		const fallbackTrackOffset = `calc(-${(currentIndex * 100) / Math.max(1, visibleItems)}% - ${currentIndex * gap}px)`
 		const canGoPrev = loop || currentIndex > 0
 		const canGoNext = loop || currentIndex < maxIndex
 		const dotCount = Math.max(1, total - visibleItems + 1)
@@ -309,9 +310,11 @@ const Slider = forwardRef<SliderHandle, SliderProps>(
 							className='flex'
 							style={{
 								gap: `${gap}px`,
-								transform: `translateX(${trackOffset}px)`,
-								transition:
-									trackStep > 0 ? 'transform 300ms ease-out' : undefined,
+								transform:
+									trackStep > 0
+										? `translateX(${trackOffset}px)`
+										: `translateX(${fallbackTrackOffset})`,
+								transition: 'transform 300ms ease-out',
 							}}
 						>
 							{slides.map((slide, i) => (
