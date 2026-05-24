@@ -152,16 +152,6 @@ const nextConfig: NextConfig = {
 					},
 				],
 			},
-			// Статика Next.js: 1 год
-			{
-				source: '/_next/static/:path*',
-				headers: [
-					{
-						key: 'Cache-Control',
-						value: 'public, max-age=31536000, immutable',
-					},
-				],
-			},
 			// Статика public/
 			{
 				source: '/images/:path*',

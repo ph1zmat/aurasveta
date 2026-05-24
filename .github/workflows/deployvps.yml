@@ -19,10 +19,10 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.vps_HOST }}
-          port: ${{ secrets.vps_PORT || '22' }}
-          username: ${{ secrets.vps_USER }}
-          key: ${{ secrets.vps_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
           command_timeout: 150m
           script: |
@@ -88,6 +88,12 @@ jobs:
             git fetch --prune --depth=1 origin main
             git reset --hard FETCH_HEAD
 
+            # === FIX: chown ВЕСЬ проект после git reset — иначе root создаст файлы
+            # с правами root и Next.js runtime от aurasveta получит EACCES ===
+            echo "=== Phase: fix permissions after git sync ($(date -Is)) ==="
+            chown -R aurasveta:www-data "$APP_DIR"
+            chmod -R u+rwX,g+rwX "$APP_DIR"
+
             # Загружаем production env до npm ci,
             # так как postinstall запускает prisma generate
             echo "=== Phase: load env ($(date -Is)) ==="
@@ -130,20 +136,32 @@ jobs:
 
             # Production build
             echo "=== Phase: next build ($(date -Is)) ==="
-            # Не чистим .next перед сборкой — сохраняем статический кэш.
-            # После аварийного прерывания у Next.js может остаться stale lock-файл.
+
+            # === FIX: Чистим stale cache перед сборкой ===
+            if [ -d .next/server/app ]; then
+              echo "Cleaning stale .next/server/app cache..."
+              rm -rf .next/server/app/*.segments || true
+            fi
             if [ -f .next/build.lock ]; then
               echo "Removing stale .next/build.lock"
               rm -f .next/build.lock
             fi
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/next build --turbopack
+
+            # === FIX: Уменьшен max-old-space-size с 2048 до 1024 ===
+            # На сервере с 918MB RAM 2GB heap вызывает агрессивный swap/thrashing.
+            # 1024MB — оптимально для сборки с 4GB swap.
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1024 ./node_modules/.bin/next build --turbopack
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
-            # runtime-кэше (.next/cache/images).
+            # runtime-кэше (.next/cache/images) и prerender-сегментах.
             echo "=== Phase: fix .next permissions ($(date -Is)) ==="
             chown -R aurasveta:www-data .next
             chmod -R u+rwX,g+rwX .next
+            # === FIX: Убедимся что .next/server/app доступен для записи ===
+            if [ -d .next/server/app ]; then
+              chmod -R u+w,g+w .next/server/app
+            fi
 
             # Перезапуск приложения
             echo "=== Phase: restart service ($(date -Is)) ==="

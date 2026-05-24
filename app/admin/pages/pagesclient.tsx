@@ -19,13 +19,16 @@ type EditablePage = {
 	slug?: string | null
 	content?: string | null
 	status?: string | null
+	isPublished?: boolean | null
 	metaTitle?: string | null
 	metaDesc?: string | null
 }
 
 export default function PagesClient() {
 	const [modalOpen, setModalOpen] = useState(false)
-	const [editingPage, setEditingPage] = useState<EditablePage | undefined>(undefined)
+	const [editingPage, setEditingPage] = useState<EditablePage | undefined>(
+		undefined,
+	)
 	const [selectedId, setSelectedId] = useState<string | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -39,7 +42,7 @@ export default function PagesClient() {
 		},
 	})
 
-	const selected = pages?.find((p) => p.id === selectedId)
+	const selected = pages?.find(p => p.id === selectedId)
 
 	return (
 		<div className='space-y-4'>
@@ -72,7 +75,7 @@ export default function PagesClient() {
 						{isLoading ? (
 							<ListSkeleton items={6} />
 						) : (
-							pages?.map((page) => (
+							pages?.map(page => (
 								<div
 									key={page.id}
 									className={`flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer transition-colors
@@ -81,17 +84,21 @@ export default function PagesClient() {
 									onClick={() => setSelectedId(page.id)}
 								>
 									<div className='flex-1 min-w-0'>
-										<div className='text-sm font-medium truncate'>{page.title}</div>
-										<div className='text-xs text-muted-foreground'>/{page.slug}</div>
+										<div className='text-sm font-medium truncate'>
+											{page.title}
+										</div>
+										<div className='text-xs text-muted-foreground'>
+											/{page.slug}
+										</div>
 									</div>
 									<Badge
 										className={
-											page.status === 'PUBLISHED'
+											page.isPublished
 												? 'bg-success/15 text-success'
 												: 'bg-warning/15 text-warning'
 										}
 									>
-										{page.status === 'PUBLISHED' ? 'Опубликована' : 'Черновик'}
+										{page.isPublished ? 'Опубликована' : 'Черновик'}
 									</Badge>
 								</div>
 							))
@@ -110,7 +117,10 @@ export default function PagesClient() {
 								<Button
 									variant='ghost'
 									size='icon'
-									onClick={() => { setEditingPage(selected); setModalOpen(true) }}
+									onClick={() => {
+										setEditingPage(selected)
+										setModalOpen(true)
+									}}
 									aria-label='Редактировать страницу'
 								>
 									<Pencil className='h-4 w-4' />

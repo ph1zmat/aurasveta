@@ -220,14 +220,25 @@ export const pagesRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { sections, blocks, seo, ...pageInput } = input
+			const publicationData = input.isPublished
+				? {
+					isPublished: true,
+					publishedAt: new Date(),
+					status: 'PUBLISHED' as const,
+				}
+				: {
+					isPublished: false,
+					publishedAt: null,
+					status: 'DRAFT' as const,
+				}
 
 			return ctx.prisma.$transaction(async tx => {
 				const page = await tx.page.create({
 					data: {
 						...pageInput,
+						...publicationData,
 						contentBlocks: input.contentBlocks as never,
 						authorId: ctx.userId,
-						publishedAt: input.isPublished ? new Date() : null,
 					},
 				})
 
@@ -299,9 +310,17 @@ export const pagesRouter = createTRPCRouter({
 			const { id, contentBlocks, sections, blocks, ...data } = input
 
 			if (data.isPublished !== undefined) {
-				;(data as Record<string, unknown>).publishedAt = data.isPublished
-					? new Date()
-					: null
+				const publicationData = data.isPublished
+					? {
+						publishedAt: new Date(),
+						status: 'PUBLISHED' as const,
+					}
+					: {
+						publishedAt: null,
+						status: 'DRAFT' as const,
+					}
+
+				Object.assign(data as Record<string, unknown>, publicationData)
 			}
 
 			return ctx.prisma.$transaction(async tx => {

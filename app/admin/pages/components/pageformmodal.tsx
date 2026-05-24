@@ -17,7 +17,11 @@ import { generateSlug } from '@/shared/lib/generateslug'
 import { generatePageSeo } from '@/shared/lib/seo/generateseo'
 import { SeoEditor, SeoFieldsBlock } from '@aurasveta/shared-admin'
 import { PageBlocksEditor } from '@/features/admin/page-blocks'
-import type { PageBlockDraft, PageBlockRecord, PageBlockType } from '@/shared/types/pagebuilder'
+import type {
+	PageBlockDraft,
+	PageBlockRecord,
+	PageBlockType,
+} from '@/shared/types/pagebuilder'
 import { PAGE_BLOCK_TYPES } from '@/shared/types/pagebuilder'
 import type { SeoFormValues } from '@/shared/types/seo'
 
@@ -31,6 +35,7 @@ interface Props {
 		slug?: string | null
 		content?: string | null
 		status?: string | null
+		isPublished?: boolean | null
 		metaTitle?: string | null
 		metaDesc?: string | null
 	}
@@ -43,7 +48,9 @@ function toBlockDraft(record: PageBlockRecord): PageBlockDraft | null {
 		id: record.id,
 		type: record.type as PageBlockType,
 		isActive: record.isActive,
-		config: (record.config && typeof record.config === 'object' && !Array.isArray(record.config)
+		config: (record.config &&
+		typeof record.config === 'object' &&
+		!Array.isArray(record.config)
 			? record.config
 			: {}) as Record<string, unknown>,
 	}
@@ -67,7 +74,12 @@ function toNullableSeoValue(value: string) {
 	return trimmed.length > 0 ? trimmed : null
 }
 
-export default function PageFormModal({ open, onOpenChange, onSuccess, page }: Props) {
+export default function PageFormModal({
+	open,
+	onOpenChange,
+	onSuccess,
+	page,
+}: Props) {
 	const isEdit = !!page
 
 	const [title, setTitle] = useState('')
@@ -93,35 +105,37 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		enabled: isEdit && open && !!page?.id,
 	})
 
-	const { mutate: create, isPending: isCreating } = trpc.pages.create.useMutation({
-		onSuccess: () => {
-			toast.success('Страница создана')
-			onSuccess()
-			onOpenChange(false)
-			reset()
-		},
-		onError: (err) => {
-			toast.error(err.message ?? 'Ошибка при создании страницы')
-		},
-	})
-	const { mutate: update, isPending: isUpdating } = trpc.pages.update.useMutation({
-		onSuccess: () => {
-			toast.success('Страница обновлена')
-			onSuccess()
-			onOpenChange(false)
-			reset()
-		},
-		onError: (err) => {
-			toast.error(err.message ?? 'Ошибка при сохранении страницы')
-		},
-	})
+	const { mutate: create, isPending: isCreating } =
+		trpc.pages.create.useMutation({
+			onSuccess: () => {
+				toast.success('Страница создана')
+				onSuccess()
+				onOpenChange(false)
+				reset()
+			},
+			onError: err => {
+				toast.error(err.message ?? 'Ошибка при создании страницы')
+			},
+		})
+	const { mutate: update, isPending: isUpdating } =
+		trpc.pages.update.useMutation({
+			onSuccess: () => {
+				toast.success('Страница обновлена')
+				onSuccess()
+				onOpenChange(false)
+				reset()
+			},
+			onError: err => {
+				toast.error(err.message ?? 'Ошибка при сохранении страницы')
+			},
+		})
 
 	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
 		if (page && open) {
 			setTitle(page.title ?? '')
 			setSlug(page.slug ?? '')
-			setIsPublished(page.status === 'PUBLISHED')
+			setIsPublished(Boolean(page.isPublished))
 			setMetaTitle(page.metaTitle ?? '')
 			setMetaDesc(page.metaDesc ?? '')
 		} else if (!page) {
@@ -143,7 +157,9 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 	const handleSave = () => {
 		const finalSlug = slug.trim() || generateSlug(title)
 		if (!/^[a-z0-9-_]+$/.test(finalSlug)) {
-			toast.error('Slug должен содержать только латинские буквы, цифры, дефис и подчёркивание')
+			toast.error(
+				'Slug должен содержать только латинские буквы, цифры, дефис и подчёркивание',
+			)
 			return
 		}
 		if (!title.trim()) {
@@ -162,19 +178,23 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 			title: title.trim(),
 			slug: finalSlug,
 			isPublished,
-			metaTitle: isEdit ? metaTitle || undefined : toNullableSeoValue(seoDraft.title) ?? undefined,
-			metaDesc: isEdit ? metaDesc || undefined : toNullableSeoValue(seoDraft.description) ?? undefined,
+			metaTitle: isEdit
+				? metaTitle || undefined
+				: (toNullableSeoValue(seoDraft.title) ?? undefined),
+			metaDesc: isEdit
+				? metaDesc || undefined
+				: (toNullableSeoValue(seoDraft.description) ?? undefined),
 			seo: !isEdit
 				? {
-					title: toNullableSeoValue(seoDraft.title),
-					description: toNullableSeoValue(seoDraft.description),
-					keywords: toNullableSeoValue(seoDraft.keywords),
-					ogTitle: toNullableSeoValue(seoDraft.ogTitle),
-					ogDescription: toNullableSeoValue(seoDraft.ogDescription),
-					ogImage: toNullableSeoValue(seoDraft.ogImage),
-					canonicalUrl: toNullableSeoValue(seoDraft.canonicalUrl),
-					noIndex: seoDraft.noIndex,
-				}
+						title: toNullableSeoValue(seoDraft.title),
+						description: toNullableSeoValue(seoDraft.description),
+						keywords: toNullableSeoValue(seoDraft.keywords),
+						ogTitle: toNullableSeoValue(seoDraft.ogTitle),
+						ogDescription: toNullableSeoValue(seoDraft.ogDescription),
+						ogImage: toNullableSeoValue(seoDraft.ogImage),
+						canonicalUrl: toNullableSeoValue(seoDraft.canonicalUrl),
+						noIndex: seoDraft.noIndex,
+					}
 				: undefined,
 			blocks: blocksSave,
 		}
@@ -214,7 +234,9 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Редактировать страницу' : 'Новая страница'}</DialogTitle>
+					<DialogTitle>
+						{isEdit ? 'Редактировать страницу' : 'Новая страница'}
+					</DialogTitle>
 				</DialogHeader>
 
 				<Tabs defaultValue='content' className='space-y-4'>
@@ -231,7 +253,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<label className='text-sm font-medium'>Заголовок *</label>
 							<Input
 								value={title}
-								onChange={(e) => setTitle(e.target.value)}
+								onChange={e => setTitle(e.target.value)}
 								placeholder='Введите заголовок'
 							/>
 						</div>
@@ -239,7 +261,7 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 							<label className='text-sm font-medium'>Slug</label>
 							<Input
 								value={slug}
-								onChange={(e) => setSlug(e.target.value)}
+								onChange={e => setSlug(e.target.value)}
 								placeholder='автоматически из заголовка'
 							/>
 						</div>
@@ -251,7 +273,8 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 
 					<TabsContent value='blocks' className='space-y-4'>
 						<p className='text-sm text-muted-foreground'>
-							Блоки отображаются на публичной странице вместо старого HTML-контента.
+							Блоки отображаются на публичной странице вместо старого
+							HTML-контента.
 						</p>
 						<PageBlocksEditor value={blocks} onChange={setBlocks} />
 					</TabsContent>
@@ -273,7 +296,11 @@ export default function PageFormModal({ open, onOpenChange, onSuccess, page }: P
 				</Tabs>
 
 				<div className='flex justify-end gap-2 border-t border-border pt-4'>
-					<Button variant='outline' onClick={() => onOpenChange(false)} disabled={isPending}>
+					<Button
+						variant='outline'
+						onClick={() => onOpenChange(false)}
+						disabled={isPending}
+					>
 						Отмена
 					</Button>
 					<Button onClick={handleSave} disabled={isPending}>

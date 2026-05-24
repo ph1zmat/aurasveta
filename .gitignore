@@ -97,3 +97,8 @@ HOSTER_API.md
 # исключить всю документацию кроме README
 docs/**
 !docs/README.md
+
+data
+data/import/*
+
+scripts/import

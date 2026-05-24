@@ -1,14 +1,14 @@
 import type { NextRequest } from 'next/server'
-import { proxy } from '@/lib/middleware/proxy'
+import { proxy as libProxy } from '@/lib/middleware/proxy'
 
-export function middleware(request: NextRequest) {
-	return proxy(request)
+export function proxy(request: NextRequest) {
+	return libProxy(request)
 }
 
 export const config = {
 	matcher: [
 		/*
-		 * Применяем middleware ко всем маршрутам:
+		 * Применяем proxy ко всем маршрутам:
 		 * - WWW → non-www редирект
 		 * - Security headers
 		 * - Rate limiting для /api/*

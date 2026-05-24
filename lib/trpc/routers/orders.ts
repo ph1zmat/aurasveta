@@ -5,6 +5,7 @@ import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
 import { sendPushToAdmins } from '@/lib/push/send'
 import { adminEventBus } from '@/lib/realtime/adminevents'
 import { productImageSelect } from '@/lib/products/productimages'
+import { sendOrderToTelegram } from '@/lib/telegram/service'
 import {
 	AdminOrderStatusSchema,
 	AdminOrderUpdateInputSchema,
@@ -172,6 +173,10 @@ export const ordersRouter = createTRPCRouter({
 				total: order.total,
 				createdAt: new Date().toISOString(),
 			})
+
+			sendOrderToTelegram(order.id).catch(err =>
+				console.error('[Telegram] Ошибка отправки заказа:', err),
+			)
 
 			return order
 		}),
