@@ -126,9 +126,6 @@ export default async function Footer() {
 									</span>
 								</div>
 							)}
-							<Link href='/stores' className='text-primary underline text-sm'>
-								Наши магазины
-							</Link>
 						</div>
 
 						<div className='space-y-2 text-sm'>

@@ -1,7 +1,11 @@
 import * as LucideIcons from 'lucide-react'
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import type { PageBlockRecord } from '@/shared/types/pagebuilder'
-import { PAGE_BLOCK_TYPES, type PageBlockType } from '@/shared/types/pagebuilder'
+import {
+	PAGE_BLOCK_TYPES,
+	type PageBlockType,
+} from '@/shared/types/pagebuilder'
+import { PLATFORM_META } from '@/shared/ui/socialicon'
 
 interface Props {
 	blocks: PageBlockRecord[]
@@ -52,7 +56,7 @@ function TableBlock({ config }: { config: Record<string, unknown> }) {
 				) : null}
 				<thead>
 					<tr>
-						{columns.map((col) => (
+						{columns.map(col => (
 							<th
 								key={col.key}
 								className='border border-border bg-muted px-4 py-2 text-left font-medium'
@@ -79,11 +83,14 @@ function TableBlock({ config }: { config: Record<string, unknown> }) {
 }
 
 function ImageBlock({ config }: { config: Record<string, unknown> }) {
-	const storageKey = typeof config.storageKey === 'string' ? config.storageKey : ''
+	const storageKey =
+		typeof config.storageKey === 'string' ? config.storageKey : ''
 	const alt = typeof config.alt === 'string' ? config.alt : ''
 	const caption = typeof config.caption === 'string' ? config.caption : ''
-	const alignment = typeof config.alignment === 'string' ? config.alignment : 'center'
-	const widthMode = typeof config.widthMode === 'string' ? config.widthMode : 'normal'
+	const alignment =
+		typeof config.alignment === 'string' ? config.alignment : 'center'
+	const widthMode =
+		typeof config.widthMode === 'string' ? config.widthMode : 'normal'
 
 	if (!storageKey) return null
 
@@ -100,7 +107,11 @@ function ImageBlock({ config }: { config: Record<string, unknown> }) {
 					: 'max-w-xl'
 
 	const alignClass =
-		alignment === 'left' ? 'mr-auto' : alignment === 'right' ? 'ml-auto' : 'mx-auto'
+		alignment === 'left'
+			? 'mr-auto'
+			: alignment === 'right'
+				? 'ml-auto'
+				: 'mx-auto'
 
 	return (
 		<figure className={`${widthClass} ${alignClass}`}>
@@ -141,26 +152,42 @@ function IconLinkBlock({ config }: { config: Record<string, unknown> }) {
 	const label = typeof config.label === 'string' ? config.label : ''
 	const href = typeof config.href === 'string' ? config.href : '#'
 	const iconToken = typeof config.icon === 'string' ? config.icon : 'ArrowRight'
-	const description = typeof config.description === 'string' ? config.description : ''
+	const description =
+		typeof config.description === 'string' ? config.description : ''
 	const isExternal = config.isExternal === true
 
-	const IconComponent = (LucideIcons[iconToken as keyof typeof LucideIcons] ??
-		LucideIcons.ArrowRight) as React.ElementType
+	const lowercaseToken = iconToken.toLowerCase()
+	const isSocial = lowercaseToken in PLATFORM_META
+
+	const renderIconContent = () => {
+		if (isSocial) {
+			const sIcon = PLATFORM_META[lowercaseToken].icon
+			// У соцсетей в PLATFORM_META размер по умолчанию 18, увеличим до 20 для CMS-блока
+			return <div className='scale-110'>{sIcon}</div>
+		}
+		const IconComponent = (LucideIcons[iconToken as keyof typeof LucideIcons] ??
+			LucideIcons.ArrowRight) as React.ElementType
+		return <IconComponent className='h-5 w-5' aria-hidden='true' />
+	}
 
 	return (
 		<a
 			href={href}
 			target={isExternal ? '_blank' : undefined}
 			rel={isExternal ? 'noopener noreferrer' : undefined}
-			className='group flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:border-accent hover:bg-accent/5'
+			className='group flex items-start gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all duration-200 hover:border-accent hover:bg-accent/5 hover:shadow-xs'
 		>
-			<IconComponent className='mt-0.5 h-5 w-5 shrink-0 text-accent' aria-hidden='true' />
-			<div className='min-w-0'>
+			<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 border border-accent/20 text-accent group-hover:bg-accent group-hover:text-white transition-all duration-200 mt-0.5'>
+				{renderIconContent()}
+			</div>
+			<div className='min-w-0 flex-1'>
 				<span className='block font-medium text-foreground group-hover:text-accent transition-colors'>
 					{label}
 				</span>
 				{description ? (
-					<span className='block text-sm text-muted-foreground'>{description}</span>
+					<span className='block text-sm text-muted-foreground mt-1'>
+						{description}
+					</span>
 				) : null}
 			</div>
 		</a>
@@ -178,10 +205,14 @@ export default function PublicPageBlocksRenderer({ blocks }: Props) {
 
 	return (
 		<div className='space-y-6'>
-			{activeBlocks.map((block) => {
-				const cfg = (block.config && typeof block.config === 'object' && !Array.isArray(block.config)
-					? block.config
-					: {}) as Record<string, unknown>
+			{activeBlocks.map(block => {
+				const cfg = (
+					block.config &&
+					typeof block.config === 'object' &&
+					!Array.isArray(block.config)
+						? block.config
+						: {}
+				) as Record<string, unknown>
 
 				switch (block.type as PageBlockType) {
 					case 'heading':
