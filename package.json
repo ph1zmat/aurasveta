@@ -35,7 +35,8 @@
 		"telegram:webhook:set": "tsx scripts/setup-telegram-webhook.ts",
 		"fix:magiziny-nav": "tsx scripts/fix-magiziny-nav.ts",
 		"fix:magiziny-nav:apply": "tsx scripts/fix-magiziny-nav.ts --apply",
-		"check:web": "npm run guardrails:web && npm run prisma:generate && npm run lint && npm run test && npm run build"
+		"typecheck": "tsc --noEmit",
+		"check:web": "npm run guardrails:web && npm run prisma:generate && npm run typecheck && npm run lint && npm run test && npm run build"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1034.0",
