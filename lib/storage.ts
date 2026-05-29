@@ -19,8 +19,10 @@ import {
 	S3Client,
 	PutObjectCommand,
 	DeleteObjectCommand,
+	DeleteObjectsCommand,
 	HeadObjectCommand,
 	GetObjectCommand,
+	ListObjectsV2Command,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { Readable } from 'stream'
@@ -208,6 +210,69 @@ export async function deleteFile(key: string): Promise<void> {
 }
 
 /**
+ * Массово удаляет файлы из хранилища батчами до 1000 ключей.
+ * Возвращает количество ключей, отправленных на удаление.
+ */
+export async function deleteFiles(keys: readonly string[]): Promise<number> {
+	const { bucket } = getConfig()
+	const uniqueKeys = [...new Set(keys.map(key => key.trim()).filter(Boolean))]
+
+	if (uniqueKeys.length === 0) {
+		return 0
+	}
+
+	for (let index = 0; index < uniqueKeys.length; index += 1000) {
+		const batch = uniqueKeys.slice(index, index + 1000)
+		await withStorageRetry('deleteObjects', async () => {
+			await getClient().send(
+				new DeleteObjectsCommand({
+					Bucket: bucket,
+					Delete: {
+						Objects: batch.map(key => ({ Key: key })),
+						Quiet: true,
+					},
+				}),
+			)
+		})
+	}
+
+	return uniqueKeys.length
+}
+
+/**
+ * Возвращает список ключей в бакете по префиксу.
+ */
+export async function listFiles(prefix = ''): Promise<string[]> {
+	const { bucket } = getConfig()
+	const keys: string[] = []
+	let continuationToken: string | undefined
+
+	do {
+		const response = await withStorageRetry('listObjectsV2', async () => {
+			return getClient().send(
+				new ListObjectsV2Command({
+					Bucket: bucket,
+					Prefix: prefix || undefined,
+					ContinuationToken: continuationToken,
+				}),
+			)
+		})
+
+		for (const entry of response.Contents ?? []) {
+			if (entry.Key) {
+				keys.push(entry.Key)
+			}
+		}
+
+		continuationToken = response.IsTruncated
+			? response.NextContinuationToken
+			: undefined
+	} while (continuationToken)
+
+	return keys
+}
+
+/**
  * Проверяет существование файла через HEAD-запрос.
  */
 export async function fileExists(key: string): Promise<boolean> {
@@ -223,4 +288,3 @@ export async function fileExists(key: string): Promise<boolean> {
 		return false
 	}
 }
-

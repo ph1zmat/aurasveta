@@ -1,0 +1,136 @@
+name: Catalog Refresh
+
+'on':
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Применить destructive refresh (иначе только dry-run)'
+        required: true
+        type: boolean
+        default: false
+      reset_users:
+        description: 'Удалить старых пользователей и создать только catalog admin'
+        required: true
+        type: boolean
+        default: false
+      reset_orders:
+        description: 'Удалить старые заказы вместе с refresh каталога'
+        required: true
+        type: boolean
+        default: true
+      reset_product_storage:
+        description: 'Очистить S3-ключи товаров под products/* перед новой заливкой'
+        required: true
+        type: boolean
+        default: true
+      upload_images:
+        description: 'Заливать изображения из public/* в S3'
+        required: true
+        type: boolean
+        default: true
+      storage_prefix:
+        description: 'Префикс product-объектов в S3'
+        required: true
+        type: string
+        default: 'products'
+
+concurrency:
+  group: catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Run catalog refresh over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 170m
+          script: |
+            set -euo pipefail
+
+            APP_DIR="/var/www/aurasveta/current"
+            DEPLOY_LOCK_FILE="/tmp/aurasveta-deploy.lock"
+            DEPLOY_LOCK_WAIT_SECONDS=7200
+
+            cd "$APP_DIR"
+            echo "=== Catalog refresh started at: $(date -Is) ==="
+
+            exec 9>"$DEPLOY_LOCK_FILE"
+            if ! flock -w "$DEPLOY_LOCK_WAIT_SECONDS" 9; then
+              echo "ERROR: timed out waiting for maintenance lock: ${DEPLOY_LOCK_FILE}"
+              exit 1
+            fi
+            echo "Acquired maintenance lock: ${DEPLOY_LOCK_FILE}"
+
+            echo "=== Phase: git sync ($(date -Is)) ==="
+            git fetch --prune --depth=1 origin main
+            git reset --hard FETCH_HEAD
+
+            echo "=== Phase: fix permissions ($(date -Is)) ==="
+            chown -R aurasveta:www-data "$APP_DIR"
+            chmod -R u+rwX,g+rwX "$APP_DIR"
+
+            echo "=== Phase: load env ($(date -Is)) ==="
+            if [ -f ./.env.production ]; then
+              ENV_FILE="./.env.production"
+            elif [ -f ./env.production ]; then
+              ENV_FILE="./env.production"
+            else
+              echo "ERROR: neither .env.production nor env.production found in $APP_DIR"
+              exit 1
+            fi
+            echo "Using env file: $ENV_FILE"
+            set -a
+            . "$ENV_FILE"
+            set +a
+
+            echo "=== Phase: npm install ($(date -Is)) ==="
+            NODE_OPTIONS=--max-old-space-size=1024 npm install --include=dev --no-audit --no-fund
+
+            echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
+            npx prisma migrate deploy
+
+            export ALLOW_PRODUCTION_SEED=true
+
+            if [ "${{ inputs.reset_users }}" = "true" ]; then
+              if [ -z "${CATALOG_ADMIN_EMAIL:-}" ] || [ -z "${CATALOG_ADMIN_PASSWORD:-}" ]; then
+                echo "ERROR: set CATALOG_ADMIN_EMAIL and CATALOG_ADMIN_PASSWORD in server env before reset_users run"
+                exit 1
+              fi
+            fi
+
+            REFRESH_ARGS="--storage-prefix=${{ inputs.storage_prefix }}"
+
+            if [ "${{ inputs.apply }}" = "true" ]; then
+              REFRESH_ARGS="$REFRESH_ARGS --apply"
+            fi
+
+            if [ "${{ inputs.reset_users }}" = "true" ]; then
+              REFRESH_ARGS="$REFRESH_ARGS --reset-users"
+            fi
+
+            if [ "${{ inputs.reset_orders }}" = "true" ]; then
+              REFRESH_ARGS="$REFRESH_ARGS --reset-orders"
+            fi
+
+            if [ "${{ inputs.reset_product_storage }}" = "true" ]; then
+              REFRESH_ARGS="$REFRESH_ARGS --wipe-product-storage"
+            fi
+
+            if [ "${{ inputs.upload_images }}" = "false" ]; then
+              REFRESH_ARGS="$REFRESH_ARGS --skip-image-upload"
+            fi
+
+            echo "=== Phase: catalog refresh ($(date -Is)) ==="
+            echo "Args: $REFRESH_ARGS"
+            NODE_ENV=production npx tsx --require dotenv/config scripts/catalog-refresh.ts $REFRESH_ARGS
+
+            echo "=== Catalog refresh finished at: $(date -Is) ==="

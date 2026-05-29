@@ -101,4 +101,24 @@ docs/**
 data
 data/import/*
 
-scripts/import
+scripts/parse
+
+public/LED4U
+public/LightStar
+public/Lumion
+public/MODELUX
+public/LoFT_IT
+public/КинкЛайт
+public/Евросвет
+public/ImperiumLoft
+public/FreyaLight
+public/Favourite
+public/ARTE_LAMP
+public/Ambrella
+public/Электростандарт
+public/СфераСвета
+public/Novotech
+public/Odeon
+public/Sonex
+public/Майтони
+public/ДОКВОРК

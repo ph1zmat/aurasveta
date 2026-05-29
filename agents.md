@@ -14,24 +14,25 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 **Аура Света** — интернет-магазин освещения (люстры, светильники, бра). Это монорепозиторий, содержащий:
 
-- **Веб-приложение** (основное) — Next.js 16 App Router с SSR/SSG, расположено в корне репозитория
-- **Десктоп CMS** — директория `desktop/` содержит артефакты сборки Electron (dist, dist-electron, release, node_modules), но на момент написания файла `package.json` в корне `desktop/` отсутствует
-- **Мобильное приложение** — директория `mobile/` содержит артефакты Expo / React Native (android, .expo, node_modules), но на момент написания файла `package.json` в корне `mobile/` отсутствует
-- **Shared-admin пакет** — `packages/shared-admin/` — общие UI-компоненты и хуки для админок (web + desktop)
+- **Веб-приложение** (основное) — Next.js 16 App Router с SSR/SSG, расположено в корне репозитория.
+- **Десктоп CMS** — директория `desktop/` содержит Electron-приложение (Vite 7 + React 19 + Electron 37). Сборка через `electron-builder`, цели: Windows (NSIS), macOS (DMG), Linux (AppImage, deb).
+- **Мобильное приложение** — директория `mobile/` содержит артефакты Expo / React Native (`android/`, `.expo/`, `node_modules/`), но `package.json` в ней отсутствует.
+- **Shared-admin пакет** — `packages/shared-admin/` — общие UI-компоненты, хуки и утилиты для админок (web + desktop).
+- **DB CLI** — `tools/db-cli/` — внутренний инструмент командной строки для работы с БД (bin: `db`).
 
-Веб-приложение реализует каталог товаров, корзину, избранное, сравнение, CMS-страницы с секциями, админ-панель с аналитикой, импорт/экспорт CSV, управление вебхуками, SEO-метаданными, push-уведомлениями и политиками магазина (доставка, возврат, гарантия).
+Веб-приложение реализует каталог товаров, корзину, избранное, сравнение, CMS-страницы с секциями, админ-панель с аналитикой, импорт/экспорт CSV, управление вебхуками, SEO-метаданными, push-уведомлениями, политиками магазина (доставка, возврат, гарантия) и интеграцию с Telegram-ботом для заказов.
 
 ---
 
 ## Технологический стек
 
-| Слой | Технология | Версия (из package.json) |
+| Слой | Технология | Версия (из `package.json`) |
 |---|---|---|
 | Framework | Next.js | 16.2.4 (App Router, Turbopack) |
 | React | React / React DOM | 19.2.4 |
 | Language | TypeScript | 5.x (strict) |
 | API | tRPC | 11.16.0 + superjson |
-| ORM | Prisma | 7.6.0 + `@prisma/adapter-pg` (Neon) |
+| ORM | Prisma | 7.6.0 + `@prisma/adapter-pg` |
 | Database | PostgreSQL | Serverless (NeonDB) |
 | Auth | better-auth | 1.5.6 |
 | State (client) | Jotai | 2.19.0 (анонимная корзина/избранное) |
@@ -48,7 +49,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Storage | AWS S3 SDK | 3.x (совместимо с MinIO) |
 | Push | web-push | 3.6.7 |
 | Testing | Vitest | 4.1.3 + jsdom + `@testing-library/*` |
-| E2E | Playwright | 1.59.1 (установлен, но не сконфигурирован для E2E) |
+| E2E / Smoke | Playwright | 1.59.1 (используется только для post-deploy SEO smoke tests) |
+| Desktop | Electron | 37.2.0 + Vite 7.1.7 |
 
 ---
 
@@ -62,16 +64,16 @@ app/ → widgets/ → features/ → entities/ → shared/
 
 ```
 app/                 — маршруты Next.js (pages, layouts, API routes, loading, error, not-found)
-entities/            — бизнес-сущности: product, category, cart, spec, page-block, section
-features/            — пользовательские фичи: cart, favorites, catalog-filter, compare, product-details, admin (order-editor, page-blocks, page-sections)
-widgets/             — компоновочные виджеты: header, footer, navigation, product-carousel, home-sections, page-renderer
-shared/              — переиспользуемый UI, утилиты, типы, конфигурация
-lib/                 — инфраструктура: prisma, auth, trpc, store, storage, seo, sections, push, utils, middleware, realtime
+entities/            — бизнес-сущности: cart, category, page-block, product, section, spec
+features/            — пользовательские фичи: admin, cart, catalog-filter, compare, favorites, product-details, shared
+widgets/             — компоновочные виджеты: footer, header, home-sections, navigation, page-renderer, product-carousel
+shared/              — переиспользуемый UI, утилиты, типы, конфигурация (admin, config, lib, types, ui)
+lib/                 — инфраструктура: auth, categories, config, content, home-sections, merchant-policies, middleware, navigation, pages, products, prisma, push, realtime, sections, seo, storage, store, telegram, trpc, utils
 prisma/              — схема (schema.prisma), миграции, сиды (seed.ts, seedcatalog.ts)
-scripts/             — TS-скрипты для миграций, бэкфилла SEO, конвертации изображений, guardrails
+scripts/             — TS-скрипты для миграций, бэкфилла SEO, конвертации изображений, guardrails, webhook-ов
 packages/            — shared-admin (код, общий для админок web + desktop)
-desktop/             — артефакты Electron-приложения (dist, dist-electron, release, node_modules). package.json отсутствует
-mobile/              — артефакты Expo/React Native (android, .expo, node_modules). package.json отсутствует
+desktop/             — Electron CMS-приложение (Vite + React 19). package.json присутствует
+mobile/              — артефакты Expo/React Native. package.json отсутствует
 tools/               — @aurasveta/db-cli и другие внутренние инструменты
 ```
 
@@ -124,15 +126,18 @@ import ProductCard from '@/entities/product/ui/productcard'
 | `/cart` | Корзина |
 | `/favorites` | Избранное |
 | `/compare` | Сравнение товаров |
-| `/pages/[slug]` | CMS-страницы (О нас, Доставка и т.д.) |
+| `/pages/[slug]` | CMS-страницы (редиректят на `/:slug`) |
 | `/:slug` | Алиас для CMS-страниц (dual routing) |
 | `/search` | Поиск |
 | `/login`, `/register` | Авторизация (группа `(auth)`) |
-| `/admin/*` | Админ-панель (защищена прокси и RSC-гвардами) |
+| `/admin/*` | Админ-панель (защищена middleware-логикой и RSC-гвардами) |
 | `/api/trpc/*` | tRPC API endpoint |
 | `/api/auth/*` | better-auth endpoint |
 | `/api/upload` | Загрузка файлов |
 | `/api/storage/*` | S3/MinIO storage proxy |
+| `/api/telegram/webhook` | Webhook для Telegram-бота заказов |
+| `/api/push/*` | Push-уведомления |
+| `/api/desktop/*` | API для десктоп-приложения (auth, events, order-alerts) |
 
 ---
 
@@ -145,9 +150,10 @@ npm run dev                    # Dev-сервер (Turbopack)
 npm run build                  # Production-сборка
 npm run start                  # Production-запуск
 npm run lint                   # ESLint
+npm run typecheck              # tsc --noEmit
 npm run test                   # Vitest (run once)
 npm run test:watch             # Vitest (watch mode)
-npm run check:web              # guardrails + prisma:generate + lint + test + build
+npm run check:web              # guardrails + prisma:generate + typecheck + lint + test + build
 
 # Prisma
 npm run prisma:generate        # Генерация клиента
@@ -174,21 +180,24 @@ npm run seo:roadmap:backfill            # Бэкфилл SEO (dry-run)
 npm run seo:roadmap:backfill:apply      # Бэкфилл SEO (применить)
 npm run seo:smoke                       # Post-deploy SEO smoke tests
 npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
-```
-
-### Shared-admin пакет
-
-```bash
-# Нет отдельных скриптов — собирается как часть веб-приложения через алиас @aurasveta/shared-admin
+npm run telegram:webhook:set            # Установка webhook для Telegram-бота
+npm run fix:magiziny-nav                # Фикс навигации magiziny (dry-run)
+npm run fix:magiziny-nav:apply          # Фикс навигации magiziny (применить)
 ```
 
 ### Десктоп-приложение
 
-> **Внимание:** на момент написания файла `desktop/package.json` отсутствует. Директория содержит только артефакты сборки (`dist/`, `dist-electron/`, `release/`, `node_modules/`).
+```bash
+npm run desktop:dev            # Dev-сервер десктопа (Vite + Electron)
+npm run desktop:build          # Сборка десктопа для текущей платформы
+npm run desktop:build:win      # Сборка для Windows (NSIS)
+npm run desktop:build:mac      # Сборка для macOS (DMG)
+npm run desktop:build:linux    # Сборка для Linux (AppImage, deb)
+```
 
 ### Мобильное приложение
 
-> **Внимание:** на момент написания файла `mobile/package.json` отсутствует. Директория содержит только артефакты (`android/`, `.expo/`, `node_modules/`).
+> **Внимание:** `mobile/package.json` отсутствует. Директория содержит только артефакты (`android/`, `.expo/`, `node_modules/`).
 
 ---
 
@@ -202,10 +211,10 @@ npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
 - `client.tsx` — TRPCProvider для клиентских компонентов
 - `server.tsx` — хелперы для RSC (prefetch, hydration)
 - `queryclient.ts` — фабрика QueryClient
-- `routers/_app.ts` — корневой роутер, объединяющий все подроутеры
+- `routers/app.ts` — корневой роутер, объединяющий все подроутеры
 
 **Подроутеры (29 штук):**
-`products`, `categories`, `properties`, `cart`, `favorites`, `orders`, `pages`, `profile`, `anonymous`, `admin`, `webhooks`, `search`, `seo`, `cms`, `shopSettings`, `settingsBusiness`, `notifications`, `importOperations`, `siteNav`, `shippingPolicy`, `returnPolicy`, `warrantyPolicy`, `compare`, `push`, `setting`, `sectionType`, `homeSection`, `recommendations`
+`admin`, `anonymous`, `cart`, `categories`, `compare`, `cms`, `favorites`, `homeSection`, `importOperations`, `notifications`, `orders`, `pages`, `products`, `profile`, `properties`, `push`, `recommendations`, `returnPolicy`, `search`, `sectionType`, `seo`, `setting`, `shippingPolicy`, `shopSettings`, `siteNav`, `warrantyPolicy`, `webhooks`
 
 **Процедуры доступа:**
 
@@ -225,7 +234,8 @@ npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
 - Google OAuth (опционально, через env)
 - Дополнительные поля пользователя: `role` (USER/EDITOR/ADMIN), `phone`
 - Сессия: 1 день, обновление каждый час
-- `trustedOrigins` включает localhost, production URL, desktop и mobile deeplink-схемы (`exp+auracms://`, `aurasveta://`)
+- Плагин `bearer` для Bearer-токенов (desktop/mobile)
+- `trustedOrigins` настраиваются через `lib/config/origins.ts` (localhost, production URL, desktop и mobile deeplink-схемы)
 
 Утилиты в `lib/auth/authutils.ts`: `getSession`, `requireAuth`, `requireAdmin`, `requireEditor`, `requireCmsAccess`.
 
@@ -246,7 +256,7 @@ npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
 
 **Заказы и корзина:**
 - `Cart` — привязана к User (JSON items)
-- `AnonymousSession` — анонимная корзина/избранное (JSON), мигрирует при входе
+- `AnonymousSession` — анонимная корзина/избранное/сравнение (JSON), мигрирует при входе
 - `Favorite` — избранные товары
 - `CompareItem` — товары для сравнения
 - `Order` / `OrderItem` — статусы: PENDING → PAID → SHIPPED → DELIVERED → CANCELLED
@@ -282,19 +292,19 @@ npm run seo:backfill-metadata           # Алиас для бэкфилла SEO
 **Навигация:**
 - `SiteNavItem` — элементы навигации (HEADER / FOOTER)
 
-Prisma использует адаптер Neon (`@prisma/adapter-pg`) для serverless PostgreSQL. Конфигурация в `prisma.config.ts`.
+Prisma использует адаптер `PrismaPg` (`@prisma/adapter-pg`) для serverless PostgreSQL. Клиент инициализируется в `lib/prisma.ts` с `connection_limit=20`. Конфигурация Prisma CLI находится в `prisma.config.ts`.
 
 ### Middleware / proxy (`lib/middleware/proxy.ts`)
 
-Файл `proxy.ts` реализует защиту маршрутов и rate limiting. Вызывается из `middleware.ts` (корень проекта):
+Файл `lib/middleware/proxy.ts` реализует защиту маршрутов, rate limiting и CORS. Он покрыт юнит-тестами (`tests/unit/middlewaretest.ts`). Функциональность:
 
-- Защита `/admin/*` — редирект на `/login` без сессии
+- Защита `/admin/*` — редирект на `/login` без сессии (с `callbackUrl`)
 - Редирект авторизованных пользователей с `/login` и `/register` на `/`
 - Canonical redirect: `www.aurasveta.by` → `aurasveta.by`
 - CORS для API-роутов
 - Rate limiting (in-memory, для single-instance):
   - `/api/upload` — 5 запросов/мин
-  - `/api/trpc/auth.login`, `/api/trpc/auth.register` — 10 запросов/10мин
+  - `/api/trpc/auth.login`, `/api/trpc/auth.register`, `auth.signIn`, `auth.signUp` — 10 запросов/10мин
   - `/api/trpc/search` — 30 запросов/мин
 
 ### Storage (S3/MinIO)
@@ -305,6 +315,13 @@ Prisma использует адаптер Neon (`@prisma/adapter-pg`) для se
 - API routes: `/api/upload`, `/api/upload/delete`, `/api/storage/file`, `/api/storage/signed-url`
 
 Для локальной разработки S3 доступен через `docker-compose.yml` (MinIO на портах 9000/9001).
+
+### Telegram-бот заказов
+
+Интеграция в `lib/telegram/`:
+- Отправка уведомлений о новых заказах в Telegram-чат
+- Webhook-эндпоинт `/api/telegram/webhook`
+- Скрипт установки webhook: `npm run telegram:webhook:set`
 
 ### SEO-инфраструктура
 
@@ -325,17 +342,11 @@ Prisma использует адаптер Neon (`@prisma/adapter-pg`) для se
 - **Client Components** помечены `'use client'` и используют `trpc` из `lib/trpc/client`
 - Корневой `layout.tsx` — RSC, оборачивает в `TRPCProvider` + `HydrateClient` + `RootThemeProvider`
 
-### ISR-стратегия
+### ISR и кэширование
 
-| Маршрут | Revalidate |
-|---|---|
-| `/` | 3600s (1ч) |
-| `/catalog` | 300s (5мин) |
-| `/catalog/[slug]` | 3600s (1ч) |
-| `/product/[slug]` | 1800s (30мин) |
-| `/pages/[slug]` | 3600s (1ч) |
-
-Статические параметры генерируются через `generateStaticParams()` в каталоге, товарах и CMS-страницах.
+- Корневой layout имеет `export const revalidate = 3600`.
+- `next.config.ts` задаёт заголовки `Cache-Control` для ISR-страниц (`public, s-maxage=60, stale-while-revalidate=1800`) и статики (`public, max-age=31536000, immutable`).
+- Статические параметры генерируются через `generateStaticParams()` в каталоге, товарах и CMS-страницах.
 
 ### Состояние
 
@@ -355,7 +366,7 @@ Next.js Image настроен в `next.config.ts` для:
 
 - Конфигурация через CSS (`app/globals.css`), нет `tailwind.config.ts`
 - PostCSS конфиг в `postcss.config.mjs` — плагин `@tailwindcss/postcss`
-- Кастомная дизайн-система с CSS-переменными для light/dark тем (префикс `--nl-*` для Noir Ligne токенов)
+- Кастомная дизайн-система с CSS-переменными для light/dark тем
 - Основной шрифт: Chiron GoRound TC WS / Manrope
 - shadcn/ui реестр: `radix-nova`, базовый цвет `neutral`
 
@@ -369,6 +380,7 @@ Next.js Image настроен в `next.config.ts` для:
 - `noUnusedLocals: true`, `noUnusedParameters: true`, `noImplicitReturns: true`
 - `moduleResolution`: `bundler`
 - `jsx`: `react-jsx`
+- `target`: `ES2017`
 - Исключённые из компиляции директории: `node_modules`, `.next`, `desktop`, `mobile`, `__mobile_audit__`, `tests`
 
 ### ESLint
@@ -403,7 +415,7 @@ Next.js Image настроен в `next.config.ts` для:
 
 **Структура тестов:**
 - `__tests__/` — общие тесты (SEO, безопасность)
-- `tests/unit/` — юнит-тесты (корзина, заказы, фильтры, поиск, SEO, админка, схемы, утилиты, компоненты)
+- `tests/unit/` — юнит-тесты (~50 файлов): корзина, заказы, фильтры, поиск, SEO, админка, схемы, утилиты, компоненты, middleware
 - `tests/integration/` — интеграционные тесты (SEO smoke, bulk SEO операции)
 
 **Примеры покрытых областей:**
@@ -414,11 +426,15 @@ Next.js Image настроен в `next.config.ts` для:
 - Схемы tRPC и Zod
 - Админ-импорт/экспорт CSV
 - Компоненты (ConfirmDialog, AdminPagination)
-- Next.js middleware/config (headers, redirects, robots, cache-control)
+- Next.js middleware/proxy (headers, redirects, robots, cache-control, rate limiting)
+- SSR-рендеринг layout и breadcrumbs
+- Cannibalization, stale content, weekly triage (SEO)
+- Site navigation DB contract
+- Storage file URL и presigned URLs
 
-### Playwright
+### Playwright / SEO Smoke
 
-Установлен как devDependency, но **не сконфигурирован** для E2E-тестов в корне проекта (нет `playwright.config.*`). Используется только как dependency для SEO smoke tests (`npm run seo:smoke`), которые реализованы как standalone Node.js скрипт (`scripts/seo-post-deploy-smoke.mjs`).
+Playwright установлен как devDependency, но **не сконфигурирован** для классических E2E-тестов в корне проекта (нет `playwright.config.*`). Используется только как dependency для SEO smoke tests (`npm run seo:smoke`), которые реализованы как standalone Node.js скрипт (`scripts/seo-post-deploy-smoke.mjs`).
 
 ### Запуск тестов
 
@@ -435,24 +451,27 @@ npm run test:watch  # watch mode
 
 1. **SEO Quality Gate** (`.github/workflows/seo-quality-gate.yml`)
    - Запускается на pull request и вручную
-   - Шаги: checkout → setup Node 20 → `npm ci` → lint → test → build → production server → SEO smoke checks
+   - Шаги: checkout → setup Node 20 → `npm ci` → typecheck → lint → test → build → production server → SEO smoke checks
    - Smoke checks проверяют критичные для SEO endpoint'ы
 
 2. **Deploy to VPS** (`.github/workflows/deployvps.yml`)
    - Запускается на push в `main` и вручную
-   - SSH-деплой на VPS с файловым lock'ом
+   - SSH-деплой на VPS с файловым lock'ом (flock, таймаут 2 часа)
    - Шаги: git sync → load env → `npm install` → `prisma migrate deploy` → `next build --turbopack` → fix permissions → restart systemd service
    - Post-deploy проверки: smoke tests для `/`, `/catalog`, `/robots.txt`, `/sitemap.xml`, `/favicon.ico` + 404 contract check
+   - Анти-OOM: `NODE_OPTIONS=--max-old-space-size=1024`
+   - Очистка диска при необходимости (минимум 3 GiB)
 
 ### Деплой
 
 **VPS (основной):**
 - Node.js 20+
-- Systemd-сервис `aurasveta.service`
+- Systemd-сервис `aurasveta`
 - Код в `/var/www/aurasveta/current`
 - Env-файл `.env.production` в корне проекта на сервере
 - Сборка происходит на сервере через `next build --turbopack`
 - Перед каждым деплоем: `npx prisma migrate deploy`
+- Сервис работает от пользователя `aurasveta`, группа `www-data`
 
 **Vercel:**
 - Возможен, но не является основным production
@@ -479,6 +498,7 @@ npm run test:watch  # watch mode
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth Google
 - `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET_NAME`, `STORAGE_FORCE_PATH_STYLE`, `STORAGE_PUBLIC_URL`, `STORAGE_PRESIGN_TTL`, `STORAGE_MAX_ATTEMPTS` — S3/MinIO
 - `FIREBASE_SERVER_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — push-уведомления
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_ALLOWED_USER_IDS` — Telegram-бот заказов
 - `DESKTOP_API_PROXY_TARGET`, `VITE_DEV_SERVER_URL` — desktop app
 - `VERCEL_URL` — Vercel helper
 
@@ -486,7 +506,7 @@ npm run test:watch  # watch mode
 
 ## Безопасность
 
-1. **Аутентификация:** better-auth с cookie-based сессиями. Поддержка Bearer-токена и `X-Session-Token` для desktop/mobile.
+1. **Аутентификация:** better-auth с cookie-based сессиями. Поддержка Bearer-токена (плагин `bearer`) и `X-Session-Token` для desktop/mobile.
 2. **Авторизация:** ролевая модель (USER / EDITOR / ADMIN) на уровне tRPC-процедур и RSC-гвардов (`requireAdmin`, `requireCmsAccess`).
 3. **Rate limiting:** в `lib/middleware/proxy.ts` для upload, auth и search эндпоинтов (in-memory, single-instance).
 4. **CORS:** строгая проверка origin для API-роутов.
@@ -502,12 +522,14 @@ npm run test:watch  # watch mode
 ## Дополнительные заметки для агентов
 
 - **Next.js 16** — читай актуальную документацию в `node_modules/next/dist/docs/`. Многие API отличаются от Next.js 14/15.
-- **Prisma 7** — использует `prisma.config.ts`, адаптер Neon.
+- **Prisma 7** — использует `prisma.config.ts`, адаптер `PrismaPg` из `@prisma/adapter-pg`.
 - **Zod v4** — синтаксис может отличаться от v3.
 - **Tailwind CSS 4** — конфигурация через CSS, нет классического `tailwind.config.ts`.
-- **Desktop и Mobile** — директории `desktop/` и `mobile/` существуют, но в них отсутствуют `package.json`. Они подключаются к тому же tRPC API и используют тот же better-auth (через токены) при наличии сборки.
+- **Desktop** — `desktop/package.json` существует. Приложение собирается на Vite + Electron. Подключается к тому же tRPC API и использует тот же better-auth (через Bearer-токены).
+- **Mobile** — директория `mobile/` существует, но в ней отсутствует `package.json`. Содержит только артефакты сборки.
 - **Анонимная сессия** — не путать с `better-auth` сессией. Это отдельная сущность `AnonymousSession` в БД (или localStorage на клиенте), которая мигрирует при входе. Серверная подпись HMAC-SHA256 через `BETTER_AUTH_SECRET`.
 - **Page Sections** — CMS-страницы (`Page`) используют блочную систему секций (`Section`) для гибкой компоновки контента.
 - **Home Sections** — главная страница (`/`) собирается из `HomeSection` с разными `SectionType`.
 - **SEO** — в проекте развёрнута SEO-инфраструктура: `SeoMetadata`, SEO-роутер, sitemap, robots.txt, smoke tests, weekly triage. Изменения в роутах или метаданных должны учитывать SEO-проверки.
-- **Dual CMS Routing** — CMS-страницы доступны и по `/pages/:slug`, и по топ-левел `/:slug`. Корневой `[slug]/page.tsx` реэкспортирует `pages/[slug]/page.tsx`.
+- **Dual CMS Routing** — CMS-страницы доступны и по `/pages/:slug`, и по топ-левел `/:slug`. `next.config.ts` делает 301-редирект `/pages/:slug*` → `/:slug*`. Корневой `[slug]/page.tsx` реэкспортирует `pages/[slug]/page.tsx`.
+- **Telegram** — для работы Telegram-бота требуется настроить env-переменные и запустить `npm run telegram:webhook:set`.
