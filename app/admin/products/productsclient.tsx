@@ -78,7 +78,7 @@ export default function ProductsClient() {
 	const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 	const [rootCategoryFilter, setRootCategoryFilter] = useState('')
 	const [subcategoryFilter, setSubcategoryFilter] = useState('')
-	const [brandFilter, setBrandFilter] = useState('')
+	const [brandValueFilter, setBrandValueFilter] = useState('')
 	const [hasImagesFilter, setHasImagesFilter] = useState<boolean | undefined>(
 		undefined,
 	)
@@ -93,11 +93,24 @@ export default function ProductsClient() {
 		useSelection<string>()
 	const utils = trpc.useUtils()
 	const { data: categories = [] } = trpc.categories.getAll.useQuery()
+	const { data: properties = [] } = trpc.properties.getAll.useQuery()
 	const rootCategories = categories.filter(c => !c.parentId)
 	const selectedRoot = rootCategories.find(c => c.slug === rootCategoryFilter)
 	const subcategories = selectedRoot
 		? categories.filter(c => c.parentId === selectedRoot.id)
 		: []
+
+	const brandProperty = useMemo(
+		() => properties.find(property => property.slug === 'brand'),
+		[properties],
+	)
+
+	const brandValueOptions = useMemo(() => {
+		const values = brandProperty?.values ?? []
+		return [...values]
+			.sort((a, b) => a.value.localeCompare(b.value, 'ru'))
+			.map(value => ({ label: value.value, value: value.slug }))
+	}, [brandProperty])
 
 	const { data, isLoading, refetch } = trpc.products.getMany.useQuery({
 		page,
@@ -105,7 +118,7 @@ export default function ProductsClient() {
 		search: search || undefined,
 		rootCategorySlug: rootCategoryFilter || undefined,
 		subcategorySlug: subcategoryFilter || undefined,
-		brand: brandFilter || undefined,
+		properties: brandValueFilter ? { brand: brandValueFilter } : undefined,
 		hasImages: hasImagesFilter,
 		dataHealth: dataHealthFilter,
 		inStock: inStockFilter,
@@ -150,7 +163,9 @@ export default function ProductsClient() {
 					search: search || undefined,
 					rootCategorySlug: rootCategoryFilter || undefined,
 					subcategorySlug: subcategoryFilter || undefined,
-					brand: brandFilter || undefined,
+					properties: brandValueFilter
+						? { brand: brandValueFilter }
+						: undefined,
 					hasImages: hasImagesFilter,
 					dataHealth: dataHealthFilter,
 					inStock: inStockFilter,
@@ -201,7 +216,7 @@ export default function ProductsClient() {
 			search,
 			rootCategoryFilter,
 			subcategoryFilter,
-			brandFilter,
+			brandValueFilter,
 			hasImagesFilter,
 			dataHealthFilter,
 			inStockFilter,
@@ -293,15 +308,21 @@ export default function ProductsClient() {
 						))}
 					</select>
 				)}
-				<Button
-					variant='outline'
-					size='sm'
-					onClick={() => setBrandFilter(b => (b ? '' : 'Aura'))}
-					className={brandFilter ? 'border-accent text-accent' : ''}
+				<select
+					className='h-9 rounded-md border border-input bg-background px-3 text-sm'
+					value={brandValueFilter}
+					onChange={e => {
+						setBrandValueFilter(e.target.value)
+						setPage(1)
+					}}
 				>
-					<Filter className='h-4 w-4 mr-1' />
-					{brandFilter || 'Бренд'}
-				</Button>
+					<option value=''>Бренд (характеристика)</option>
+					{brandValueOptions.map(option => (
+						<option key={option.value} value={option.value}>
+							{option.label}
+						</option>
+					))}
+				</select>
 				<Button
 					variant='outline'
 					size='sm'
@@ -361,7 +382,7 @@ export default function ProductsClient() {
 				</Button>
 				{(rootCategoryFilter ||
 					subcategoryFilter ||
-					brandFilter ||
+					brandValueFilter ||
 					hasImagesFilter !== undefined ||
 					dataHealthFilter !== undefined ||
 					inStockFilter !== undefined) && (
@@ -371,7 +392,7 @@ export default function ProductsClient() {
 						onClick={() => {
 							setRootCategoryFilter('')
 							setSubcategoryFilter('')
-							setBrandFilter('')
+							setBrandValueFilter('')
 							setHasImagesFilter(undefined)
 							setDataHealthFilter(undefined)
 							setInStockFilter(undefined)

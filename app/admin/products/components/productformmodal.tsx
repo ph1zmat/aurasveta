@@ -30,10 +30,7 @@ import { generateProductSeo } from '@/shared/lib/seo/generateseo'
 import { PriceBYN } from '@/shared/ui/pricebyn'
 import { SeoFieldsBlock } from '@aurasveta/shared-admin'
 import type { SeoFormValues } from '@/shared/types/seo'
-import {
-	productFormSchema,
-	type ProductFormValue,
-} from '../productformschema'
+import { productFormSchema, type ProductFormValue } from '../productformschema'
 
 interface ProductFormModalProps {
 	open: boolean
@@ -238,10 +235,14 @@ export default function ProductFormModal({
 			shouldDirty: false,
 			shouldValidate: false,
 		})
-		setValue('seo.description', productSeo.description ?? product.metaDesc ?? '', {
-			shouldDirty: false,
-			shouldValidate: false,
-		})
+		setValue(
+			'seo.description',
+			productSeo.description ?? product.metaDesc ?? '',
+			{
+				shouldDirty: false,
+				shouldValidate: false,
+			},
+		)
 		setValue('seo.keywords', productSeo.keywords ?? '', {
 			shouldDirty: false,
 			shouldValidate: false,
@@ -414,10 +415,14 @@ export default function ProductFormModal({
 			shouldDirty: true,
 			shouldValidate: true,
 		})
-		setValue('seo.description', metaDescValue || autoSeoSuggestion.description, {
-			shouldDirty: true,
-			shouldValidate: true,
-		})
+		setValue(
+			'seo.description',
+			metaDescValue || autoSeoSuggestion.description,
+			{
+				shouldDirty: true,
+				shouldValidate: true,
+			},
+		)
 		setValue('seo.keywords', seoKeywordsValue || autoSeoSuggestion.keywords, {
 			shouldDirty: true,
 			shouldValidate: true,
@@ -426,10 +431,14 @@ export default function ProductFormModal({
 			shouldDirty: true,
 			shouldValidate: true,
 		})
-		setValue('seo.ogDescription', seoOgDescriptionValue || autoSeoSuggestion.ogDescription, {
-			shouldDirty: true,
-			shouldValidate: true,
-		})
+		setValue(
+			'seo.ogDescription',
+			seoOgDescriptionValue || autoSeoSuggestion.ogDescription,
+			{
+				shouldDirty: true,
+				shouldValidate: true,
+			},
+		)
 		if (!seoOgImageValue && autoSeoSuggestion.ogImage) {
 			setValue('seo.ogImage', autoSeoSuggestion.ogImage, {
 				shouldDirty: true,
@@ -439,14 +448,38 @@ export default function ProductFormModal({
 	}
 
 	const handleSeoChange = (next: SeoFormValues) => {
-		setValue('seo.title', next.title, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.description', next.description, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.keywords', next.keywords, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.ogTitle', next.ogTitle, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.ogDescription', next.ogDescription, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.ogImage', next.ogImage, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.canonicalUrl', next.canonicalUrl, { shouldDirty: true, shouldValidate: true })
-		setValue('seo.noIndex', next.noIndex, { shouldDirty: true, shouldValidate: true })
+		setValue('seo.title', next.title, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.description', next.description, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.keywords', next.keywords, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.ogTitle', next.ogTitle, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.ogDescription', next.ogDescription, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.ogImage', next.ogImage, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.canonicalUrl', next.canonicalUrl, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
+		setValue('seo.noIndex', next.noIndex, {
+			shouldDirty: true,
+			shouldValidate: true,
+		})
 	}
 
 	const appendPropertyRow = () => {
@@ -542,7 +575,9 @@ export default function ProductFormModal({
 										<SelectContent>
 											<SelectItem value='NEW'>Новый</SelectItem>
 											<SelectItem value='USED'>Б/у</SelectItem>
-											<SelectItem value='REFURBISHED'>Восстановленный</SelectItem>
+											<SelectItem value='REFURBISHED'>
+												Восстановленный
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									{errors.condition && (
@@ -554,7 +589,9 @@ export default function ProductFormModal({
 							</div>
 							<div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
 								<div className='space-y-2'>
-									<label className='text-sm font-medium'>Доставка (override)</label>
+									<label className='text-sm font-medium'>
+										Доставка (override)
+									</label>
 									<Select
 										value={shippingPolicyIdValue || '__default__'}
 										onValueChange={v =>
@@ -565,17 +602,23 @@ export default function ProductFormModal({
 											<SelectValue placeholder='По умолчанию магазина' />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
-											{activeShippingPolicies.map((policy: { id: string; name: string }) => (
-												<SelectItem key={policy.id} value={policy.id}>
-													{policy.name}
-												</SelectItem>
-											))}
+											<SelectItem value='__default__'>
+												По умолчанию магазина
+											</SelectItem>
+											{activeShippingPolicies.map(
+												(policy: { id: string; name: string }) => (
+													<SelectItem key={policy.id} value={policy.id}>
+														{policy.name}
+													</SelectItem>
+												),
+											)}
 										</SelectContent>
 									</Select>
 								</div>
 								<div className='space-y-2'>
-									<label className='text-sm font-medium'>Возврат (override)</label>
+									<label className='text-sm font-medium'>
+										Возврат (override)
+									</label>
 									<Select
 										value={returnPolicyIdValue || '__default__'}
 										onValueChange={v =>
@@ -586,17 +629,23 @@ export default function ProductFormModal({
 											<SelectValue placeholder='По умолчанию магазина' />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
-											{activeReturnPolicies.map((policy: { id: string; name: string }) => (
-												<SelectItem key={policy.id} value={policy.id}>
-													{policy.name}
-												</SelectItem>
-											))}
+											<SelectItem value='__default__'>
+												По умолчанию магазина
+											</SelectItem>
+											{activeReturnPolicies.map(
+												(policy: { id: string; name: string }) => (
+													<SelectItem key={policy.id} value={policy.id}>
+														{policy.name}
+													</SelectItem>
+												),
+											)}
 										</SelectContent>
 									</Select>
 								</div>
 								<div className='space-y-2'>
-									<label className='text-sm font-medium'>Гарантия (override)</label>
+									<label className='text-sm font-medium'>
+										Гарантия (override)
+									</label>
 									<Select
 										value={warrantyPolicyIdValue || '__default__'}
 										onValueChange={v =>
@@ -607,12 +656,16 @@ export default function ProductFormModal({
 											<SelectValue placeholder='По умолчанию магазина' />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value='__default__'>По умолчанию магазина</SelectItem>
-											{activeWarrantyPolicies.map((policy: { id: string; name: string }) => (
-												<SelectItem key={policy.id} value={policy.id}>
-													{policy.name}
-												</SelectItem>
-											))}
+											<SelectItem value='__default__'>
+												По умолчанию магазина
+											</SelectItem>
+											{activeWarrantyPolicies.map(
+												(policy: { id: string; name: string }) => (
+													<SelectItem key={policy.id} value={policy.id}>
+														{policy.name}
+													</SelectItem>
+												),
+											)}
 										</SelectContent>
 									</Select>
 								</div>
@@ -720,7 +773,10 @@ export default function ProductFormModal({
 								<div className='flex gap-6'>
 									<div>
 										<div className='text-xs text-muted-foreground'>Прибыль</div>
-										<PriceBYN value={profit} className='text-lg font-bold text-success' />
+										<PriceBYN
+											value={profit}
+											className='text-lg font-bold text-success'
+										/>
 									</div>
 									<div>
 										<div className='text-xs text-muted-foreground'>Маржа</div>
@@ -744,7 +800,9 @@ export default function ProductFormModal({
 									)}
 								</div>
 								<div className='space-y-2'>
-									<label className='text-sm font-medium'>Порог &quot;мало&quot;</label>
+									<label className='text-sm font-medium'>
+										Порог &quot;мало&quot;
+									</label>
 									<Input type='number' defaultValue={20} disabled />
 								</div>
 							</div>
@@ -882,7 +940,9 @@ export default function ProductFormModal({
 						</Button>
 						<Button
 							type='submit'
-							disabled={isSubmitting || createMut.isPending || updateMut.isPending}
+							disabled={
+								isSubmitting || createMut.isPending || updateMut.isPending
+							}
 						>
 							Сохранить
 						</Button>
