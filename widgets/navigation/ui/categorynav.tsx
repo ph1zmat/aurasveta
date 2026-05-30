@@ -61,7 +61,7 @@ export default function CategoryNav() {
 								<Link
 									href={cat.href}
 									className={cn(
-										'flex w-full items-center justify-center px-3 py-2 text-xs font-normal tracking-wider transition-colors',
+										'flex w-full items-center justify-center px-3 py-2 text-[10px] font-normal tracking-wider transition-colors',
 										cat.highlight ? 'text-destructive' : 'text-foreground',
 										activeId === cat.id && !cat.highlight && 'text-primary',
 									)}

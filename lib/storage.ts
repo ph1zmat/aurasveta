@@ -210,7 +210,7 @@ export async function deleteFile(key: string): Promise<void> {
 }
 
 /**
- * Массово удаляет файлы из хранилища батчами до 1000 ключей.
+ * Массово удаляет файлы из хранилища батчами по одному командой DeleteObject.
  * Возвращает количество ключей, отправленных на удаление.
  */
 export async function deleteFiles(keys: readonly string[]): Promise<number> {
@@ -221,19 +221,28 @@ export async function deleteFiles(keys: readonly string[]): Promise<number> {
 		return 0
 	}
 
-	for (let index = 0; index < uniqueKeys.length; index += 1000) {
-		const batch = uniqueKeys.slice(index, index + 1000)
-		await withStorageRetry('deleteObjects', async () => {
-			await getClient().send(
-				new DeleteObjectsCommand({
-					Bucket: bucket,
-					Delete: {
-						Objects: batch.map(key => ({ Key: key })),
-						Quiet: true,
-					},
+	console.log(
+		`\nDeleting ${uniqueKeys.length} files from S3 using single DeleteObject commands...`,
+	)
+
+	const limit = 150 // concurrency limit
+	for (let i = 0; i < uniqueKeys.length; i += limit) {
+		const batch = uniqueKeys.slice(i, i + limit)
+		await Promise.all(
+			batch.map(key =>
+				withStorageRetry('deleteObject', async () => {
+					await getClient().send(
+						new DeleteObjectCommand({
+							Bucket: bucket,
+							Key: key,
+						}),
+					)
 				}),
-			)
-		})
+			),
+		)
+		if (i > 0 && i % 1500 === 0) {
+			console.log(`Deleted ${i}/${uniqueKeys.length} files...`)
+		}
 	}
 
 	return uniqueKeys.length

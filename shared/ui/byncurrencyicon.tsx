@@ -15,7 +15,7 @@ export function BynCurrencyIcon({
 			aria-hidden={decorative ? true : undefined}
 			aria-label={decorative ? undefined : 'BYN'}
 			className={cn(
-				'inline-block shrink-0 bg-current align-[-0.12em]',
+				'inline-block shrink-0 bg-current h-[14px] w-[14px]',
 				className,
 			)}
 			style={{

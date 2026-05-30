@@ -1,6 +1,6 @@
-import Link from 'next/link'
+// import Link from 'next/link'
 import { Check } from 'lucide-react'
-import { Button } from '@/shared/ui/button'
+// import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
 import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { ReactNode } from 'react'
@@ -25,10 +25,10 @@ export default function ProductPriceBlock({
 	bonusAmount,
 	isOriginal = true,
 	availability,
-	primaryAction = { label: 'УТОЧНИТЬ НАЛИЧИЕ', href: '#' },
-	secondaryAction = { label: 'ПОСМОТРЕТЬ АНАЛОГИ', href: '#' },
-	foundCheaper = true,
-	cartAction,
+	// primaryAction = { label: 'УТОЧНИТЬ НАЛИЧИЕ', href: '#' },
+	// secondaryAction = { label: 'ПОСМОТРЕТЬ АНАЛОГИ', href: '#' },
+	// foundCheaper = true,
+	// cartAction,
 }: ProductPriceBlockProps) {
 	return (
 		<Card className='bg-muted border-0 rounded-[20px]'>
@@ -43,7 +43,10 @@ export default function ProductPriceBlock({
 			{/* Price row */}
 			<div className='mb-2 flex items-center justify-between'>
 				<div className='flex items-baseline gap-3'>
-					<PriceBYN value={price} className='text-3xl font-semibold text-foreground' />
+					<PriceBYN
+						value={price}
+						className='text-3xl font-semibold text-foreground'
+					/>
 					{oldPrice && (
 						<PriceBYN
 							value={oldPrice}
@@ -64,14 +67,14 @@ export default function ProductPriceBlock({
 			</div>
 
 			{/* Found cheaper */}
-			{foundCheaper && (
+			{/* {foundCheaper && (
 				<Button variant='subtle' className='mb-4'>
 					Нашли дешевле?
 				</Button>
-			)}
+			)} */}
 
 			{/* CTA buttons */}
-			<div className='space-y-3 border-t border-border pt-4 mt-4'>
+			{/* <div className='space-y-3 border-t border-border pt-4 mt-4'>
 				{cartAction ?? (
 					<Button asChild variant='primary' size='lg' fullWidth>
 						<Link href={primaryAction.href}>{primaryAction.label}</Link>
@@ -80,7 +83,7 @@ export default function ProductPriceBlock({
 				<Button asChild variant='outline' size='lg' fullWidth>
 					<Link href={secondaryAction.href}>{secondaryAction.label}</Link>
 				</Button>
-			</div>
+			</div> */}
 
 			{/* Availability */}
 			{availability && (

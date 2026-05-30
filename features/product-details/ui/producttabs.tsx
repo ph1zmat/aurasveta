@@ -71,9 +71,21 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 							{group.title}
 						</h3>
 						<div>
-							{group.rows.map(row => (
-								<SpecRowCell key={row.label} row={row} />
-							))}
+							{group.rows.map(row => {
+								const displayValue =
+									typeof row.value === 'boolean'
+										? row.value
+											? 'Да'
+											: 'Нет'
+										: row.value
+
+								return (
+									<SpecRowCell
+										key={row.label}
+										row={{ ...row, value: displayValue }}
+									/>
+								)
+							})}
 						</div>
 					</div>
 				))}
@@ -84,7 +96,7 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 
 /* ── Tabs component ── */
 
-const tabs = ['Характеристики', 'Доставка', 'Отзывы'] as const
+const tabs = ['Характеристики'] as const
 
 export default function ProductTabs({ specGroups }: ProductTabsProps) {
 	const [active, setActive] = useState<(typeof tabs)[number]>('Характеристики')
@@ -112,16 +124,6 @@ export default function ProductTabs({ specGroups }: ProductTabsProps) {
 			{/* Tab content */}
 			<div className='py-6'>
 				{active === 'Характеристики' && <SpecsTable groups={specGroups} />}
-				{active === 'Доставка' && (
-					<p className='text-sm tracking-wider text-muted-foreground'>
-						Информация о доставке будет доступна позже.
-					</p>
-				)}
-				{active === 'Отзывы' && (
-					<p className='text-sm tracking-wider text-muted-foreground'>
-						Отзывов пока нет. Будьте первым!
-					</p>
-				)}
 			</div>
 		</div>
 	)

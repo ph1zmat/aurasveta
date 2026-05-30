@@ -95,7 +95,7 @@ export default function CatalogProductCard({
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-contain transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-105'
 						fallbackClassName='bg-muted/30'
 					/>
 				</div>
@@ -115,7 +115,10 @@ export default function CatalogProductCard({
 			)}
 
 			<div className='mb-3 flex flex-wrap items-center gap-2'>
-				<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
+				<PriceBYN
+					value={price}
+					className='text-lg font-semibold text-foreground'
+				/>
 				{discountPercent && bonusAmount ? (
 					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white'>
 						{discountPercent}%

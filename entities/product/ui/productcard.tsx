@@ -35,7 +35,7 @@ export default function ProductCard({
 					src={image}
 					alt={name}
 					fill
-					imageClassName='object-contain transition-transform group-hover:scale-115 duration-1000'
+					imageClassName='object-cover transition-transform group-hover:scale-115 duration-1000'
 					fallbackClassName='rounded-sm'
 				/>
 			</div>

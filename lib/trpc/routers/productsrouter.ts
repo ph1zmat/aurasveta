@@ -5,7 +5,10 @@ import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateslug'
 import { validateWebhookUrl } from '@/shared/lib/validateurl'
 import { buildCategoryProductWhere } from '@/lib/categories/categoryfilters'
-import { mergeSeoFields, upsertSeoMetadata } from '@/lib/seo/metadatapersistence'
+import {
+	mergeSeoFields,
+	upsertSeoMetadata,
+} from '@/lib/seo/metadatapersistence'
 import { deleteFile } from '@/lib/storage'
 import type { StorageImageAsset } from '@/shared/types/storage'
 import { SeoFieldsInputSchema } from '@/shared/types/seo'
@@ -54,7 +57,9 @@ const productCardSelect = {
 	subcategoryId: true,
 	createdAt: true,
 	category: { select: { id: true, name: true, slug: true } },
-	rootCategory: { select: { id: true, name: true, slug: true, parentId: true } },
+	rootCategory: {
+		select: { id: true, name: true, slug: true, parentId: true },
+	},
 	subcategory: { select: { id: true, name: true, slug: true, parentId: true } },
 } as const satisfies Prisma.ProductSelect
 
@@ -97,6 +102,7 @@ const productFilters = z.object({
 	minPrice: z.number().optional(),
 	maxPrice: z.number().optional(),
 	brand: z.string().optional(),
+	hasImages: z.boolean().optional(),
 	inStock: z.boolean().optional(),
 	isNew: z.boolean().optional(),
 	onSale: z.boolean().optional(),
@@ -182,9 +188,12 @@ async function resolveProductCategoryData(
 			code: 'BAD_REQUEST',
 			message: 'Товар должен быть привязан к субкатегории второго уровня.',
 		})
-		}
+	}
 
-	if (candidateRootCategoryId && subcategory.parentId !== candidateRootCategoryId) {
+	if (
+		candidateRootCategoryId &&
+		subcategory.parentId !== candidateRootCategoryId
+	) {
 		throw new TRPCError({
 			code: 'BAD_REQUEST',
 			message: 'Субкатегория не принадлежит выбранной корневой категории.',
@@ -277,6 +286,7 @@ export const productsRouter = createTRPCRouter({
 			minPrice,
 			maxPrice,
 			brand,
+			hasImages,
 			inStock,
 			isNew,
 			onSale,
@@ -319,7 +329,10 @@ export const productsRouter = createTRPCRouter({
 		])
 
 		if (category) {
-			Object.assign(where, buildCategoryProductWhere(category, { includeChildren }))
+			Object.assign(
+				where,
+				buildCategoryProductWhere(category, { includeChildren }),
+			)
 		}
 
 		if (rootCategory) {
@@ -333,10 +346,7 @@ export const productsRouter = createTRPCRouter({
 
 		if (subcategory) {
 			andConditions.push({
-				OR: [
-					{ subcategoryId: subcategory.id },
-					{ categoryId: subcategory.id },
-				],
+				OR: [{ subcategoryId: subcategory.id }, { categoryId: subcategory.id }],
 			})
 		}
 
@@ -357,6 +367,9 @@ export const productsRouter = createTRPCRouter({
 		}
 
 		if (brand) where.brand = brand
+		if (hasImages !== undefined) {
+			where.images = hasImages ? { some: {} } : { none: {} }
+		}
 		if (inStock !== undefined) where.stock = inStock ? { gt: 0 } : { equals: 0 }
 		if (isNew) {
 			andConditions.push({ createdAt: { gte: newSinceDate } })
@@ -729,16 +742,23 @@ export const productsRouter = createTRPCRouter({
 			const normalizedImages = normalizeProductImagesForWrite(
 				toIncomingProductImages(images),
 			)
-			const resolvedCategoryData = await resolveProductCategoryData(ctx.prisma, {
-				categoryId,
-				rootCategoryId,
-				subcategoryId,
-			})
+			const resolvedCategoryData = await resolveProductCategoryData(
+				ctx.prisma,
+				{
+					categoryId,
+					rootCategoryId,
+					subcategoryId,
+				},
+			)
 
-			if (!resolvedCategoryData.subcategoryId || !resolvedCategoryData.rootCategoryId) {
+			if (
+				!resolvedCategoryData.subcategoryId ||
+				!resolvedCategoryData.rootCategoryId
+			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Для товара нужно выбрать корневую категорию и субкатегорию.',
+					message:
+						'Для товара нужно выбрать корневую категорию и субкатегорию.',
 				})
 			}
 
@@ -767,7 +787,7 @@ export const productsRouter = createTRPCRouter({
 											propertyId: property.propertyId,
 											propertyValueId: property.propertyValueId,
 										})),
-								}
+									}
 								: undefined,
 					},
 					include: productDetailInclude,
@@ -862,13 +882,13 @@ export const productsRouter = createTRPCRouter({
 				async tx => {
 					const existingProduct = shouldUpdateCategoryFields
 						? await tx.product.findUnique({
-							where: { id },
-							select: {
-								categoryId: true,
-								rootCategoryId: true,
-								subcategoryId: true,
-							},
-						})
+								where: { id },
+								select: {
+									categoryId: true,
+									rootCategoryId: true,
+									subcategoryId: true,
+								},
+							})
 						: null
 
 					if (shouldUpdateCategoryFields && !existingProduct) {
@@ -880,26 +900,30 @@ export const productsRouter = createTRPCRouter({
 
 					const resolvedCategoryData = shouldUpdateCategoryFields
 						? await resolveProductCategoryData(tx, {
-							categoryId:
-								categoryId === undefined ? existingProduct?.categoryId ?? null : categoryId,
-							rootCategoryId:
-								rootCategoryId === undefined
-									? existingProduct?.rootCategoryId ?? null
-									: rootCategoryId,
-							subcategoryId:
-								subcategoryId === undefined
-									? existingProduct?.subcategoryId ?? null
-									: subcategoryId,
-						})
+								categoryId:
+									categoryId === undefined
+										? (existingProduct?.categoryId ?? null)
+										: categoryId,
+								rootCategoryId:
+									rootCategoryId === undefined
+										? (existingProduct?.rootCategoryId ?? null)
+										: rootCategoryId,
+								subcategoryId:
+									subcategoryId === undefined
+										? (existingProduct?.subcategoryId ?? null)
+										: subcategoryId,
+							})
 						: null
 
 					if (
 						shouldUpdateCategoryFields &&
-						(!resolvedCategoryData?.subcategoryId || !resolvedCategoryData.rootCategoryId)
+						(!resolvedCategoryData?.subcategoryId ||
+							!resolvedCategoryData.rootCategoryId)
 					) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Для товара нужно выбрать корневую категорию и субкатегорию.',
+							message:
+								'Для товара нужно выбрать корневую категорию и субкатегорию.',
 						})
 					}
 
@@ -1297,7 +1321,7 @@ export const productsRouter = createTRPCRouter({
 					where.compareAtPrice = { not: null }
 					break
 				case 'novelty':
-						where.createdAt = { gte: newSinceDate }
+					where.createdAt = { gte: newSinceDate }
 					break
 				case 'property':
 					if (propertyValueId) {

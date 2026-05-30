@@ -237,7 +237,7 @@ export default async function Footer() {
 								<div className='flex flex-wrap gap-1'>
 									{settings.socialLinks.map(link => (
 										<SocialIcon
-											key={link.platform}
+											key={`${link.platform}-${link.url}`}
 											platform={link.platform}
 											url={link.url}
 											className='text-card/70 hover:text-card'

@@ -102,6 +102,26 @@ data
 data/import/*
 
 scripts/parse
+scripts/analyze_db_brands.ts
+scripts/analyze_db_images.ts
+scripts/analyze_public_images.py
+scripts/apply_uploaded_image_mapping.ts
+scripts/cross_reference_images.py
+scripts/recover_missing_images.ts
+scripts/test_s3.ts
+scripts/upload_brand_reports_to_s3.ts
+scripts/apply_additional_upload_candidates.ts
+scripts/audit_eurosvet_verified_names.ts
+scripts/eurosvet-upscale-images.ts
+scripts/
+scripts/
+scripts/
+scripts/
+scripts/
+scripts/
+scripts/
+scripts/
+
 
 public/LED4U
 public/LightStar
@@ -122,3 +142,5 @@ public/Odeon
 public/Sonex
 public/Майтони
 public/ДОКВОРК
+
+local_tunnel.py

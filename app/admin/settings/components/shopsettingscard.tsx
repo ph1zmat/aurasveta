@@ -7,6 +7,29 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Save, Plus, Trash2, Loader2, Upload } from 'lucide-react'
+import SocialIcon from '@/shared/ui/socialicon'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
+
+const SOCIAL_PLATFORMS = [
+	{ value: 'instagram', label: 'Instagram' },
+	{ value: 'telegram', label: 'Telegram' },
+	{ value: 'viber', label: 'Viber' },
+	{ value: 'whatsapp', label: 'WhatsApp' },
+	{ value: 'tiktok', label: 'TikTok' },
+	{ value: 'vk', label: 'ВКонтакте' },
+	{ value: 'youtube', label: 'YouTube' },
+	{ value: 'pinterest', label: 'Pinterest' },
+	{ value: 'facebook', label: 'Facebook' },
+	{ value: 'twitter', label: 'Twitter / X' },
+	{ value: 'ok', label: 'Одноклассники' },
+	{ value: 'custom', label: 'Другая...' },
+]
 
 interface SocialLink {
 	platform: string
@@ -38,8 +61,8 @@ interface ShopFormState {
 
 const DEFAULT_WORKING_HOURS: WorkingHours = {
 	'Пн-Пт': '09:00–20:00',
-	'Сб': '10:00–18:00',
-	'Вс': 'выходной',
+	Сб: '10:00–18:00',
+	Вс: 'выходной',
 }
 
 const LOGO_INPUT_ID = 'shop-logo-upload'
@@ -73,7 +96,9 @@ function normalizeShopInfoToForm(shopInfo: unknown): ShopFormState {
 
 	const typed = shopInfo as Record<string, unknown>
 	const legalInfo =
-		typed.legalInfo && typeof typed.legalInfo === 'object' && !Array.isArray(typed.legalInfo)
+		typed.legalInfo &&
+		typeof typed.legalInfo === 'object' &&
+		!Array.isArray(typed.legalInfo)
 			? (typed.legalInfo as Record<string, string>)
 			: {}
 
@@ -82,7 +107,8 @@ function normalizeShopInfoToForm(shopInfo: unknown): ShopFormState {
 		additionalPhone:
 			typeof typed.additionalPhone === 'string' ? typed.additionalPhone : '',
 		email: typeof typed.email === 'string' ? typed.email : '',
-		supportEmail: typeof typed.supportEmail === 'string' ? typed.supportEmail : '',
+		supportEmail:
+			typeof typed.supportEmail === 'string' ? typed.supportEmail : '',
 		address: typeof typed.address === 'string' ? typed.address : '',
 		city: typeof typed.city === 'string' ? typed.city : '',
 		postalCode: typeof typed.postalCode === 'string' ? typed.postalCode : '',
@@ -118,19 +144,23 @@ export default function ShopSettingsCard() {
 		staleTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,
 	})
-	const { mutate: updateInfo, isPending: isSaving } = trpc.settingsBusiness.updateInfo.useMutation({
-		onSuccess: async () => {
-			toast.success('Настройки магазина сохранены')
-			setDraftForm(null)
-			await Promise.all([
-				utils.settingsBusiness.getInfo.invalidate(),
-				utils.setting.getAll.invalidate(),
-			])
-		},
-		onError: (e) => toast.error(`Ошибка сохранения: ${e.message}`),
-	})
+	const { mutate: updateInfo, isPending: isSaving } =
+		trpc.settingsBusiness.updateInfo.useMutation({
+			onSuccess: async () => {
+				toast.success('Настройки магазина сохранены')
+				setDraftForm(null)
+				await Promise.all([
+					utils.settingsBusiness.getInfo.invalidate(),
+					utils.setting.getAll.invalidate(),
+				])
+			},
+			onError: e => toast.error(`Ошибка сохранения: ${e.message}`),
+		})
 
-	const initialForm = useMemo(() => normalizeShopInfoToForm(shopInfo), [shopInfo])
+	const initialForm = useMemo(
+		() => normalizeShopInfoToForm(shopInfo),
+		[shopInfo],
+	)
 	const form = draftForm ?? initialForm
 
 	const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -141,16 +171,26 @@ export default function ShopSettingsCard() {
 		[form, initialForm],
 	)
 
-	const setField = <K extends keyof ShopFormState>(key: K, value: ShopFormState[K]) => {
-		setDraftForm((prev) => ({ ...(prev ?? initialForm), [key]: value }))
+	const setField = <K extends keyof ShopFormState>(
+		key: K,
+		value: ShopFormState[K],
+	) => {
+		setDraftForm(prev => ({ ...(prev ?? initialForm), [key]: value }))
 	}
 
 	// Социальные сети
 	const addSocialLink = () => {
-		setField('socialLinks', [...form.socialLinks, { platform: '', url: '' }])
+		setField('socialLinks', [
+			...form.socialLinks,
+			{ platform: 'instagram', url: '' },
+		])
 	}
 
-	const updateSocialLink = (index: number, field: 'platform' | 'url', value: string) => {
+	const updateSocialLink = (
+		index: number,
+		field: 'platform' | 'url',
+		value: string,
+	) => {
 		const updated = [...form.socialLinks]
 		updated[index] = { ...updated[index], [field]: value }
 		setField('socialLinks', updated)
@@ -159,7 +199,7 @@ export default function ShopSettingsCard() {
 	const removeSocialLink = (index: number) => {
 		setField(
 			'socialLinks',
-			form.socialLinks.filter((_, i) => i !== index)
+			form.socialLinks.filter((_, i) => i !== index),
 		)
 	}
 
@@ -191,7 +231,7 @@ export default function ShopSettingsCard() {
 	const uploadFile = async (
 		file: File,
 		field: 'logoUrl' | 'faviconUrl',
-		setUploading: (v: boolean) => void
+		setUploading: (v: boolean) => void,
 	) => {
 		setUploading(true)
 		try {
@@ -228,7 +268,7 @@ export default function ShopSettingsCard() {
 			city: form.city || undefined,
 			postalCode: form.postalCode || undefined,
 			workingHours: form.workingHours,
-			socialLinks: form.socialLinks.filter((s) => s.platform && s.url),
+			socialLinks: form.socialLinks.filter(s => s.platform && s.url),
 			legalInfo: {
 				inn: form.legalInn,
 				ogrn: form.legalOgrn,
@@ -271,7 +311,9 @@ export default function ShopSettingsCard() {
 			{/* Контакты */}
 			<Card className='border-border'>
 				<CardHeader>
-					<CardTitle className='text-base font-bold'>Контактная информация</CardTitle>
+					<CardTitle className='text-base font-bold'>
+						Контактная информация
+					</CardTitle>
 				</CardHeader>
 				<CardContent className='space-y-4'>
 					<div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
@@ -279,15 +321,17 @@ export default function ShopSettingsCard() {
 							<label className='text-sm font-medium'>Основной телефон</label>
 							<Input
 								value={form.phone}
-								onChange={(e) => setField('phone', e.target.value)}
+								onChange={e => setField('phone', e.target.value)}
 								placeholder='+7 (000) 000-00-00'
 							/>
 						</div>
 						<div className='space-y-2'>
-							<label className='text-sm font-medium'>Дополнительный телефон</label>
+							<label className='text-sm font-medium'>
+								Дополнительный телефон
+							</label>
 							<Input
 								value={form.additionalPhone}
-								onChange={(e) => setField('additionalPhone', e.target.value)}
+								onChange={e => setField('additionalPhone', e.target.value)}
 								placeholder='+7 (000) 000-00-00'
 							/>
 						</div>
@@ -298,7 +342,7 @@ export default function ShopSettingsCard() {
 							<Input
 								type='email'
 								value={form.email}
-								onChange={(e) => setField('email', e.target.value)}
+								onChange={e => setField('email', e.target.value)}
 								placeholder='orders@example.com'
 							/>
 						</div>
@@ -307,7 +351,7 @@ export default function ShopSettingsCard() {
 							<Input
 								type='email'
 								value={form.supportEmail}
-								onChange={(e) => setField('supportEmail', e.target.value)}
+								onChange={e => setField('supportEmail', e.target.value)}
 								placeholder='support@example.com'
 							/>
 						</div>
@@ -316,24 +360,24 @@ export default function ShopSettingsCard() {
 						<label className='text-sm font-medium'>Адрес</label>
 						<Input
 							value={form.address}
-							onChange={(e) => setField('address', e.target.value)}
+							onChange={e => setField('address', e.target.value)}
 							placeholder='ул. Примерная, д. 1, кв. 1'
 						/>
 					</div>
 					<div className='grid grid-cols-2 gap-4'>
 						<div className='space-y-2'>
 							<label className='text-sm font-medium'>Город</label>
-								<Input
-									value={form.city}
-									onChange={(e) => setField('city', e.target.value)}
-									placeholder='Мозырь'
+							<Input
+								value={form.city}
+								onChange={e => setField('city', e.target.value)}
+								placeholder='Мозырь'
 							/>
 						</div>
 						<div className='space-y-2'>
 							<label className='text-sm font-medium'>Индекс</label>
 							<Input
 								value={form.postalCode}
-								onChange={(e) => setField('postalCode', e.target.value)}
+								onChange={e => setField('postalCode', e.target.value)}
 								placeholder='123456'
 							/>
 						</div>
@@ -356,13 +400,13 @@ export default function ShopSettingsCard() {
 							<Input
 								className='w-40 shrink-0'
 								value={day}
-								onChange={(e) => updateWorkingHoursKey(day, e.target.value)}
+								onChange={e => updateWorkingHoursKey(day, e.target.value)}
 								placeholder='Пн-Пт'
 							/>
 							<Input
 								className='flex-1'
 								value={hours}
-								onChange={(e) => updateWorkingHoursValue(day, e.target.value)}
+								onChange={e => updateWorkingHoursValue(day, e.target.value)}
 								placeholder='09:00–20:00 или выходной'
 							/>
 							<Button
@@ -387,34 +431,95 @@ export default function ShopSettingsCard() {
 						Добавить
 					</Button>
 				</CardHeader>
-				<CardContent className='space-y-2'>
+				<CardContent className='space-y-3'>
 					{form.socialLinks.length === 0 && (
-						<p className='text-sm text-muted-foreground'>Нет добавленных соцсетей</p>
+						<p className='text-sm text-muted-foreground'>
+							Нет добавленных соцсетей
+						</p>
 					)}
-					{form.socialLinks.map((link, i) => (
-						<div key={i} className='flex gap-2 items-center'>
-							<Input
-								className='w-36 shrink-0'
-								value={link.platform}
-								onChange={(e) => updateSocialLink(i, 'platform', e.target.value)}
-								placeholder='vk, telegram...'
-							/>
-							<Input
-								className='flex-1'
-								value={link.url}
-								onChange={(e) => updateSocialLink(i, 'url', e.target.value)}
-								placeholder='https://...'
-							/>
-							<Button
-								variant='ghost'
-								size='icon'
-								onClick={() => removeSocialLink(i)}
-								className='shrink-0 text-destructive hover:text-destructive'
+					{form.socialLinks.map((link, i) => {
+						const platformLower = link.platform.toLowerCase()
+						const isPredefined = SOCIAL_PLATFORMS.some(
+							p => p.value === platformLower && p.value !== 'custom',
+						)
+						const selectValue = isPredefined ? platformLower : 'custom'
+
+						return (
+							<div
+								key={i}
+								className='flex flex-wrap md:flex-nowrap gap-2 items-center border border-border/40 p-2.5 rounded-lg bg-muted/10'
 							>
-								<Trash2 className='h-4 w-4' />
-							</Button>
-						</div>
-					))}
+								<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background'>
+									{link.platform && link.url ? (
+										<SocialIcon
+											platform={link.platform}
+											url={link.url}
+											className='h-9 w-9 text-foreground hover:text-foreground'
+										/>
+									) : (
+										<span className='text-[10px] text-muted-foreground'>
+											preview
+										</span>
+									)}
+								</div>
+								<div className='flex gap-2 items-center w-full md:w-auto shrink-0'>
+									<Select
+										value={selectValue}
+										onValueChange={val => {
+											if (val === 'custom') {
+												updateSocialLink(i, 'platform', '')
+											} else {
+												updateSocialLink(i, 'platform', val)
+											}
+										}}
+									>
+										<SelectTrigger className='w-40 shrink-0 bg-background'>
+											<SelectValue placeholder='Платформа' />
+										</SelectTrigger>
+										<SelectContent>
+											{SOCIAL_PLATFORMS.map(p => (
+												<SelectItem key={p.value} value={p.value}>
+													{p.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+
+									{!isPredefined && (
+										<Input
+											className='w-36 shrink-0 bg-background'
+											value={link.platform}
+											onChange={e =>
+												updateSocialLink(i, 'platform', e.target.value)
+											}
+											placeholder='Имя...'
+										/>
+									)}
+								</div>
+
+								<Input
+									className='flex-1 min-w-[200px] bg-background'
+									value={link.url}
+									onChange={e => updateSocialLink(i, 'url', e.target.value)}
+									placeholder='https://...'
+								/>
+
+								<Button
+									variant='ghost'
+									size='icon'
+									onClick={() => removeSocialLink(i)}
+									className='shrink-0 text-destructive hover:text-destructive'
+								>
+									<Trash2 className='h-4 w-4' />
+								</Button>
+							</div>
+						)
+					})}
+					<p className='text-xs text-muted-foreground'>
+						Для стандартных платформ в футере отрисуется круглая иконка-ссылка.
+						Для пользовательского значения без встроенной иконки будет показана
+						текстовая ссылка.
+					</p>
 				</CardContent>
 			</Card>
 
@@ -427,15 +532,27 @@ export default function ShopSettingsCard() {
 					<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 						<div className='space-y-2'>
 							<label className='text-sm font-medium'>ИНН</label>
-							<Input value={form.legalInn} onChange={(e) => setField('legalInn', e.target.value)} placeholder='7700000000' />
+							<Input
+								value={form.legalInn}
+								onChange={e => setField('legalInn', e.target.value)}
+								placeholder='7700000000'
+							/>
 						</div>
 						<div className='space-y-2'>
 							<label className='text-sm font-medium'>ОГРН</label>
-							<Input value={form.legalOgrn} onChange={(e) => setField('legalOgrn', e.target.value)} placeholder='1027700000000' />
+							<Input
+								value={form.legalOgrn}
+								onChange={e => setField('legalOgrn', e.target.value)}
+								placeholder='1027700000000'
+							/>
 						</div>
 						<div className='space-y-2'>
 							<label className='text-sm font-medium'>КПП</label>
-							<Input value={form.legalKpp} onChange={(e) => setField('legalKpp', e.target.value)} placeholder='770001001' />
+							<Input
+								value={form.legalKpp}
+								onChange={e => setField('legalKpp', e.target.value)}
+								placeholder='770001001'
+							/>
 						</div>
 					</div>
 					<div className='space-y-2'>
@@ -443,15 +560,17 @@ export default function ShopSettingsCard() {
 						<textarea
 							className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring'
 							value={form.aboutUs}
-							onChange={(e) => setField('aboutUs', e.target.value)}
+							onChange={e => setField('aboutUs', e.target.value)}
 							placeholder='Расскажите о вашем магазине...'
 						/>
 					</div>
 					<div className='space-y-2'>
-						<label className='text-sm font-medium'>Заголовок H1 главной страницы</label>
+						<label className='text-sm font-medium'>
+							Заголовок H1 главной страницы
+						</label>
 						<Input
 							value={form.homeH1}
-							onChange={(e) => setField('homeH1', e.target.value)}
+							onChange={e => setField('homeH1', e.target.value)}
 							placeholder='Аура Света — магазин люстр и светильников в Мозыре'
 						/>
 						<p className='text-xs text-muted-foreground'>
@@ -464,7 +583,9 @@ export default function ShopSettingsCard() {
 			{/* Логотип и фавикон */}
 			<Card className='border-border'>
 				<CardHeader>
-					<CardTitle className='text-base font-bold'>Логотип и фавикон</CardTitle>
+					<CardTitle className='text-base font-bold'>
+						Логотип и фавикон
+					</CardTitle>
 				</CardHeader>
 				<CardContent className='space-y-4'>
 					<div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
@@ -484,7 +605,7 @@ export default function ShopSettingsCard() {
 							<div className='flex gap-2'>
 								<Input
 									value={form.logoUrl}
-									onChange={(e) => setField('logoUrl', e.target.value)}
+									onChange={e => setField('logoUrl', e.target.value)}
 									placeholder='https://... или загрузить'
 									className='flex-1'
 								/>
@@ -505,7 +626,7 @@ export default function ShopSettingsCard() {
 									accept='image/*'
 									className='hidden'
 									disabled={uploadingLogo}
-									onChange={(e) => {
+									onChange={e => {
 										const file = e.target.files?.[0]
 										if (file) uploadFile(file, 'logoUrl', setUploadingLogo)
 										e.target.value = ''
@@ -530,7 +651,7 @@ export default function ShopSettingsCard() {
 							<div className='flex gap-2'>
 								<Input
 									value={form.faviconUrl}
-									onChange={(e) => setField('faviconUrl', e.target.value)}
+									onChange={e => setField('faviconUrl', e.target.value)}
 									placeholder='https://... или загрузить'
 									className='flex-1'
 								/>
@@ -551,9 +672,10 @@ export default function ShopSettingsCard() {
 									accept='image/x-icon,image/png,image/svg+xml'
 									className='hidden'
 									disabled={uploadingFavicon}
-									onChange={(e) => {
+									onChange={e => {
 										const file = e.target.files?.[0]
-										if (file) uploadFile(file, 'faviconUrl', setUploadingFavicon)
+										if (file)
+											uploadFile(file, 'faviconUrl', setUploadingFavicon)
 										e.target.value = ''
 									}}
 								/>
@@ -563,8 +685,16 @@ export default function ShopSettingsCard() {
 				</CardContent>
 			</Card>
 
-			<Button onClick={handleSave} disabled={isSaving || !hasChanges} className='w-full sm:w-auto'>
-				{isSaving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : <Save className='h-4 w-4 mr-2' />}
+			<Button
+				onClick={handleSave}
+				disabled={isSaving || !hasChanges}
+				className='w-full sm:w-auto'
+			>
+				{isSaving ? (
+					<Loader2 className='h-4 w-4 mr-2 animate-spin' />
+				) : (
+					<Save className='h-4 w-4 mr-2' />
+				)}
 				Сохранить настройки магазина
 			</Button>
 		</div>
