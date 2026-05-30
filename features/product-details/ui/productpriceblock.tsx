@@ -25,10 +25,10 @@ export default function ProductPriceBlock({
 	bonusAmount,
 	isOriginal = true,
 	availability,
+	cartAction,
 	// primaryAction = { label: 'УТОЧНИТЬ НАЛИЧИЕ', href: '#' },
 	// secondaryAction = { label: 'ПОСМОТРЕТЬ АНАЛОГИ', href: '#' },
 	// foundCheaper = true,
-	// cartAction,
 }: ProductPriceBlockProps) {
 	return (
 		<Card className='bg-muted border-0 rounded-[20px]'>
@@ -73,17 +73,10 @@ export default function ProductPriceBlock({
 				</Button>
 			)} */}
 
-			{/* CTA buttons */}
-			{/* <div className='space-y-3 border-t border-border pt-4 mt-4'>
-				{cartAction ?? (
-					<Button asChild variant='primary' size='lg' fullWidth>
-						<Link href={primaryAction.href}>{primaryAction.label}</Link>
-					</Button>
-				)}
-				<Button asChild variant='outline' size='lg' fullWidth>
-					<Link href={secondaryAction.href}>{secondaryAction.label}</Link>
-				</Button>
-			</div> */}
+			{/* CTA: только кнопка корзины */}
+			{cartAction ? (
+				<div className='mt-4 border-t border-border pt-4'>{cartAction}</div>
+			) : null}
 
 			{/* Availability */}
 			{availability && (

@@ -49,6 +49,7 @@ interface ProductFormModalProps {
 		sku?: string | null
 		rootCategoryId?: string | null
 		subcategoryId?: string | null
+		categoryId?: string | null
 		shippingPolicyId?: string | null
 		returnPolicyId?: string | null
 		warrantyPolicyId?: string | null
@@ -132,7 +133,7 @@ function productToFormValues(
 		stock: String(product.stock ?? ''),
 		sku: product.sku ?? '',
 		rootCategoryId: product.rootCategoryId ?? '',
-		subcategoryId: product.subcategoryId ?? '',
+		subcategoryId: product.subcategoryId ?? product.categoryId ?? '',
 		shippingPolicyId: product.shippingPolicyId ?? '',
 		returnPolicyId: product.returnPolicyId ?? '',
 		warrantyPolicyId: product.warrantyPolicyId ?? '',
@@ -180,9 +181,10 @@ export default function ProductFormModal({
 		register,
 		watch,
 		setValue,
+		getValues,
 		reset,
 		handleSubmit,
-		formState: { errors, isSubmitting, isValid },
+		formState: { errors, isSubmitting },
 	} = useForm<ProductFormValue>({
 		resolver: zodResolver(productFormSchema),
 		mode: 'onChange',
@@ -265,6 +267,31 @@ export default function ProductFormModal({
 			shouldValidate: false,
 		})
 	}, [open, product, productSeo, setValue])
+
+	useEffect(() => {
+		if (!open || !product || !categories?.length) return
+
+		let currentSubcategoryId = getValues('subcategoryId')
+		const currentRootCategoryId = getValues('rootCategoryId')
+
+		if (!currentSubcategoryId && product.categoryId) {
+			currentSubcategoryId = product.categoryId
+			setValue('subcategoryId', product.categoryId, {
+				shouldDirty: false,
+				shouldValidate: true,
+			})
+		}
+
+		if (!currentRootCategoryId && currentSubcategoryId) {
+			const category = categories.find(c => c.id === currentSubcategoryId)
+			if (category?.parentId) {
+				setValue('rootCategoryId', category.parentId, {
+					shouldDirty: false,
+					shouldValidate: true,
+				})
+			}
+		}
+	}, [categories, getValues, open, product, setValue])
 
 	const onSubmit = (values: ProductFormValue) => {
 		const payload = {
@@ -855,12 +882,7 @@ export default function ProductFormModal({
 						</Button>
 						<Button
 							type='submit'
-							disabled={
-								!isValid ||
-								isSubmitting ||
-								createMut.isPending ||
-								updateMut.isPending
-							}
+							disabled={isSubmitting || createMut.isPending || updateMut.isPending}
 						>
 							Сохранить
 						</Button>

@@ -103,6 +103,7 @@ const productFilters = z.object({
 	maxPrice: z.number().optional(),
 	brand: z.string().optional(),
 	hasImages: z.boolean().optional(),
+	dataHealth: z.enum(['ok', 'problem']).optional(),
 	inStock: z.boolean().optional(),
 	isNew: z.boolean().optional(),
 	onSale: z.boolean().optional(),
@@ -287,6 +288,7 @@ export const productsRouter = createTRPCRouter({
 			maxPrice,
 			brand,
 			hasImages,
+			dataHealth,
 			inStock,
 			isNew,
 			onSale,
@@ -370,6 +372,28 @@ export const productsRouter = createTRPCRouter({
 		if (hasImages !== undefined) {
 			where.images = hasImages ? { some: {} } : { none: {} }
 		}
+
+		const dataProblemCondition: Prisma.ProductWhereInput = {
+			OR: [
+				{ images: { none: {} } },
+				{ rootCategoryId: null },
+				{ rootCategoryId: '' },
+				{ subcategoryId: null },
+				{ subcategoryId: '' },
+				{ sku: null },
+				{ sku: '' },
+				{ price: { lte: 0 } },
+			],
+		}
+
+		if (dataHealth === 'problem') {
+			andConditions.push(dataProblemCondition)
+		}
+
+		if (dataHealth === 'ok') {
+			andConditions.push({ NOT: dataProblemCondition })
+		}
+
 		if (inStock !== undefined) where.stock = inStock ? { gt: 0 } : { equals: 0 }
 		if (isNew) {
 			andConditions.push({ createdAt: { gte: newSinceDate } })

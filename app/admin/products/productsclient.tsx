@@ -82,6 +82,9 @@ export default function ProductsClient() {
 	const [hasImagesFilter, setHasImagesFilter] = useState<boolean | undefined>(
 		undefined,
 	)
+	const [dataHealthFilter, setDataHealthFilter] = useState<
+		'ok' | 'problem' | undefined
+	>(undefined)
 	const [inStockFilter, setInStockFilter] = useState<boolean | undefined>(
 		undefined,
 	)
@@ -104,6 +107,7 @@ export default function ProductsClient() {
 		subcategorySlug: subcategoryFilter || undefined,
 		brand: brandFilter || undefined,
 		hasImages: hasImagesFilter,
+		dataHealth: dataHealthFilter,
 		inStock: inStockFilter,
 	})
 
@@ -148,6 +152,7 @@ export default function ProductsClient() {
 					subcategorySlug: subcategoryFilter || undefined,
 					brand: brandFilter || undefined,
 					hasImages: hasImagesFilter,
+					dataHealth: dataHealthFilter,
 					inStock: inStockFilter,
 				},
 				old => {
@@ -198,6 +203,7 @@ export default function ProductsClient() {
 			subcategoryFilter,
 			brandFilter,
 			hasImagesFilter,
+			dataHealthFilter,
 			inStockFilter,
 			updateProduct,
 		],
@@ -319,6 +325,25 @@ export default function ProductsClient() {
 					variant='outline'
 					size='sm'
 					onClick={() =>
+						setDataHealthFilter(v =>
+							v === undefined ? 'problem' : v === 'problem' ? 'ok' : undefined,
+						)
+					}
+					className={
+						dataHealthFilter !== undefined ? 'border-accent text-accent' : ''
+					}
+				>
+					<Filter className='h-4 w-4 mr-1' />
+					{dataHealthFilter === undefined
+						? 'Комплектность'
+						: dataHealthFilter === 'problem'
+							? 'Есть проблемы'
+							: 'Полные данные'}
+				</Button>
+				<Button
+					variant='outline'
+					size='sm'
+					onClick={() =>
 						setInStockFilter(v =>
 							v === undefined ? true : v ? false : undefined,
 						)
@@ -338,6 +363,7 @@ export default function ProductsClient() {
 					subcategoryFilter ||
 					brandFilter ||
 					hasImagesFilter !== undefined ||
+					dataHealthFilter !== undefined ||
 					inStockFilter !== undefined) && (
 					<Button
 						variant='ghost'
@@ -347,6 +373,7 @@ export default function ProductsClient() {
 							setSubcategoryFilter('')
 							setBrandFilter('')
 							setHasImagesFilter(undefined)
+							setDataHealthFilter(undefined)
 							setInStockFilter(undefined)
 							setPage(1)
 						}}
