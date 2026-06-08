@@ -5,8 +5,9 @@
 //   - Excel Прайс (ОПТ РБ с НДС): Sonex, Ambrella, Arte Lamp, Favourite,
 //     Lumion, MODELUX, Novotech, Odeon, Eurosvet, Kink Light,
 //     Elektrostandard, Lightstar, LoFT IT
-//   - Converted RUB→BYN: MODELUX (rate 1/29.5), LED4U (rate 1/29.5),
-//     Maytoni (rate 1/29.5), Freya (rate 1/29.5)
+//   - Converted RUB→BYN: MODELUX (rate 100 RUB = 3.65 BYN),
+//     LED4U (rate 100 RUB = 3.65 BYN), Maytoni (rate 100 RUB = 3.65 BYN),
+//     Freya (rate 100 RUB = 3.65 BYN)
 
 import { SeedProductDefinition } from './seedTypes'
 
@@ -105,6 +106,13 @@ export function createRawBrandProducts(): SeedProductDefinition[] {
 	]
 }
 
+const PRICE_MULTIPLIER = 1.07675
+const RUB_BRANDS = new Set(['MODELUX', 'LED4U', 'Maytoni', 'Freya'])
+
+function roundPrice(value: number): number {
+	return Math.round(value * 100) / 100
+}
+
 export function createBrandProducts(): SeedProductDefinition[] {
 	const allProducts = createRawBrandProducts()
 
@@ -117,7 +125,21 @@ export function createBrandProducts(): SeedProductDefinition[] {
 		return true
 	})
 
-	return uniqueProducts
+	return uniqueProducts.map(product => {
+		let price = product.price
+		if (RUB_BRANDS.has(product.brand)) {
+			price = roundPrice(product.price * PRICE_MULTIPLIER)
+		}
+
+		const badges = product.badges.filter(b => b !== 'Скидка')
+
+		return {
+			...product,
+			price,
+			compareAtPrice: null,
+			badges,
+		}
+	})
 }
 
 export function getProductsByBrand(brand: BrandName): SeedProductDefinition[] {

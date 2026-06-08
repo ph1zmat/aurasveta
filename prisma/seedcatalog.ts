@@ -11,6 +11,7 @@ export type SeedPropertyDefinition = {
 	slug: string
 	name: string
 	options?: string[]
+	hasPhoto?: boolean
 }
 
 export type SeedPropertyValue = {
@@ -185,10 +186,8 @@ function buildReviewsCount(index: number, bias = 0): number {
 	return 4 + ((index * 7 + bias) % 87)
 }
 
-function buildCompareAtPrice(price: number, index: number): number | null {
-	if (index % 4 !== 0) return null
-	const multiplier = 1.12 + (index % 4) * 0.03
-	return roundPrice(price * multiplier)
+function buildCompareAtPrice(_price: number, _index: number): number | null {
+	return null
 }
 
 function buildBadges(params: {
@@ -204,7 +203,6 @@ function buildBadges(params: {
 	if (params.led) badges.push('LED')
 	if (params.smart) badges.push('Smart')
 	if (params.outdoor && params.index % 3 === 0) badges.push('IP65')
-	if (params.compareAtPrice) badges.push('Скидка')
 	return Array.from(new Set(badges)).slice(0, 3)
 }
 
@@ -694,30 +692,16 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 
 export const PROPERTY_DEFINITIONS: SeedPropertyDefinition[] = [
 	{ slug: 'product_type', name: 'Тип товара', options: ['Люстра', 'Светильник', 'Трековая система', 'Бра', 'Спот', 'Настольная лампа', 'Уличный светильник', 'Торшер', 'Электротовар', 'Предмет интерьера', 'Лампочка'] },
-	{ slug: 'series', name: 'Серия' },
-	{ slug: 'style', name: 'Стиль', options: ['Классический', 'Современный', 'Минимализм', 'Лофт', 'Скандинавский', 'Ар-деко', 'Техно', 'Викторианский'] },
-	{ slug: 'color', name: 'Цвет' },
-	{ slug: 'material', name: 'Материал' },
-	{ slug: 'placement', name: 'Расположение', options: ['Потолок', 'Подвес', 'Стена', 'Стол', 'Пол', 'Улица', 'Трек', 'Встраиваемый', 'Декор'] },
-	{ slug: 'purpose', name: 'Назначение' },
-	{ slug: 'mounting_type', name: 'Тип монтажа', options: ['Накладной', 'Встраиваемый', 'Подвесной', 'На штанге', 'На стол', 'Напольный', 'Скрытый', 'На штыре'] },
-	{ slug: 'base_type', name: 'Цоколь', options: ['E14', 'E27', 'GU10', 'GU5.3', 'GX53', 'G9', 'G4', 'LED', '24V'] },
+	{ slug: 'frame_material', name: 'Материал арматуры' },
+	{ slug: 'frame_color', name: 'Цвет арматуры', hasPhoto: true },
+	{ slug: 'lampshade_material', name: 'Материал абажура' },
+	{ slug: 'lampshade_color', name: 'Цвет абажура' },
 	{ slug: 'lamp_count', name: 'Количество ламп' },
-	{ slug: 'power_watts', name: 'Мощность, Вт' },
-	{ slug: 'total_power_watts', name: 'Общая мощность, Вт' },
-	{ slug: 'luminous_flux_lm', name: 'Световой поток, лм' },
-	{ slug: 'color_temperature', name: 'Цветовая температура', options: ['2700K', '3000K', '3300K', '4000K', '4200K', '5500K'] },
-	{ slug: 'room_area_m2', name: 'Площадь освещения, м²' },
-	{ slug: 'ip_rating', name: 'Степень защиты', options: ['IP20', 'IP44', 'IP54', 'IP65'] },
-	{ slug: 'dimmable', name: 'Диммирование', options: ['Да', 'Нет'] },
-	{ slug: 'smart_control', name: 'Умное управление', options: ['Да', 'Нет'] },
-	{ slug: 'power_source', name: 'Источник питания', options: ['Сеть 220V', 'Солнечная батарея', 'Аккумулятор', '24V'] },
-	{ slug: 'grounding', name: 'Заземление', options: ['Да', 'Нет'] },
-	{ slug: 'usb_ports', name: 'USB-порты' },
-	{ slug: 'control_type', name: 'Тип управления' },
-	{ slug: 'lamp_type', name: 'Тип лампы', options: ['LED', 'Накаливания', 'Галогенная'] },
-	{ slug: 'shape', name: 'Форма', options: ['Груша', 'Шар', 'Свеча', 'Капсула', 'Рефлектор', 'Круг', 'Прямоугольник', 'Цилиндр'] },
-	{ slug: 'equivalent_power_watts', name: 'Эквивалент мощности, Вт' },
+	{ slug: 'light_source', name: 'Источник света' },
+	{ slug: 'height_mm', name: 'Высота, мм' },
+	{ slug: 'diameter_mm', name: 'Диаметр, мм' },
+	{ slug: 'length_mm', name: 'Длина, мм' },
+	{ slug: 'weight_netto', name: 'Вес нетто' },
 ]
 
 export const CONTENT_PAGES = [

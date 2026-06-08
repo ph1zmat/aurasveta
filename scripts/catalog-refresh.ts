@@ -65,6 +65,21 @@ const EXT_TO_MIME: Record<string, string> = {
 	'.svg': 'image/svg+xml',
 }
 
+const ALLOWED_PROPERTY_SLUGS = new Set([
+	'brand',
+	'weight_netto',
+	'diameter_mm',
+	'height_mm',
+	'light_source',
+	'lamp_count',
+	'lampshade_material',
+	'lampshade_color',
+	'frame_color',
+	'product_type',
+	'length_mm',
+	'frame_material',
+])
+
 type RefreshOptions = {
 	apply: boolean
 	resetUsers: boolean
@@ -314,6 +329,10 @@ function normalizePreparedPropertyValues(params: {
 
 		if (!propertySlug) {
 			params.unresolvedPropertyKeys.add(propertyValue.key.trim())
+			continue
+		}
+
+		if (!ALLOWED_PROPERTY_SLUGS.has(propertySlug)) {
 			continue
 		}
 

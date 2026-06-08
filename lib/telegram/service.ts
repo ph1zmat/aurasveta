@@ -35,6 +35,14 @@ type TelegramOrder = {
 		product: {
 			name: string
 			slug: string
+			brand: string
+			sku: string | null
+			propertyValues: Array<{
+				property: {
+					slug: string
+				}
+				value: string
+			}>
 		}
 	}>
 }
@@ -125,9 +133,15 @@ function formatOrderMessage(order: TelegramOrder, decisionLine?: string) {
 	lines.push('', '<b>🛒 Состав заказа:</b>')
 
 	for (const item of order.items) {
-		lines.push(
-			`• ${escapeHtml(item.product.name)} × ${item.quantity} — ${escapeHtml(formatMoney(item.price * item.quantity))}`,
-		)
+		const collection = item.product.propertyValues.find(
+			pv => pv.property.slug === 'collection'
+		)?.value
+		lines.push(`• ${escapeHtml(item.product.name)} × ${item.quantity} — ${escapeHtml(formatMoney(item.price * item.quantity))}`)
+		lines.push(`  🏷 Бренд: ${escapeHtml(item.product.brand)}`)
+		if (collection) {
+			lines.push(`  📋 Коллекция: ${escapeHtml(collection)}`)
+		}
+		lines.push(`  🔢 SKU: ${escapeHtml(item.product.sku || '—')}`)
 	}
 
 	lines.push('', `💰 <b>Итого:</b> ${escapeHtml(formatMoney(order.total))}`)
@@ -147,7 +161,22 @@ async function getOrderForTelegram(orderId: string): Promise<TelegramOrder | nul
 			items: {
 				include: {
 					product: {
-						select: { name: true, slug: true },
+						select: {
+							name: true,
+							slug: true,
+							brand: true,
+							sku: true,
+						},
+						include: {
+							propertyValues: {
+								select: {
+									value: true,
+									property: {
+										select: { slug: true },
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -158,7 +187,7 @@ async function getOrderForTelegram(orderId: string): Promise<TelegramOrder | nul
 		return null
 	}
 
-	return order as TelegramOrder
+	return order as unknown as TelegramOrder
 }
 
 export function getTelegramWebhookSecret() {
@@ -192,20 +221,6 @@ export async function sendOrderToTelegram(orderId: string) {
 		chat_id: config.chatId,
 		text: formatOrderMessage(order),
 		parse_mode: 'HTML',
-		reply_markup: {
-			inline_keyboard: [
-				[
-					{
-						text: '🟢 Принять',
-						callback_data: `approve_order:${order.id}`,
-					},
-					{
-						text: '🔴 Отклонить',
-						callback_data: `cancel_order:${order.id}`,
-					},
-				],
-			],
-		},
 	})
 }
 
@@ -237,8 +252,5 @@ export async function editTelegramOrderMessage(params: {
 		message_id: params.messageId,
 		text: formatOrderMessage(order, params.decisionLine),
 		parse_mode: 'HTML',
-		reply_markup: {
-			inline_keyboard: [],
-		},
 	})
 }
