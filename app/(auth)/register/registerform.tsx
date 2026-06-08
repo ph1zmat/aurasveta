@@ -97,7 +97,7 @@ export default function RegisterForm() {
 	}
 
 	return (
-		<form onSubmit={handleSubmit} className='space-y-4'>
+		<form onSubmit={handleSubmit} className='space-y-3 sm:space-y-4'>
 			{error && (
 				<div className='rounded-lg bg-destructive/10 p-3 text-sm text-destructive'>
 					{error}
