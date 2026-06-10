@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Eye, BarChart3, Heart, Star } from 'lucide-react'
+import { BarChart3, Heart, Star } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import DeferredImage from '@/shared/ui/deferredimage'
@@ -51,9 +51,6 @@ export default function FavoriteProductCard({
 		<div className={cn('group relative flex flex-col', className)}>
 			{/* Action icons row */}
 			<div className='mb-1 flex items-center gap-1'>
-				<Button variant='icon' aria-label='Быстрый просмотр'>
-					<Eye className='h-4 w-4' />
-				</Button>
 				<Button
 					variant='icon'
 					aria-label='Убрать из избранного'
@@ -64,12 +61,6 @@ export default function FavoriteProductCard({
 				<Button variant='icon' aria-label='Сравнить' onClick={onToggleCompare}>
 					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-primary')} />
 				</Button>
-				<Button variant='icon' aria-label='Быстрый просмотр'>
-					<Eye className='h-4 w-4' />
-				</Button>
-				<span className='text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer'>
-					Быстрый просмотр
-				</span>
 			</div>
 
 			{/* Image */}

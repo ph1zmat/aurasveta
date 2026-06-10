@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2, SlidersHorizontal, Home, RotateCcw, LogOut } from 'lucide-react'
+import { Loader2, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { useDebounce } from '@/shared/lib/usedebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingsession'
-import { authClient } from '@/lib/auth/authclient'
+import { Button } from '@/shared/ui/button'
+import { Checkbox } from '@/shared/ui/checkbox'
 import EmptyState from '@/shared/ui/emptystate'
 import Skeleton from '@/shared/ui/skeleton'
 import InteractiveCatalogCard from '@/entities/product/ui/interactivecatalogcard'
@@ -143,15 +144,6 @@ export default function SearchContent() {
 		router.push('/catalog')
 	}, [router])
 
-	const handleGoHome = useCallback(() => {
-		router.push('/')
-	}, [router])
-
-	const handleSignOut = useCallback(async () => {
-		await authClient.signOut()
-		router.push('/')
-	}, [router])
-
 	return (
 		<div className='mx-auto max-w-7xl px-4 py-6'>
 			{/* Header */}
@@ -171,32 +163,17 @@ export default function SearchContent() {
 					)}
 				</div>
 
-				{/* Navigation controls */}
+				{/* Search controls */}
 				<div className='flex flex-wrap gap-2'>
-					<button
+					<Button
 						type='button'
+						variant='subtle'
+						size='compact'
 						onClick={handleReset}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
 					>
 						<RotateCcw className='h-3.5 w-3.5' strokeWidth={1.5} />
 						Сбросить
-					</button>
-					<button
-						type='button'
-						onClick={handleGoHome}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
-					>
-						<Home className='h-3.5 w-3.5' strokeWidth={1.5} />
-						На главную
-					</button>
-					<button
-						type='button'
-						onClick={handleSignOut}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
-					>
-						<LogOut className='h-3.5 w-3.5' strokeWidth={1.5} />
-						Выйти
-					</button>
+					</Button>
 				</div>
 			</div>
 
@@ -218,12 +195,10 @@ export default function SearchContent() {
 						</select>
 					</div>
 
-					<label className='flex items-center gap-2 text-sm text-foreground cursor-pointer'>
-						<input
-							type='checkbox'
+					<label className='flex cursor-pointer items-center gap-2 text-sm text-foreground'>
+						<Checkbox
 							checked={inStock}
 							onChange={e => setInStock(e.target.checked)}
-							className='rounded border-border'
 						/>
 						Только в наличии
 					</label>

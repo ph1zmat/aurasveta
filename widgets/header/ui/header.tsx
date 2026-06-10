@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useSyncExternalStore } from 'react'
+import { useState, useCallback, useSyncExternalStore } from 'react'
 import {
 	Menu,
 	BarChart3,
@@ -38,9 +38,6 @@ export default function Header({ logoUrl }: { logoUrl?: string | null }) {
 	const [catalogOpen, setCatalogOpen] = useState(false)
 	const toggleCatalog = useCallback(() => setCatalogOpen(prev => !prev), [])
 	const closeCatalog = useCallback(() => setCatalogOpen(false), [])
-
-	const [, setCartOpen] = useState(false)
-	const cartTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	const { count: cartCount } = useCart()
 
@@ -98,15 +95,6 @@ export default function Header({ logoUrl }: { logoUrl?: string | null }) {
 		router.push('/')
 	}, [router])
 
-	const openCart = useCallback(() => {
-		if (cartTimeout.current) clearTimeout(cartTimeout.current)
-		setCartOpen(true)
-	}, [])
-
-	const closeCartDelayed = useCallback(() => {
-		cartTimeout.current = setTimeout(() => setCartOpen(false), 200)
-	}, [])
-
 	return (
 		<header className='hidden md:block mb-2'>
 			<div className='mx-auto flex max-w-7xl items-center gap-4 px-4 lg:gap-6'>
@@ -144,53 +132,31 @@ export default function Header({ logoUrl }: { logoUrl?: string | null }) {
 				<div className='flex items-center gap-4 lg:gap-6'>
 					{headerActions
 						.filter(action => !action.hidden)
-						.map(action => {
-							const isCart = action.href === '/cart'
-
-							const linkEl = (
-								<Link
-									key={action.href}
-									href={action.href}
-									className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
-								>
-									<div className='relative'>
-										<action.icon className='h-6 w-6' />
-										<CountBadge count={action.badge} />
-									</div>
-									<span className='hidden lg:block text-xs'>
-										{action.label}
-									</span>
-								</Link>
-							)
-
-							if (!isCart) return linkEl
-
-							return (
-								<div
-									key={action.href}
-									className='relative'
-									onMouseEnter={openCart}
-									onMouseLeave={closeCartDelayed}
-								>
-									{linkEl}
-									{/* {cartOpen && (
-										<div className='absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border border-border bg-background shadow-xl'>
-											<MiniCart items={cartItems} />
-										</div>
-									)} */}
+						.map(action => (
+							<Link
+								key={action.href}
+								href={action.href}
+								className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+							>
+								<div className='relative'>
+									<action.icon className='h-6 w-6' />
+									<CountBadge count={action.badge} />
 								</div>
-							)
-						})}
+								<span className='hidden lg:block text-xs'>{action.label}</span>
+							</Link>
+						))}
 
 					{clientSession && (
-						<button
+						<Button
 							onClick={handleSignOut}
-							className='relative flex flex-col items-center gap-0.5 text-foreground hover:text-primary transition-colors'
+							variant='icon'
+							size='icon'
+							className='h-auto w-auto flex-col gap-0.5 px-0 py-0'
 							aria-label='Выйти'
 						>
 							<LogOut className='h-6 w-6' />
 							<span className='hidden lg:block text-xs'>Выйти</span>
-						</button>
+						</Button>
 					)}
 				</div>
 			</div>

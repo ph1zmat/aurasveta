@@ -2,17 +2,19 @@
 
 > **Стек:** CVA (class-variance-authority) + Tailwind CSS 4 + Radix Slot + `cn()` (clsx + tailwind-merge)
 
-Все базовые UI-примитивы находятся в `components/ui/` и реэкспортируются через `components/ui/index.ts`.
+Канонический слой витринных UI-примитивов находится в `shared/ui/` и реэкспортируется через `shared/ui/index.ts`.
+
+`components/ui/*` используется как базовый shadcn-слой и не должен дублировать витринный API.
 
 ```ts
-import { Button, Input, Checkbox, Card } from '@/components/ui'
+import { Button, Input, Checkbox, Card } from '@/shared/ui'
 ```
 
 ---
 
 ## Button
 
-Файл: `components/ui/Button.tsx`
+Файл: `shared/ui/button.tsx`
 
 ### Варианты (`variant`)
 
@@ -92,7 +94,7 @@ import { Button, Input, Checkbox, Card } from '@/components/ui'
 
 ## Input
 
-Файл: `components/ui/Input.tsx`
+Файл: `shared/ui/input.tsx`
 
 ### Варианты (`variant`)
 
@@ -122,7 +124,7 @@ import { Button, Input, Checkbox, Card } from '@/components/ui'
 
 ## Checkbox
 
-Файл: `components/ui/Checkbox.tsx`
+Файл: `shared/ui/checkbox.tsx`
 
 ### Размеры (`size`)
 
@@ -144,7 +146,7 @@ import { Button, Input, Checkbox, Card } from '@/components/ui'
 
 ## Card
 
-Файл: `components/ui/Card.tsx`
+Файл: `shared/ui/card.tsx`
 
 ### Варианты (`variant`)
 
@@ -214,7 +216,7 @@ import { Button, Input, Checkbox, Card } from '@/components/ui'
 
 ## Slider
 
-Унифицированный компонент карусели. Расположение: `components/ui/Slider.tsx`.
+Унифицированный компонент карусели. Расположение: `shared/ui/slider.tsx`.
 
 ### Пропсы
 

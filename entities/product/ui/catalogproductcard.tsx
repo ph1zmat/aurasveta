@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Eye, BarChart3, Heart } from 'lucide-react'
+import { BarChart3, Heart } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import DeferredImage from '@/shared/ui/deferredimage'
@@ -52,9 +52,6 @@ export default function CatalogProductCard({
 	return (
 		<div className={cn('group relative flex flex-col', className)}>
 			<div className='mb-1 flex items-center gap-1'>
-				<Button variant='icon' aria-label='Быстрый просмотр'>
-					<Eye className='h-4 w-4' />
-				</Button>
 				<Button
 					variant='icon'
 					aria-label='Сравнить'
