@@ -18,10 +18,11 @@ const fallbackQueries = [
 ]
 
 export default function PopularQueries() {
-	const { data: popularSearches } = trpc.recommendations.getPopularSearches.useQuery(
-		{ limit: 10 },
-		{ staleTime: 10 * 60 * 1000 },
-	)
+	const { data: popularSearches } =
+		trpc.recommendations.getPopularSearches.useQuery(
+			{ limit: 10 },
+			{ staleTime: 10 * 60 * 1000 },
+		)
 
 	const queries =
 		popularSearches && popularSearches.length > 0
@@ -41,9 +42,7 @@ export default function PopularQueries() {
 			<div className='flex flex-wrap gap-2'>
 				{queries.map(query => (
 					<Button asChild key={query} variant='chip'>
-						<Link href={`/search?q=${encodeURIComponent(query)}`}>
-							{query}
-						</Link>
+						<Link href={`/search?q=${encodeURIComponent(query)}`}>{query}</Link>
 					</Button>
 				))}
 			</div>

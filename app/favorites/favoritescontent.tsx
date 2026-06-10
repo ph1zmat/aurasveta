@@ -85,7 +85,8 @@ export default function FavoritesContent() {
 						Избранное
 					</h1>
 					<p className='mt-2 text-sm tracking-wide text-muted-foreground'>
-						{products.length} {pluralizeProduct(products.length)} в быстром доступе
+						{products.length} {pluralizeProduct(products.length)} в быстром
+						доступе
 					</p>
 				</div>
 				<Button

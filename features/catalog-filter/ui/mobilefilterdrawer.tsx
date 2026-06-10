@@ -94,25 +94,32 @@ export default function MobileFilterDrawer({
 				{/* Header */}
 				<div className='border-b border-border px-4 py-4'>
 					<div className='mb-3 flex items-start justify-between gap-3'>
-					<div className='min-w-0'>
-						<p className='mb-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
-							Каталог
-						</p>
-						<h2 id={titleId} className='text-base font-semibold uppercase tracking-widest text-foreground'>
-							Фильтры
-						</h2>
-						<p id={descriptionId} className='mt-1 text-xs leading-5 text-muted-foreground'>
-							Уточните категорию, цену и свойства, чтобы быстрее найти нужные товары.
-						</p>
-					</div>
-					<Button
-						variant='icon'
-						size='icon'
-						onClick={onClose}
-						aria-label='Закрыть фильтры'
-					>
-						<X className='h-5 w-5' strokeWidth={1.5} />
-					</Button>
+						<div className='min-w-0'>
+							<p className='mb-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+								Каталог
+							</p>
+							<h2
+								id={titleId}
+								className='text-base font-semibold uppercase tracking-widest text-foreground'
+							>
+								Фильтры
+							</h2>
+							<p
+								id={descriptionId}
+								className='mt-1 text-xs leading-5 text-muted-foreground'
+							>
+								Уточните категорию, цену и свойства, чтобы быстрее найти нужные
+								товары.
+							</p>
+						</div>
+						<Button
+							variant='icon'
+							size='icon'
+							onClick={onClose}
+							aria-label='Закрыть фильтры'
+						>
+							<X className='h-5 w-5' strokeWidth={1.5} />
+						</Button>
 					</div>
 					{filterCount > 0 ? (
 						<div className='inline-flex rounded-full border border-border bg-card/60 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>
@@ -151,7 +158,12 @@ export default function MobileFilterDrawer({
 						>
 							Сбросить
 						</Button>
-						<Button variant='primary' size='default' fullWidth onClick={onClose}>
+						<Button
+							variant='primary'
+							size='default'
+							fullWidth
+							onClick={onClose}
+						>
 							{filterCount > 0
 								? `Показать результаты (${filterCount})`
 								: 'Показать результаты'}

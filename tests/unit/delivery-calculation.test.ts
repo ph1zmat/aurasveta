@@ -11,7 +11,9 @@ import {
 
 describe('delivery rules', () => {
 	it('detects Mozyr addresses in russian and latin', () => {
-		expect(isMozyrDeliveryAddress('г. Мозырь, ул. Интернациональная, 5')).toBe(true)
+		expect(isMozyrDeliveryAddress('г. Мозырь, ул. Интернациональная, 5')).toBe(
+			true,
+		)
 		expect(isMozyrDeliveryAddress('Mozyr, Yunosti boulevard 127')).toBe(true)
 		expect(isMozyrDeliveryAddress('г. Минск, ул. Немига, 1')).toBe(false)
 		expect(isMozyrDeliveryLocation('Мозырь')).toBe(true)

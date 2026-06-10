@@ -155,7 +155,12 @@ function cycle<T>(items: readonly T[], index: number, stride = 1): T {
 	return items[(index * stride) % items.length]!
 }
 
-function rangeValue(min: number, max: number, index: number, stride = 1): number {
+function rangeValue(
+	min: number,
+	max: number,
+	index: number,
+	stride = 1,
+): number {
 	if (min === max) return min
 	const size = max - min + 1
 	return min + ((index * stride) % size)
@@ -165,7 +170,11 @@ function roundPrice(value: number): number {
 	return Math.round(value / 10) * 10
 }
 
-function buildModelCode(brand: BrandName, index: number, suffix: string): string {
+function buildModelCode(
+	brand: BrandName,
+	index: number,
+	suffix: string,
+): string {
 	const prefix = brandPrefixes[brand]
 	const core = 1000 + index * 17
 	return `${prefix}${core}${suffix}`
@@ -242,7 +251,9 @@ function buildLightingDescription(params: {
 	}
 
 	if (params.smart) {
-		sentences.push('Поддерживает регулировку яркости и сценарии умного освещения.')
+		sentences.push(
+			'Поддерживает регулировку яркости и сценарии умного освещения.',
+		)
 	} else if (params.dimmable) {
 		sentences.push('Совместим с диммированием для мягкой настройки атмосферы.')
 	}
@@ -258,7 +269,9 @@ function buildLightingDescription(params: {
 	return sentences.join(' ')
 }
 
-function createLightingProducts(options: LightingGeneratorOptions): SeedProductDefinition[] {
+function createLightingProducts(
+	options: LightingGeneratorOptions,
+): SeedProductDefinition[] {
 	return Array.from({ length: options.count }, (_, index) => {
 		const subcategory = cycle(options.subcategories, index)
 		const brand = cycle(options.brands, index, 2)
@@ -282,13 +295,26 @@ function createLightingProducts(options: LightingGeneratorOptions): SeedProductD
 		const lampCount =
 			baseType === 'LED'
 				? Math.max(1, Math.min(3, rangeValue(1, 3, index, 2)))
-				: rangeValue(options.lampCountRange[0], options.lampCountRange[1], index, 2)
+				: rangeValue(
+						options.lampCountRange[0],
+						options.lampCountRange[1],
+						index,
+						2,
+					)
 		const powerWatts =
 			baseType === 'LED'
 				? rangeValue(options.powerRange[0], options.powerRange[1], index, 3)
-				: Math.max(5, Math.min(60, rangeValue(5, Math.max(20, options.powerRange[1]), index, 5)))
+				: Math.max(
+						5,
+						Math.min(
+							60,
+							rangeValue(5, Math.max(20, options.powerRange[1]), index, 5),
+						),
+					)
 		const totalPowerWatts =
-			baseType === 'LED' ? powerWatts : Math.max(powerWatts, powerWatts * lampCount)
+			baseType === 'LED'
+				? powerWatts
+				: Math.max(powerWatts, powerWatts * lampCount)
 		const colorTemperature = smart
 			? cycle(smartTemperatures, index)
 			: baseType === 'LED'
@@ -322,11 +348,22 @@ function createLightingProducts(options: LightingGeneratorOptions): SeedProductD
 		)
 		const vendorCode = buildModelCode(brand, index, options.categoryCode)
 		const name = `${subcategory.productLabel} ${brand} ${series} ${vendorCode}`
-		const priceBase = rangeValue(options.powerRange[0] * 120, options.powerRange[1] * 520, index, 7)
+		const priceBase = rangeValue(
+			options.powerRange[0] * 120,
+			options.powerRange[1] * 520,
+			index,
+			7,
+		)
 		const categoryMultiplier = options.outdoor ? 1.08 : 1
 		const price = roundPrice(Math.max(190, priceBase * categoryMultiplier))
 		const compareAtPrice = buildCompareAtPrice(price, index)
-		const badges = buildBadges({ compareAtPrice, index, led, smart, outdoor: Boolean(options.outdoor) })
+		const badges = buildBadges({
+			compareAtPrice,
+			index,
+			led,
+			smart,
+			outdoor: Boolean(options.outdoor),
+		})
 		const description = buildLightingDescription({
 			label: subcategory.productLabel,
 			brand,
@@ -390,21 +427,60 @@ function createLightingProducts(options: LightingGeneratorOptions): SeedProductD
 }
 
 function createElectroProducts(): SeedProductDefinition[] {
-	const brands: readonly BrandName[] = ['Werkel', 'Elektrostandard', 'Maytoni', 'Freya', 'Voltega', 'Arlight', 'ST Luce', 'Kink Light']
-	const colors = ['Белый', 'Черный матовый', 'Слоновая кость', 'Графит', 'Шампань'] as const
+	const brands: readonly BrandName[] = [
+		'Werkel',
+		'Elektrostandard',
+		'Maytoni',
+		'Freya',
+		'Voltega',
+		'Arlight',
+		'ST Luce',
+		'Kink Light',
+	]
+	const colors = [
+		'Белый',
+		'Черный матовый',
+		'Слоновая кость',
+		'Графит',
+		'Шампань',
+	] as const
 	const socketSeries = ['Slab', 'Stark', 'Favorit', 'Acrylic', 'Senso'] as const
-	const switchSeries = ['Stark', 'Favorit', 'Acrylic', 'Classic', 'Frame'] as const
-	const dimmerSeries = ['Control', 'Smart Dim', 'Touch', 'Rotary', 'Design'] as const
+	const switchSeries = [
+		'Stark',
+		'Favorit',
+		'Acrylic',
+		'Classic',
+		'Frame',
+	] as const
+	const dimmerSeries = [
+		'Control',
+		'Smart Dim',
+		'Touch',
+		'Rotary',
+		'Design',
+	] as const
 
 	return Array.from({ length: 50 }, (_, index) => {
 		const group = index % 3
 		const brand = cycle(brands, index, 2)
 		const color = cycle(colors, index)
 		const grounding = group === 0 ? index % 5 !== 1 : false
-		const usbPorts = group === 0 && index % 4 === 0 ? 2 : group === 0 && index % 6 === 0 ? 1 : 0
-		const controlType = group === 2 ? cycle(['Поворотный', 'Сенсорный', 'Кнопочный', 'Wi‑Fi'], index) : 'Механический'
+		const usbPorts =
+			group === 0 && index % 4 === 0
+				? 2
+				: group === 0 && index % 6 === 0
+					? 1
+					: 0
+		const controlType =
+			group === 2
+				? cycle(['Поворотный', 'Сенсорный', 'Кнопочный', 'Wi‑Fi'], index)
+				: 'Механический'
 		const series =
-			group === 0 ? cycle(socketSeries, index, 2) : group === 1 ? cycle(switchSeries, index, 2) : cycle(dimmerSeries, index, 2)
+			group === 0
+				? cycle(socketSeries, index, 2)
+				: group === 1
+					? cycle(switchSeries, index, 2)
+					: cycle(dimmerSeries, index, 2)
 		const vendorCode = buildModelCode(brand, index, 'EL')
 		const name =
 			group === 0
@@ -420,7 +496,13 @@ function createElectroProducts(): SeedProductDefinition[] {
 					: 1290 + (index % 10) * 340,
 		)
 		const compareAtPrice = buildCompareAtPrice(price, index)
-		const badges = buildBadges({ compareAtPrice, index, led: false, smart: controlType === 'Wi‑Fi', outdoor: false })
+		const badges = buildBadges({
+			compareAtPrice,
+			index,
+			led: false,
+			smart: controlType === 'Wi‑Fi',
+			outdoor: false,
+		})
 		const description =
 			group === 0
 				? `Практичная розетка ${brand} серии ${series} в цвете «${color.toLowerCase()}». ${grounding ? 'Оснащена заземлением.' : 'Подходит для базовых бытовых сценариев.'} ${usbPorts > 0 ? `Имеет ${usbPorts} USB-порт${usbPorts > 1 ? 'а' : ''} для зарядки.` : 'Монтаж стандартный, скрытый.'}`
@@ -436,7 +518,8 @@ function createElectroProducts(): SeedProductDefinition[] {
 			compareAtPrice,
 			stock: 40 + ((index * 9) % 460),
 			sku: `ELE-${String(index + 1).padStart(3, '0')}`,
-			categorySlug: group === 0 ? 'rozetki' : group === 1 ? 'vyklyuchateli' : 'dimmery',
+			categorySlug:
+				group === 0 ? 'rozetki' : group === 1 ? 'vyklyuchateli' : 'dimmery',
 			brand,
 			brandCountry: BRAND_COUNTRIES[brand],
 			badges,
@@ -467,7 +550,16 @@ function createInteriorProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Предметы интерьера',
 		productTypeValue: 'Предмет интерьера',
 		count: 50,
-		brands: ['Eglo', 'Mantra', 'Reluce', 'Loft IT', 'Apeyron', 'Favourite', 'Lightstar', 'Citilux'],
+		brands: [
+			'Eglo',
+			'Mantra',
+			'Reluce',
+			'Loft IT',
+			'Apeyron',
+			'Favourite',
+			'Lightstar',
+			'Citilux',
+		],
 		subcategories: [
 			{
 				name: 'Декоративные светильники',
@@ -486,7 +578,18 @@ function createInteriorProducts(): SeedProductDefinition[] {
 				mountingType: 'Накладной',
 			},
 		],
-		series: ['Roberval', 'Trazos', 'Pleasure', 'Horse', 'Savant', 'Kimitsu', 'Makilala', 'Azzurra', 'Belette', 'Equilibrium'],
+		series: [
+			'Roberval',
+			'Trazos',
+			'Pleasure',
+			'Horse',
+			'Savant',
+			'Kimitsu',
+			'Makilala',
+			'Azzurra',
+			'Belette',
+			'Equilibrium',
+		],
 		stylePool: ['Современный', 'Ар-деко', 'Скандинавский', 'Минимализм'],
 		materialPool: ['Металл', 'Стекло', 'Хрусталь', 'Керамика', 'Латунь'],
 		colorPool: ['Белый', 'Черный', 'Латунь', 'Золото', 'Айвори'],
@@ -503,14 +606,28 @@ function createInteriorProducts(): SeedProductDefinition[] {
 
 	return products.map((product, index) => ({
 		...product,
-		propertyValues: product.propertyValues.filter(prop => prop.key !== 'room_area_m2').concat([
-			{ key: 'shape', value: cycle(['Круг', 'Прямоугольник', 'Шар', 'Цилиндр'], index) },
-		]),
+		propertyValues: product.propertyValues
+			.filter(prop => prop.key !== 'room_area_m2')
+			.concat([
+				{
+					key: 'shape',
+					value: cycle(['Круг', 'Прямоугольник', 'Шар', 'Цилиндр'], index),
+				},
+			]),
 	}))
 }
 
 function createBulbProducts(): SeedProductDefinition[] {
-	const brands: readonly BrandName[] = ['Voltega', 'Feron', 'Saffit', 'Elektrostandard', 'Loft IT', 'Lightstar', 'Maytoni', 'Eglo']
+	const brands: readonly BrandName[] = [
+		'Voltega',
+		'Feron',
+		'Saffit',
+		'Elektrostandard',
+		'Loft IT',
+		'Lightstar',
+		'Maytoni',
+		'Eglo',
+	]
 	const bases = ['E27', 'E14', 'GU10', 'GU5.3', 'G9', 'GX53'] as const
 	const shapes = ['Груша', 'Шар', 'Свеча', 'Капсула', 'Рефлектор'] as const
 	const ledColors = ['2700K', '3000K', '4000K'] as const
@@ -521,12 +638,21 @@ function createBulbProducts(): SeedProductDefinition[] {
 		const baseType = cycle(bases, index)
 		const shape = cycle(shapes, index + 1)
 		const powerWatts =
-			group === 0 ? rangeValue(5, 15, index, 2) : group === 1 ? rangeValue(25, 100, index, 3) : rangeValue(10, 50, index, 4)
+			group === 0
+				? rangeValue(5, 15, index, 2)
+				: group === 1
+					? rangeValue(25, 100, index, 3)
+					: rangeValue(10, 50, index, 4)
 		const equivalentPower =
 			group === 0 ? powerWatts * 7 + (index % 3) * 5 : powerWatts
 		const colorTemperature =
-			group === 0 ? cycle(ledColors, index) : group === 1 ? '2700K' : cycle(['2700K', '3000K'], index)
-		const lampType = group === 0 ? 'LED' : group === 1 ? 'Накаливания' : 'Галогенная'
+			group === 0
+				? cycle(ledColors, index)
+				: group === 1
+					? '2700K'
+					: cycle(['2700K', '3000K'], index)
+		const lampType =
+			group === 0 ? 'LED' : group === 1 ? 'Накаливания' : 'Галогенная'
 		const dimmable = group !== 1 && index % 5 === 0
 		const vendorCode = buildModelCode(brand, index, 'LB')
 		const name =
@@ -536,10 +662,20 @@ function createBulbProducts(): SeedProductDefinition[] {
 					? `Лампа накаливания ${brand} ${baseType} ${powerWatts}W ${shape} ${vendorCode}`
 					: `Галогенная лампа ${brand} ${baseType} ${powerWatts}W ${vendorCode}`
 		const price = roundPrice(
-			group === 0 ? 70 + powerWatts * 17 + (index % 4) * 20 : group === 1 ? 35 + powerWatts * 4 : 110 + powerWatts * 3,
+			group === 0
+				? 70 + powerWatts * 17 + (index % 4) * 20
+				: group === 1
+					? 35 + powerWatts * 4
+					: 110 + powerWatts * 3,
 		)
 		const compareAtPrice = buildCompareAtPrice(price, index)
-		const badges = buildBadges({ compareAtPrice, index, led: group === 0, smart: dimmable, outdoor: false })
+		const badges = buildBadges({
+			compareAtPrice,
+			index,
+			led: group === 0,
+			smart: dimmable,
+			outdoor: false,
+		})
 		const description =
 			group === 0
 				? `LED-лампа ${brand} с цоколем ${baseType}, мощностью ${powerWatts} Вт и температурой ${colorTemperature}. Подходит для бытовых светильников, обеспечивает экономичное и стабильное освещение.`
@@ -556,7 +692,11 @@ function createBulbProducts(): SeedProductDefinition[] {
 			stock: 120 + ((index * 37) % 1900),
 			sku: `LMP-${String(index + 1).padStart(3, '0')}`,
 			categorySlug:
-				group === 0 ? 'svetodiodnye-lampy-led' : group === 1 ? 'lampy-nakalivaniya' : 'galogennye-lampy',
+				group === 0
+					? 'svetodiodnye-lampy-led'
+					: group === 1
+						? 'lampy-nakalivaniya'
+						: 'galogennye-lampy',
 			brand,
 			brandCountry: BRAND_COUNTRIES[brand],
 			badges,
@@ -584,60 +724,136 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 	{
 		name: 'Люстры',
 		slug: 'lyustry',
-		description: 'Потолочные, подвесные, каскадные и хрустальные люстры для гостиной, спальни и кухни.',
+		description:
+			'Потолочные, подвесные, каскадные и хрустальные люстры для гостиной, спальни и кухни.',
 		children: [
-			{ name: 'Потолочные люстры', slug: 'potolochnye-lyustry', description: 'Компактные модели для стандартной высоты потолка.' },
-			{ name: 'Подвесные люстры', slug: 'podvesnye-lyustry', description: 'Акцентные модели над столом, островом или в центре комнаты.' },
-			{ name: 'Каскадные люстры', slug: 'kaskadnye-lyustry', description: 'Многоуровневые композиции для высоких помещений.' },
-			{ name: 'Хрустальные люстры', slug: 'khrustalnye-lyustry', description: 'Декоративные люстры с кристаллами и эффектной игрой света.' },
+			{
+				name: 'Потолочные люстры',
+				slug: 'potolochnye-lyustry',
+				description: 'Компактные модели для стандартной высоты потолка.',
+			},
+			{
+				name: 'Подвесные люстры',
+				slug: 'podvesnye-lyustry',
+				description:
+					'Акцентные модели над столом, островом или в центре комнаты.',
+			},
+			{
+				name: 'Каскадные люстры',
+				slug: 'kaskadnye-lyustry',
+				description: 'Многоуровневые композиции для высоких помещений.',
+			},
+			{
+				name: 'Хрустальные люстры',
+				slug: 'khrustalnye-lyustry',
+				description:
+					'Декоративные люстры с кристаллами и эффектной игрой света.',
+			},
 		],
 	},
 	{
 		name: 'Светильники',
 		slug: 'svetilniki',
-		description: 'Потолочные, встраиваемые, точечные и накладные светильники для дома и бизнеса.',
+		description:
+			'Потолочные, встраиваемые, точечные и накладные светильники для дома и бизнеса.',
 		children: [
-			{ name: 'Потолочные светильники', slug: 'potolochnye-svetilniki', description: 'Основной свет для жилых и коммерческих помещений.' },
-			{ name: 'Встраиваемые светильники', slug: 'vstraivaemye-svetilniki', description: 'Модели для натяжных и подвесных потолков.' },
-			{ name: 'Точечные светильники', slug: 'tochechnye-svetilniki', description: 'Акцентные светильники с направленным светом.' },
-			{ name: 'Накладные светильники', slug: 'nakladnye-svetilniki', description: 'Универсальные накладные модели для разных зон.' },
+			{
+				name: 'Потолочные светильники',
+				slug: 'potolochnye-svetilniki',
+				description: 'Основной свет для жилых и коммерческих помещений.',
+			},
+			{
+				name: 'Встраиваемые светильники',
+				slug: 'vstraivaemye-svetilniki',
+				description: 'Модели для натяжных и подвесных потолков.',
+			},
+			{
+				name: 'Точечные светильники',
+				slug: 'tochechnye-svetilniki',
+				description: 'Акцентные светильники с направленным светом.',
+			},
+			{
+				name: 'Накладные светильники',
+				slug: 'nakladnye-svetilniki',
+				description: 'Универсальные накладные модели для разных зон.',
+			},
 		],
 	},
 	{
 		name: 'Трековые системы',
 		slug: 'trekovye-sistemy',
-		description: 'Трековые светильники и магнитные системы для гибкого сценарного освещения.',
+		description:
+			'Трековые светильники и магнитные системы для гибкого сценарного освещения.',
 		children: [
-			{ name: 'Трековые светильники', slug: 'trekovye-svetilniki', description: 'Однофазные и дизайнерские решения на шинопроводе.' },
-			{ name: 'Магнитные трековые системы', slug: 'magnitnye-trekovye-sistemy', description: 'Системы 24V с линейными и поворотными модулями.' },
+			{
+				name: 'Трековые светильники',
+				slug: 'trekovye-svetilniki',
+				description: 'Однофазные и дизайнерские решения на шинопроводе.',
+			},
+			{
+				name: 'Магнитные трековые системы',
+				slug: 'magnitnye-trekovye-sistemy',
+				description: 'Системы 24V с линейными и поворотными модулями.',
+			},
 		],
 	},
 	{
 		name: 'Бра',
 		slug: 'bra',
-		description: 'Настенные бра и подсветки для спальни, коридора, ванной и декоративных сценариев.',
+		description:
+			'Настенные бра и подсветки для спальни, коридора, ванной и декоративных сценариев.',
 		children: [
-			{ name: 'Бра с 1 плафоном', slug: 'bra-s-1-plafonom', description: 'Компактные настенные модели для локального света.' },
-			{ name: 'Бра с 2 плафонами', slug: 'bra-s-2-plafonami', description: 'Двухрожковые решения для более широкой подсветки.' },
-			{ name: 'Подсветка для зеркал', slug: 'podsvetka-dlya-zerkal', description: 'Подсветка для ванной и туалетного столика.' },
+			{
+				name: 'Бра с 1 плафоном',
+				slug: 'bra-s-1-plafonom',
+				description: 'Компактные настенные модели для локального света.',
+			},
+			{
+				name: 'Бра с 2 плафонами',
+				slug: 'bra-s-2-plafonami',
+				description: 'Двухрожковые решения для более широкой подсветки.',
+			},
+			{
+				name: 'Подсветка для зеркал',
+				slug: 'podsvetka-dlya-zerkal',
+				description: 'Подсветка для ванной и туалетного столика.',
+			},
 		],
 	},
 	{
 		name: 'Споты',
 		slug: 'spoty',
-		description: 'Потолочные и встраиваемые споты для направленного и акцентного света.',
+		description:
+			'Потолочные и встраиваемые споты для направленного и акцентного света.',
 		children: [
-			{ name: 'Потолочные споты', slug: 'potolochnye-spoty', description: 'Споты на штанге и накладные модели.' },
-			{ name: 'Встраиваемые споты', slug: 'vstraivaemye-spoty', description: 'Точечные модели для натяжных потолков и ниш.' },
+			{
+				name: 'Потолочные споты',
+				slug: 'potolochnye-spoty',
+				description: 'Споты на штанге и накладные модели.',
+			},
+			{
+				name: 'Встраиваемые споты',
+				slug: 'vstraivaemye-spoty',
+				description: 'Точечные модели для натяжных потолков и ниш.',
+			},
 		],
 	},
 	{
 		name: 'Настольные лампы',
 		slug: 'nastolnye-lampy',
-		description: 'Лампы с абажуром, офисные и декоративные модели для рабочего стола и спальни.',
+		description:
+			'Лампы с абажуром, офисные и декоративные модели для рабочего стола и спальни.',
 		children: [
-			{ name: 'Настольные лампы с абажуром', slug: 'lampy-s-abazhurom', description: 'Уютные и классические настольные лампы.' },
-			{ name: 'Декоративные настольные лампы', slug: 'dekorativnye-nastolnye-lampy', description: 'Дизайнерские интерьерные модели для акцентного света.' },
+			{
+				name: 'Настольные лампы с абажуром',
+				slug: 'lampy-s-abazhurom',
+				description: 'Уютные и классические настольные лампы.',
+			},
+			{
+				name: 'Декоративные настольные лампы',
+				slug: 'dekorativnye-nastolnye-lampy',
+				description: 'Дизайнерские интерьерные модели для акцентного света.',
+			},
 		],
 	},
 	{
@@ -645,9 +861,22 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 		slug: 'ulichnoe-osveshenie',
 		description: 'Фасадные, ландшафтные и прожекторные светильники для улицы.',
 		children: [
-			{ name: 'Уличные настенные светильники', slug: 'ulichnye-nastennye-svetilniki', description: 'Фасадные и настенные уличные модели.' },
-			{ name: 'Ландшафтные светильники', slug: 'landshaftnye-svetilniki', description: 'Садово-парковый свет для дорожек и газонов.' },
-			{ name: 'Прожекторы', slug: 'prozhektory', description: 'Прожекторы и мощные световые приборы для наружной установки.' },
+			{
+				name: 'Уличные настенные светильники',
+				slug: 'ulichnye-nastennye-svetilniki',
+				description: 'Фасадные и настенные уличные модели.',
+			},
+			{
+				name: 'Ландшафтные светильники',
+				slug: 'landshaftnye-svetilniki',
+				description: 'Садово-парковый свет для дорожек и газонов.',
+			},
+			{
+				name: 'Прожекторы',
+				slug: 'prozhektory',
+				description:
+					'Прожекторы и мощные световые приборы для наружной установки.',
+			},
 		],
 	},
 	{
@@ -655,8 +884,16 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 		slug: 'torshery',
 		description: 'Торшеры для зоны отдыха, чтения и декоративного освещения.',
 		children: [
-			{ name: 'Торшеры с 1 плафоном', slug: 'torshery-s-1-plafonom', description: 'Универсальные напольные модели для гостиной и спальни.' },
-			{ name: 'Торшеры со столиком', slug: 'torshery-so-stolikom', description: 'Практичные модели со встроенной полкой или столиком.' },
+			{
+				name: 'Торшеры с 1 плафоном',
+				slug: 'torshery-s-1-plafonom',
+				description: 'Универсальные напольные модели для гостиной и спальни.',
+			},
+			{
+				name: 'Торшеры со столиком',
+				slug: 'torshery-so-stolikom',
+				description: 'Практичные модели со встроенной полкой или столиком.',
+			},
 		],
 	},
 	{
@@ -664,9 +901,21 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 		slug: 'elektrotovary',
 		description: 'Розетки, выключатели и диммеры для современного монтажа.',
 		children: [
-			{ name: 'Розетки', slug: 'rozetki', description: 'Обычные, заземлённые и USB-розетки.' },
-			{ name: 'Выключатели', slug: 'vyklyuchateli', description: 'Одноклавишные, двухклавишные и проходные выключатели.' },
-			{ name: 'Диммеры', slug: 'dimmery', description: 'Механические, сенсорные и smart-диммеры.' },
+			{
+				name: 'Розетки',
+				slug: 'rozetki',
+				description: 'Обычные, заземлённые и USB-розетки.',
+			},
+			{
+				name: 'Выключатели',
+				slug: 'vyklyuchateli',
+				description: 'Одноклавишные, двухклавишные и проходные выключатели.',
+			},
+			{
+				name: 'Диммеры',
+				slug: 'dimmery',
+				description: 'Механические, сенсорные и smart-диммеры.',
+			},
 		],
 	},
 	{
@@ -674,24 +923,61 @@ export const CATEGORY_DEFINITIONS: SeedCategoryDefinition[] = [
 		slug: 'predmety-interera',
 		description: 'Декоративные световые акценты и интерьерная подсветка.',
 		children: [
-			{ name: 'Декоративные светильники', slug: 'dekorativnye-svetilniki', description: 'Интерьерные декоративные светильники и арт-объекты.' },
-			{ name: 'Подсветка для картин', slug: 'podsvetka-dlya-kartin', description: 'Подсветка для картин, постеров и стеновых панно.' },
+			{
+				name: 'Декоративные светильники',
+				slug: 'dekorativnye-svetilniki',
+				description: 'Интерьерные декоративные светильники и арт-объекты.',
+			},
+			{
+				name: 'Подсветка для картин',
+				slug: 'podsvetka-dlya-kartin',
+				description: 'Подсветка для картин, постеров и стеновых панно.',
+			},
 		],
 	},
 	{
 		name: 'Лампочки',
 		slug: 'lampochki',
-		description: 'Светодиодные, лампы накаливания и галогенные лампы с разными цоколями.',
+		description:
+			'Светодиодные, лампы накаливания и галогенные лампы с разными цоколями.',
 		children: [
-			{ name: 'Светодиодные лампы (LED)', slug: 'svetodiodnye-lampy-led', description: 'Экономичные LED-лампы для дома и бизнеса.' },
-			{ name: 'Лампы накаливания', slug: 'lampy-nakalivaniya', description: 'Классические лампы для тёплого света и ретро-сценариев.' },
-			{ name: 'Галогенные лампы', slug: 'galogennye-lampy', description: 'Компактные лампы для спотов и акцентного освещения.' },
+			{
+				name: 'Светодиодные лампы (LED)',
+				slug: 'svetodiodnye-lampy-led',
+				description: 'Экономичные LED-лампы для дома и бизнеса.',
+			},
+			{
+				name: 'Лампы накаливания',
+				slug: 'lampy-nakalivaniya',
+				description: 'Классические лампы для тёплого света и ретро-сценариев.',
+			},
+			{
+				name: 'Галогенные лампы',
+				slug: 'galogennye-lampy',
+				description: 'Компактные лампы для спотов и акцентного освещения.',
+			},
 		],
 	},
 ]
 
 export const PROPERTY_DEFINITIONS: SeedPropertyDefinition[] = [
-	{ slug: 'product_type', name: 'Тип товара', options: ['Люстра', 'Светильник', 'Трековая система', 'Бра', 'Спот', 'Настольная лампа', 'Уличный светильник', 'Торшер', 'Электротовар', 'Предмет интерьера', 'Лампочка'] },
+	{
+		slug: 'product_type',
+		name: 'Тип товара',
+		options: [
+			'Люстра',
+			'Светильник',
+			'Трековая система',
+			'Бра',
+			'Спот',
+			'Настольная лампа',
+			'Уличный светильник',
+			'Торшер',
+			'Электротовар',
+			'Предмет интерьера',
+			'Лампочка',
+		],
+	},
 	{ slug: 'frame_material', name: 'Материал арматуры' },
 	{ slug: 'frame_color', name: 'Цвет арматуры', hasPhoto: true },
 	{ slug: 'lampshade_material', name: 'Материал абажура' },
@@ -733,7 +1019,8 @@ export const CONTENT_PAGES = [
 📧 info@aurasveta.by
 📍 г. Мозырь, ул. Интернациональная, 5`,
 		metaTitle: 'О магазине Аура Света',
-		metaDesc: 'Интернет-магазин света с каталогом люстр, светильников, бра, трековых систем и электротоваров.',
+		metaDesc:
+			'Интернет-магазин света с каталогом люстр, светильников, бра, трековых систем и электротоваров.',
 		isPublished: true,
 	},
 	{
@@ -764,7 +1051,8 @@ export const CONTENT_PAGES = [
 
 Товар можно вернуть в течение 14 дней при сохранении товарного вида и упаковки.`,
 		metaTitle: 'Доставка и оплата — Аура Света',
-		metaDesc: 'Информация о доставке, оплате и возврате товаров магазина Аура Света.',
+		metaDesc:
+			'Информация о доставке, оплате и возврате товаров магазина Аура Света.',
 		isPublished: true,
 	},
 	{
@@ -787,7 +1075,8 @@ export const CONTENT_PAGES = [
 ООО «Аура Света»
 УНП 123456789`,
 		metaTitle: 'Контакты — Аура Света',
-		metaDesc: 'Контактная информация магазина Аура Света: адрес, телефон, email и режим работы.',
+		metaDesc:
+			'Контактная информация магазина Аура Света: адрес, телефон, email и режим работы.',
 		isPublished: true,
 	},
 	{
@@ -825,7 +1114,8 @@ export const CONTENT_PAGES = [
 
 Для быстрого подбора подготовьте фото помещения или план — это ускорит консультацию и повысит точность рекомендаций.`,
 		metaTitle: 'Наши магазины — Аура Света',
-		metaDesc: 'Адреса, телефоны, режим работы и условия самовывоза в магазинах Аура Света.',
+		metaDesc:
+			'Адреса, телефоны, режим работы и условия самовывоза в магазинах Аура Света.',
 		isPublished: true,
 	},
 	{
@@ -883,7 +1173,8 @@ export const CONTENT_PAGES = [
 
 Все вопросы решаем в пользу клиента. Напишите или позвоните — поможем быстро.`,
 		metaTitle: 'Возврат и гарантия — Аура Света',
-		metaDesc: 'Условия возврата товаров и гарантийное обслуживание. Информация о сроках и порядке рекламации.',
+		metaDesc:
+			'Условия возврата товаров и гарантийное обслуживание. Информация о сроках и порядке рекламации.',
 		isPublished: true,
 	},
 	{
@@ -981,7 +1272,8 @@ export const CONTENT_PAGES = [
 - [Бра для спальни](/catalog/bra)
 - [Все категории](/catalog)`,
 		metaTitle: 'Как выбрать освещение — Аура Света',
-		metaDesc: 'Гайд по выбору правильного светильника. Расчёт яркости, цветовая температура и советы для разных помещений.',
+		metaDesc:
+			'Гайд по выбору правильного светильника. Расчёт яркости, цветовая температура и советы для разных помещений.',
 		isPublished: true,
 	},
 	{
@@ -1050,7 +1342,8 @@ export const CONTENT_PAGES = [
 
 **Ответ:** Да! Посетите наш магазин в Мозыре. Наша команда покажет образцы популярных моделей.`,
 		metaTitle: 'FAQ — Аура Света',
-		metaDesc: 'Ответы на популярные вопросы о доставке, гарантии, оплате и выборе светильников.',
+		metaDesc:
+			'Ответы на популярные вопросы о доставке, гарантии, оплате и выборе светильников.',
 		isPublished: true,
 	},
 ] as const
@@ -1104,15 +1397,83 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Люстры',
 		productTypeValue: 'Люстра',
 		count: 50,
-		brands: ['Citilux', 'Maytoni', 'Eglo', 'Lightstar', 'Arte Lamp', 'Odeon Light', 'ST Luce', 'Eurosvet', 'Freya', 'Crystal Lux', 'Loft IT', 'Escada', 'Favourite', 'Ambrella Light', 'Omnilux'],
-		subcategories: [
-			{ name: 'Потолочные люстры', slug: 'potolochnye-lyustry', productLabel: 'Потолочная люстра', placement: 'Потолок', purpose: 'Гостиная', mountingType: 'Накладной' },
-			{ name: 'Подвесные люстры', slug: 'podvesnye-lyustry', productLabel: 'Подвесная люстра', placement: 'Подвес', purpose: 'Столовая', mountingType: 'Подвесной' },
-			{ name: 'Каскадные люстры', slug: 'kaskadnye-lyustry', productLabel: 'Каскадная люстра', placement: 'Подвес', purpose: 'Холл', mountingType: 'Подвесной' },
-			{ name: 'Хрустальные люстры', slug: 'khrustalnye-lyustry', productLabel: 'Хрустальная люстра', placement: 'Потолок', purpose: 'Гостиная', mountingType: 'Накладной' },
+		brands: [
+			'Citilux',
+			'Maytoni',
+			'Eglo',
+			'Lightstar',
+			'Arte Lamp',
+			'Odeon Light',
+			'ST Luce',
+			'Eurosvet',
+			'Freya',
+			'Crystal Lux',
+			'Loft IT',
+			'Escada',
+			'Favourite',
+			'Ambrella Light',
+			'Omnilux',
 		],
-		series: ['Портал', 'Адам Смарт', 'Palant', 'Флорида', 'Севилья', 'Идальго', 'Kaleidoscope', 'Ruby', 'Castle', 'Cone', 'Herbert', 'Ricerco', 'Netz', 'Topanga', 'Stenli', 'Francheska'],
-		stylePool: ['Классический', 'Современный', 'Минимализм', 'Лофт', 'Ар-деко', 'Скандинавский'],
+		subcategories: [
+			{
+				name: 'Потолочные люстры',
+				slug: 'potolochnye-lyustry',
+				productLabel: 'Потолочная люстра',
+				placement: 'Потолок',
+				purpose: 'Гостиная',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Подвесные люстры',
+				slug: 'podvesnye-lyustry',
+				productLabel: 'Подвесная люстра',
+				placement: 'Подвес',
+				purpose: 'Столовая',
+				mountingType: 'Подвесной',
+			},
+			{
+				name: 'Каскадные люстры',
+				slug: 'kaskadnye-lyustry',
+				productLabel: 'Каскадная люстра',
+				placement: 'Подвес',
+				purpose: 'Холл',
+				mountingType: 'Подвесной',
+			},
+			{
+				name: 'Хрустальные люстры',
+				slug: 'khrustalnye-lyustry',
+				productLabel: 'Хрустальная люстра',
+				placement: 'Потолок',
+				purpose: 'Гостиная',
+				mountingType: 'Накладной',
+			},
+		],
+		series: [
+			'Портал',
+			'Адам Смарт',
+			'Palant',
+			'Флорида',
+			'Севилья',
+			'Идальго',
+			'Kaleidoscope',
+			'Ruby',
+			'Castle',
+			'Cone',
+			'Herbert',
+			'Ricerco',
+			'Netz',
+			'Topanga',
+			'Stenli',
+			'Francheska',
+		],
+		stylePool: [
+			'Классический',
+			'Современный',
+			'Минимализм',
+			'Лофт',
+			'Ар-деко',
+			'Скандинавский',
+		],
 		materialPool: ['Металл', 'Стекло', 'Хрусталь', 'Текстиль', 'Латунь'],
 		colorPool: ['Белый', 'Черный', 'Золото', 'Латунь', 'Хром', 'Дымчатый'],
 		basePool: ['E14', 'E27', 'G9'],
@@ -1127,14 +1488,73 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Светильники',
 		productTypeValue: 'Светильник',
 		count: 50,
-		brands: ['Lightstar', 'Maytoni', 'Novotech', 'Denkirs', 'Citilux', 'Loft IT', 'Odeon Light', 'Arte Lamp', 'Freya', 'Eurosvet', 'Elektrostandard', 'Velante', 'Uniel'],
-		subcategories: [
-			{ name: 'Потолочные светильники', slug: 'potolochnye-svetilniki', productLabel: 'Потолочный светильник', placement: 'Потолок', purpose: 'Гостиная', mountingType: 'Накладной' },
-			{ name: 'Встраиваемые светильники', slug: 'vstraivaemye-svetilniki', productLabel: 'Встраиваемый светильник', placement: 'Встраиваемый', purpose: 'Коридор', mountingType: 'Встраиваемый' },
-			{ name: 'Точечные светильники', slug: 'tochechnye-svetilniki', productLabel: 'Точечный светильник', placement: 'Потолок', purpose: 'Кухня', mountingType: 'Накладной' },
-			{ name: 'Накладные светильники', slug: 'nakladnye-svetilniki', productLabel: 'Накладной светильник', placement: 'Потолок', purpose: 'Коридор', mountingType: 'Накладной' },
+		brands: [
+			'Lightstar',
+			'Maytoni',
+			'Novotech',
+			'Denkirs',
+			'Citilux',
+			'Loft IT',
+			'Odeon Light',
+			'Arte Lamp',
+			'Freya',
+			'Eurosvet',
+			'Elektrostandard',
+			'Velante',
+			'Uniel',
 		],
-		series: ['Rullo', 'Globo', 'Stockton', 'Port', 'Phill', 'Atom', 'Zoom', 'Taо', 'Clizia', 'Artisan', 'Pentola', 'Storm', 'Skyline', 'Gerhard', 'Axel', 'Zoticus'],
+		subcategories: [
+			{
+				name: 'Потолочные светильники',
+				slug: 'potolochnye-svetilniki',
+				productLabel: 'Потолочный светильник',
+				placement: 'Потолок',
+				purpose: 'Гостиная',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Встраиваемые светильники',
+				slug: 'vstraivaemye-svetilniki',
+				productLabel: 'Встраиваемый светильник',
+				placement: 'Встраиваемый',
+				purpose: 'Коридор',
+				mountingType: 'Встраиваемый',
+			},
+			{
+				name: 'Точечные светильники',
+				slug: 'tochechnye-svetilniki',
+				productLabel: 'Точечный светильник',
+				placement: 'Потолок',
+				purpose: 'Кухня',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Накладные светильники',
+				slug: 'nakladnye-svetilniki',
+				productLabel: 'Накладной светильник',
+				placement: 'Потолок',
+				purpose: 'Коридор',
+				mountingType: 'Накладной',
+			},
+		],
+		series: [
+			'Rullo',
+			'Globo',
+			'Stockton',
+			'Port',
+			'Phill',
+			'Atom',
+			'Zoom',
+			'Taо',
+			'Clizia',
+			'Artisan',
+			'Pentola',
+			'Storm',
+			'Skyline',
+			'Gerhard',
+			'Axel',
+			'Zoticus',
+		],
 		stylePool: ['Современный', 'Минимализм', 'Техно', 'Лофт', 'Скандинавский'],
 		materialPool: ['Металл', 'Стекло', 'Акрил', 'Пластик', 'Алюминий'],
 		colorPool: ['Белый', 'Черный', 'Серый', 'Латунь', 'Хром'],
@@ -1150,12 +1570,47 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Трековые системы',
 		productTypeValue: 'Трековая система',
 		count: 50,
-		brands: ['ST Luce', 'Novotech', 'Maytoni', 'Denkirs', 'Citilux', 'Arte Lamp', 'Lightstar', 'Eglo', 'Elektrostandard'],
-		subcategories: [
-			{ name: 'Трековые светильники', slug: 'trekovye-svetilniki', productLabel: 'Трековый светильник', placement: 'Трек', purpose: 'Офис', mountingType: 'На штанге' },
-			{ name: 'Магнитные трековые системы', slug: 'magnitnye-trekovye-sistemy', productLabel: 'Магнитная трековая система', placement: 'Трек', purpose: 'Гостиная', mountingType: 'На штанге' },
+		brands: [
+			'ST Luce',
+			'Novotech',
+			'Maytoni',
+			'Denkirs',
+			'Citilux',
+			'Arte Lamp',
+			'Lightstar',
+			'Eglo',
+			'Elektrostandard',
 		],
-		series: ['Skyline', 'Track', 'Focus', 'Pipe', 'Basis', 'Smart', 'Cami', 'Rullo', 'Trillo', 'Iter'],
+		subcategories: [
+			{
+				name: 'Трековые светильники',
+				slug: 'trekovye-svetilniki',
+				productLabel: 'Трековый светильник',
+				placement: 'Трек',
+				purpose: 'Офис',
+				mountingType: 'На штанге',
+			},
+			{
+				name: 'Магнитные трековые системы',
+				slug: 'magnitnye-trekovye-sistemy',
+				productLabel: 'Магнитная трековая система',
+				placement: 'Трек',
+				purpose: 'Гостиная',
+				mountingType: 'На штанге',
+			},
+		],
+		series: [
+			'Skyline',
+			'Track',
+			'Focus',
+			'Pipe',
+			'Basis',
+			'Smart',
+			'Cami',
+			'Rullo',
+			'Trillo',
+			'Iter',
+		],
 		stylePool: ['Современный', 'Минимализм', 'Техно', 'Лофт'],
 		materialPool: ['Металл', 'Алюминий', 'Акрил'],
 		colorPool: ['Белый', 'Черный', 'Серый', 'Латунь'],
@@ -1171,13 +1626,60 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Бра',
 		productTypeValue: 'Бра',
 		count: 50,
-		brands: ['Odeon Light', 'Maytoni', 'Citilux', 'Eurosvet', 'Crystal Lux', 'Eglo', 'Lightstar', 'Freya', 'Arte Lamp', 'Favourite', 'Loft IT', 'Kink Light'],
-		subcategories: [
-			{ name: 'Бра с 1 плафоном', slug: 'bra-s-1-plafonom', productLabel: 'Бра', placement: 'Стена', purpose: 'Спальня', mountingType: 'Накладной' },
-			{ name: 'Бра с 2 плафонами', slug: 'bra-s-2-plafonami', productLabel: 'Бра', placement: 'Стена', purpose: 'Гостиная', mountingType: 'Накладной' },
-			{ name: 'Подсветка для зеркал', slug: 'podsvetka-dlya-zerkal', productLabel: 'Подсветка для зеркал', placement: 'Стена', purpose: 'Ванная', mountingType: 'Накладной' },
+		brands: [
+			'Odeon Light',
+			'Maytoni',
+			'Citilux',
+			'Eurosvet',
+			'Crystal Lux',
+			'Eglo',
+			'Lightstar',
+			'Freya',
+			'Arte Lamp',
+			'Favourite',
+			'Loft IT',
+			'Kink Light',
 		],
-		series: ['Candy', 'Focus S', 'Dauphin', 'Adriana', 'Sevilya', 'Fino', 'Amado', 'Parma', 'Arcada', 'Scriptor', 'Emir', 'Niagara'],
+		subcategories: [
+			{
+				name: 'Бра с 1 плафоном',
+				slug: 'bra-s-1-plafonom',
+				productLabel: 'Бра',
+				placement: 'Стена',
+				purpose: 'Спальня',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Бра с 2 плафонами',
+				slug: 'bra-s-2-plafonami',
+				productLabel: 'Бра',
+				placement: 'Стена',
+				purpose: 'Гостиная',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Подсветка для зеркал',
+				slug: 'podsvetka-dlya-zerkal',
+				productLabel: 'Подсветка для зеркал',
+				placement: 'Стена',
+				purpose: 'Ванная',
+				mountingType: 'Накладной',
+			},
+		],
+		series: [
+			'Candy',
+			'Focus S',
+			'Dauphin',
+			'Adriana',
+			'Sevilya',
+			'Fino',
+			'Amado',
+			'Parma',
+			'Arcada',
+			'Scriptor',
+			'Emir',
+			'Niagara',
+		],
 		stylePool: ['Классический', 'Современный', 'Лофт', 'Ар-деко', 'Минимализм'],
 		materialPool: ['Металл', 'Стекло', 'Хрусталь', 'Текстиль', 'Латунь'],
 		colorPool: ['Белый', 'Черный', 'Бронза', 'Латунь', 'Хром', 'Дымчатый'],
@@ -1193,12 +1695,52 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Споты',
 		productTypeValue: 'Спот',
 		count: 50,
-		brands: ['Elektrostandard', 'Arte Lamp', 'Reluce', 'Citilux', 'Maytoni', 'Novotech', 'Lightstar', 'Odeon Light', 'Favourite', 'Kink Light', 'Ambrella Light', 'Denkirs'],
-		subcategories: [
-			{ name: 'Потолочные споты', slug: 'potolochnye-spoty', productLabel: 'Спот', placement: 'Потолок', purpose: 'Кухня', mountingType: 'Накладной' },
-			{ name: 'Встраиваемые споты', slug: 'vstraivaemye-spoty', productLabel: 'Встраиваемый спот', placement: 'Встраиваемый', purpose: 'Коридор', mountingType: 'Встраиваемый' },
+		brands: [
+			'Elektrostandard',
+			'Arte Lamp',
+			'Reluce',
+			'Citilux',
+			'Maytoni',
+			'Novotech',
+			'Lightstar',
+			'Odeon Light',
+			'Favourite',
+			'Kink Light',
+			'Ambrella Light',
+			'Denkirs',
 		],
-		series: ['DLR', 'Intercrus', 'Imai', 'Keila', 'Illumo', 'Gusto', 'Beam', 'Merida', 'Tribes', 'Tube', 'Over', 'Focus S'],
+		subcategories: [
+			{
+				name: 'Потолочные споты',
+				slug: 'potolochnye-spoty',
+				productLabel: 'Спот',
+				placement: 'Потолок',
+				purpose: 'Кухня',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Встраиваемые споты',
+				slug: 'vstraivaemye-spoty',
+				productLabel: 'Встраиваемый спот',
+				placement: 'Встраиваемый',
+				purpose: 'Коридор',
+				mountingType: 'Встраиваемый',
+			},
+		],
+		series: [
+			'DLR',
+			'Intercrus',
+			'Imai',
+			'Keila',
+			'Illumo',
+			'Gusto',
+			'Beam',
+			'Merida',
+			'Tribes',
+			'Tube',
+			'Over',
+			'Focus S',
+		],
 		stylePool: ['Современный', 'Минимализм', 'Техно', 'Лофт'],
 		materialPool: ['Металл', 'Стекло', 'Акрил', 'Алюминий'],
 		colorPool: ['Белый', 'Черный', 'Серый', 'Латунь'],
@@ -1213,13 +1755,62 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Настольные лампы',
 		productTypeValue: 'Настольная лампа',
 		count: 50,
-		brands: ['Arte Lamp', 'Maytoni', 'Citilux', 'Eurosvet', 'Loft IT', 'Odeon Light', 'Elektrostandard', 'Freya', 'Lumion', 'Reluce', 'Rivoli', 'Velante'],
-		subcategories: [
-			{ name: 'Настольные лампы с абажуром', slug: 'lampy-s-abazhurom', productLabel: 'Настольная лампа', placement: 'Стол', purpose: 'Спальня', mountingType: 'На стол' },
-			{ name: 'Декоративные настольные лампы', slug: 'dekorativnye-nastolnye-lampy', productLabel: 'Декоративная лампа', placement: 'Стол', purpose: 'Гостиная', mountingType: 'На стол' },
+		brands: [
+			'Arte Lamp',
+			'Maytoni',
+			'Citilux',
+			'Eurosvet',
+			'Loft IT',
+			'Odeon Light',
+			'Elektrostandard',
+			'Freya',
+			'Lumion',
+			'Reluce',
+			'Rivoli',
+			'Velante',
 		],
-		series: ['Junior', 'Fad', 'Idalgo', 'Adriana', 'Emir', 'Kair', 'Dauphin', 'Gaellori', 'Milena', 'Beira', 'Bubble', 'Future', 'Stacy', 'County', 'Magnolia'],
-		stylePool: ['Классический', 'Современный', 'Скандинавский', 'Лофт', 'Минимализм'],
+		subcategories: [
+			{
+				name: 'Настольные лампы с абажуром',
+				slug: 'lampy-s-abazhurom',
+				productLabel: 'Настольная лампа',
+				placement: 'Стол',
+				purpose: 'Спальня',
+				mountingType: 'На стол',
+			},
+			{
+				name: 'Декоративные настольные лампы',
+				slug: 'dekorativnye-nastolnye-lampy',
+				productLabel: 'Декоративная лампа',
+				placement: 'Стол',
+				purpose: 'Гостиная',
+				mountingType: 'На стол',
+			},
+		],
+		series: [
+			'Junior',
+			'Fad',
+			'Idalgo',
+			'Adriana',
+			'Emir',
+			'Kair',
+			'Dauphin',
+			'Gaellori',
+			'Milena',
+			'Beira',
+			'Bubble',
+			'Future',
+			'Stacy',
+			'County',
+			'Magnolia',
+		],
+		stylePool: [
+			'Классический',
+			'Современный',
+			'Скандинавский',
+			'Лофт',
+			'Минимализм',
+		],
 		materialPool: ['Металл', 'Текстиль', 'Стекло', 'Керамика', 'Дерево'],
 		colorPool: ['Белый', 'Черный', 'Латунь', 'Бежевый', 'Зеленый'],
 		basePool: ['E14', 'E27', 'LED'],
@@ -1234,13 +1825,60 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Уличное освещение',
 		productTypeValue: 'Уличный светильник',
 		count: 50,
-		brands: ['Lightstar', 'Maytoni', 'Elektrostandard', 'Loft IT', 'Kink Light', 'Feron', 'Denkirs', 'Arte Lamp', 'Odeon Light', 'Eglo', 'Reluce', 'Favourite'],
-		subcategories: [
-			{ name: 'Уличные настенные светильники', slug: 'ulichnye-nastennye-svetilniki', productLabel: 'Уличный настенный светильник', placement: 'Улица', purpose: 'Фасад', mountingType: 'Накладной' },
-			{ name: 'Ландшафтные светильники', slug: 'landshaftnye-svetilniki', productLabel: 'Ландшафтный светильник', placement: 'Улица', purpose: 'Сад', mountingType: 'На штыре' },
-			{ name: 'Прожекторы', slug: 'prozhektory', productLabel: 'Прожектор', placement: 'Улица', purpose: 'Фасад', mountingType: 'Накладной' },
+		brands: [
+			'Lightstar',
+			'Maytoni',
+			'Elektrostandard',
+			'Loft IT',
+			'Kink Light',
+			'Feron',
+			'Denkirs',
+			'Arte Lamp',
+			'Odeon Light',
+			'Eglo',
+			'Reluce',
+			'Favourite',
 		],
-		series: ['Lampione', 'Unter den Linden', 'Pegasus', 'Gravity', 'Ravenna', 'Techno', 'Dramen', 'Kepa', 'Golf', 'Tolero', 'Urbano', 'Wendy'],
+		subcategories: [
+			{
+				name: 'Уличные настенные светильники',
+				slug: 'ulichnye-nastennye-svetilniki',
+				productLabel: 'Уличный настенный светильник',
+				placement: 'Улица',
+				purpose: 'Фасад',
+				mountingType: 'Накладной',
+			},
+			{
+				name: 'Ландшафтные светильники',
+				slug: 'landshaftnye-svetilniki',
+				productLabel: 'Ландшафтный светильник',
+				placement: 'Улица',
+				purpose: 'Сад',
+				mountingType: 'На штыре',
+			},
+			{
+				name: 'Прожекторы',
+				slug: 'prozhektory',
+				productLabel: 'Прожектор',
+				placement: 'Улица',
+				purpose: 'Фасад',
+				mountingType: 'Накладной',
+			},
+		],
+		series: [
+			'Lampione',
+			'Unter den Linden',
+			'Pegasus',
+			'Gravity',
+			'Ravenna',
+			'Techno',
+			'Dramen',
+			'Kepa',
+			'Golf',
+			'Tolero',
+			'Urbano',
+			'Wendy',
+		],
 		stylePool: ['Современный', 'Техно', 'Классический', 'Минимализм'],
 		materialPool: ['Металл', 'Стекло', 'Акрил', 'Алюминий'],
 		colorPool: ['Черный', 'Белый', 'Графит', 'Бронза'],
@@ -1257,13 +1895,59 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 		topCategoryName: 'Торшеры',
 		productTypeValue: 'Торшер',
 		count: 50,
-		brands: ['Reluce', 'Citilux', 'Lumion', 'Maytoni', 'Arte Lamp', 'Lightstar', 'Odeon Light', 'Freya', 'Crystal Lux', 'Loft IT', 'Werkel', 'Escada'],
-		subcategories: [
-			{ name: 'Торшеры с 1 плафоном', slug: 'torshery-s-1-plafonom', productLabel: 'Торшер', placement: 'Пол', purpose: 'Гостиная', mountingType: 'Напольный' },
-			{ name: 'Торшеры со столиком', slug: 'torshery-so-stolikom', productLabel: 'Торшер со столиком', placement: 'Пол', purpose: 'Зона отдыха', mountingType: 'Напольный' },
+		brands: [
+			'Reluce',
+			'Citilux',
+			'Lumion',
+			'Maytoni',
+			'Arte Lamp',
+			'Lightstar',
+			'Odeon Light',
+			'Freya',
+			'Crystal Lux',
+			'Loft IT',
+			'Werkel',
+			'Escada',
 		],
-		series: ['Arc', 'County', 'Moderni', 'Bubble', 'Candy', 'Dauphin', 'Magnolia', 'Stark', 'Castle', 'County', 'Jackie', 'Topanga'],
-		stylePool: ['Современный', 'Классический', 'Скандинавский', 'Лофт', 'Минимализм'],
+		subcategories: [
+			{
+				name: 'Торшеры с 1 плафоном',
+				slug: 'torshery-s-1-plafonom',
+				productLabel: 'Торшер',
+				placement: 'Пол',
+				purpose: 'Гостиная',
+				mountingType: 'Напольный',
+			},
+			{
+				name: 'Торшеры со столиком',
+				slug: 'torshery-so-stolikom',
+				productLabel: 'Торшер со столиком',
+				placement: 'Пол',
+				purpose: 'Зона отдыха',
+				mountingType: 'Напольный',
+			},
+		],
+		series: [
+			'Arc',
+			'County',
+			'Moderni',
+			'Bubble',
+			'Candy',
+			'Dauphin',
+			'Magnolia',
+			'Stark',
+			'Castle',
+			'County',
+			'Jackie',
+			'Topanga',
+		],
+		stylePool: [
+			'Современный',
+			'Классический',
+			'Скандинавский',
+			'Лофт',
+			'Минимализм',
+		],
 		materialPool: ['Металл', 'Текстиль', 'Дерево', 'Стекло', 'Керамика'],
 		colorPool: ['Белый', 'Черный', 'Латунь', 'Бежевый', 'Хром'],
 		basePool: ['E27', 'E14', 'LED'],
@@ -1277,5 +1961,17 @@ export function createCatalogProducts(): SeedProductDefinition[] {
 	const interier = createInteriorProducts()
 	const lampochki = createBulbProducts()
 
-	return [...lyustry, ...svetilniki, ...trekovye, ...bra, ...spoty, ...nastolnye, ...ulichnoe, ...torshery, ...electro, ...interier, ...lampochki]
+	return [
+		...lyustry,
+		...svetilniki,
+		...trekovye,
+		...bra,
+		...spoty,
+		...nastolnye,
+		...ulichnoe,
+		...torshery,
+		...electro,
+		...interier,
+		...lampochki,
+	]
 }

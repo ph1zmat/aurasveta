@@ -31,7 +31,11 @@ describe('orders.create – business logic validation', () => {
 				sum + (productMap.get(item.productId)?.price ?? 0) * item.quantity,
 			0,
 		)
-		const delivery = calculateDeliveryCost({ subtotal: productsTotal, city, address })
+		const delivery = calculateDeliveryCost({
+			subtotal: productsTotal,
+			city,
+			address,
+		})
 		const total = productsTotal + delivery.cost
 
 		const updatedStock = new Map<string, number>()

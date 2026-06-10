@@ -51,29 +51,34 @@ export default function MobileBottomNav() {
 		>
 			<div className='mobile-edge-padding pb-[calc(env(safe-area-inset-bottom)+0.25rem)]'>
 				<ul className='flex items-stretch'>
-					{tabs.filter(tab => !('hidden' in tab && tab.hidden)).map(tab => {
-					const isActive = pathname === tab.href
+					{tabs
+						.filter(tab => !('hidden' in tab && tab.hidden))
+						.map(tab => {
+							const isActive = pathname === tab.href
 
-					return (
-						<li key={tab.href} className='flex-1'>
-							<Link
-								href={tab.href}
-								className={cn(
-									'flex flex-col items-center gap-1 rounded-lg py-2.5 text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-									isActive
-										? 'text-primary font-medium'
-										: 'text-muted-foreground hover:text-foreground',
-								)}
-							>
-								<div className='relative'>
-									<tab.icon className='h-5 w-5' strokeWidth={1.5} />
-									<CountBadge count={tab.badge ?? 0} className='-right-2.5 -top-1.5 text-[9px]' />
-								</div>
-								<span>{tab.label}</span>
-							</Link>
-						</li>
-					)
-					})}
+							return (
+								<li key={tab.href} className='flex-1'>
+									<Link
+										href={tab.href}
+										className={cn(
+											'flex flex-col items-center gap-1 rounded-lg py-2.5 text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+											isActive
+												? 'text-primary font-medium'
+												: 'text-muted-foreground hover:text-foreground',
+										)}
+									>
+										<div className='relative'>
+											<tab.icon className='h-5 w-5' strokeWidth={1.5} />
+											<CountBadge
+												count={tab.badge ?? 0}
+												className='-right-2.5 -top-1.5 text-[9px]'
+											/>
+										</div>
+										<span>{tab.label}</span>
+									</Link>
+								</li>
+							)
+						})}
 				</ul>
 			</div>
 		</nav>

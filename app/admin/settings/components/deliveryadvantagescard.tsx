@@ -5,7 +5,13 @@ import { trpc } from '@/lib/trpc/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Save, Loader2, Plus, Trash2, GripVertical } from 'lucide-react'
 
@@ -29,10 +35,28 @@ const ICON_OPTIONS = [
 ]
 
 const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
-	{ icon: 'Truck', title: 'Мозырь — бесплатно, Беларусь — бесплатно от 400 BYN', description: 'По Беларуси для заказов до 400 BYN стоимость доставки составляет 100 BYN.' },
-	{ icon: 'ShieldCheck', title: 'Расширенная гарантия', description: '18 месяцев гарантия от поставщика + 12 месяцев от магазина' },
-	{ icon: 'RotateCcw', title: 'Увеличенный срок возврата', description: 'Примем товар в течение 35 дней' },
-	{ icon: 'CreditCard', title: 'Оплата картой и онлайн', description: 'Оплачивайте заказ банковской картой или наличными при получении' },
+	{
+		icon: 'Truck',
+		title: 'Мозырь — бесплатно, Беларусь — бесплатно от 400 BYN',
+		description:
+			'По Беларуси для заказов до 400 BYN стоимость доставки составляет 100 BYN.',
+	},
+	{
+		icon: 'ShieldCheck',
+		title: 'Расширенная гарантия',
+		description: '18 месяцев гарантия от поставщика + 12 месяцев от магазина',
+	},
+	{
+		icon: 'RotateCcw',
+		title: 'Увеличенный срок возврата',
+		description: 'Примем товар в течение 35 дней',
+	},
+	{
+		icon: 'CreditCard',
+		title: 'Оплата картой и онлайн',
+		description:
+			'Оплачивайте заказ банковской картой или наличными при получении',
+	},
 ]
 
 function parseDbAdvantages(value: unknown): DeliveryAdvantage[] {
@@ -47,17 +71,21 @@ function parseDbAdvantages(value: unknown): DeliveryAdvantage[] {
 }
 
 export default function DeliveryAdvantagesCard() {
-	const { data: setting, isLoading } = trpc.setting.get.useQuery('delivery.advantages', {
-		staleTime: 5 * 60 * 1000,
-	})
+	const { data: setting, isLoading } = trpc.setting.get.useQuery(
+		'delivery.advantages',
+		{
+			staleTime: 5 * 60 * 1000,
+		},
+	)
 	const { mutate: upsert, isPending } = trpc.setting.upsert.useMutation({
 		onSuccess: () => toast.success('Преимущества сохранены'),
-		onError: (e) => toast.error(e.message),
+		onError: e => toast.error(e.message),
 	})
 
 	const [items, setItems] = useState<DeliveryAdvantage[] | null>(null)
 
-	const currentItems: DeliveryAdvantage[] = items ?? parseDbAdvantages(setting?.value)
+	const currentItems: DeliveryAdvantage[] =
+		items ?? parseDbAdvantages(setting?.value)
 
 	const update = useCallback(
 		(idx: number, field: keyof DeliveryAdvantage, value: string) => {
@@ -132,11 +160,16 @@ export default function DeliveryAdvantagesCard() {
 	return (
 		<Card className='border-border'>
 			<CardHeader>
-				<CardTitle className='text-base font-bold'>Преимущества на карточке товара</CardTitle>
+				<CardTitle className='text-base font-bold'>
+					Преимущества на карточке товара
+				</CardTitle>
 			</CardHeader>
 			<CardContent className='space-y-3'>
 				{currentItems.map((item, idx) => (
-					<div key={idx} className='rounded-lg border border-border p-3 space-y-2'>
+					<div
+						key={idx}
+						className='rounded-lg border border-border p-3 space-y-2'
+					>
 						<div className='flex items-center gap-2'>
 							<div className='flex flex-col gap-0.5'>
 								<button
@@ -160,7 +193,7 @@ export default function DeliveryAdvantagesCard() {
 							</div>
 							<Select
 								value={item.icon}
-								onValueChange={(v) => update(idx, 'icon', v)}
+								onValueChange={v => update(idx, 'icon', v)}
 							>
 								<SelectTrigger className='w-[180px] shrink-0'>
 									<SelectValue />
@@ -185,21 +218,30 @@ export default function DeliveryAdvantagesCard() {
 						<Input
 							placeholder='Заголовок'
 							value={item.title}
-							onChange={(e) => update(idx, 'title', e.target.value)}
+							onChange={e => update(idx, 'title', e.target.value)}
 						/>
 						<Input
 							placeholder='Описание'
 							value={item.description}
-							onChange={(e) => update(idx, 'description', e.target.value)}
+							onChange={e => update(idx, 'description', e.target.value)}
 						/>
 					</div>
 				))}
-				<Button variant='ghost' size='sm' onClick={add} className='w-full border border-dashed border-border'>
+				<Button
+					variant='ghost'
+					size='sm'
+					onClick={add}
+					className='w-full border border-dashed border-border'
+				>
 					<Plus className='h-4 w-4 mr-1' />
 					Добавить пункт
 				</Button>
 				<Button className='w-full' onClick={save} disabled={isPending}>
-					{isPending ? <Loader2 className='h-4 w-4 mr-1 animate-spin' /> : <Save className='h-4 w-4 mr-1' />}
+					{isPending ? (
+						<Loader2 className='h-4 w-4 mr-1 animate-spin' />
+					) : (
+						<Save className='h-4 w-4 mr-1' />
+					)}
 					Сохранить
 				</Button>
 			</CardContent>

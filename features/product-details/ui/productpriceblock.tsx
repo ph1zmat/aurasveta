@@ -47,16 +47,16 @@ export default function ProductPriceBlock({
 						Цена сегодня
 					</p>
 					<div className='flex items-baseline gap-3'>
-					<PriceBYN
-						value={price}
-						className='text-3xl font-semibold text-foreground'
-					/>
-					{oldPrice && (
 						<PriceBYN
-							value={oldPrice}
-							className='text-base text-muted-foreground line-through'
+							value={price}
+							className='text-3xl font-semibold text-foreground'
 						/>
-					)}
+						{oldPrice && (
+							<PriceBYN
+								value={oldPrice}
+								className='text-base text-muted-foreground line-through'
+							/>
+						)}
 					</div>
 				</div>
 				{discountPercent && bonusAmount ? (

@@ -109,7 +109,12 @@ export default function ResultsBar({
 					</SelectContent>
 				</Select>
 				{hasActiveControls && onReset ? (
-					<Button variant='ghost' size='sm' className='gap-1.5' onClick={onReset}>
+					<Button
+						variant='ghost'
+						size='sm'
+						className='gap-1.5'
+						onClick={onReset}
+					>
 						<RotateCcw className='h-3.5 w-3.5' strokeWidth={1.5} />
 						Сбросить
 					</Button>

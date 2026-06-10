@@ -18,12 +18,14 @@ const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
 	{
 		icon: 'Truck',
 		title: 'Мозырь — бесплатно, Беларусь — бесплатно от 400 BYN',
-		description: 'По Беларуси для заказов до 400 BYN стоимость доставки составляет 100 BYN.',
+		description:
+			'По Беларуси для заказов до 400 BYN стоимость доставки составляет 100 BYN.',
 	},
 	{
 		icon: 'ShieldCheck',
 		title: 'Расширенная гарантия',
-		description: '18 месяцев гарантия от поставщика + 12 месяцев от магазина Аура Света',
+		description:
+			'18 месяцев гарантия от поставщика + 12 месяцев от магазина Аура Света',
 	},
 	{
 		icon: 'RotateCcw',
@@ -33,7 +35,8 @@ const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
 	{
 		icon: 'CreditCard',
 		title: 'Оплата картой и онлайн',
-		description: 'Оплачивайте заказ банковской картой или наличными при получении',
+		description:
+			'Оплачивайте заказ банковской картой или наличными при получении',
 	},
 ]
 
@@ -53,7 +56,9 @@ interface DeliveryAdvantagesProps {
 	dbValue?: unknown
 }
 
-export default function DeliveryAdvantages({ dbValue }: DeliveryAdvantagesProps) {
+export default function DeliveryAdvantages({
+	dbValue,
+}: DeliveryAdvantagesProps) {
 	const advantages = parseAdvantages(dbValue)
 
 	return (

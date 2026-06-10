@@ -205,19 +205,22 @@ export default function SearchContent() {
 					<div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
 						<div className='flex flex-wrap items-center gap-4'>
 							<div className='flex items-center gap-2'>
-						<SlidersHorizontal className='h-4 w-4 text-muted-foreground' />
-						<Select value={sortBy} onValueChange={value => setSortBy(value as SortOption)}>
-							<SelectTrigger className='min-w-[220px] bg-background'>
-								<SelectValue placeholder='Сортировка' />
-							</SelectTrigger>
-							<SelectContent>
-								{SORT_OPTIONS.map(opt => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+								<SlidersHorizontal className='h-4 w-4 text-muted-foreground' />
+								<Select
+									value={sortBy}
+									onValueChange={value => setSortBy(value as SortOption)}
+								>
+									<SelectTrigger className='min-w-[220px] bg-background'>
+										<SelectValue placeholder='Сортировка' />
+									</SelectTrigger>
+									<SelectContent>
+										{SORT_OPTIONS.map(opt => (
+											<SelectItem key={opt.value} value={opt.value}>
+												{opt.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 
 							<label className='flex cursor-pointer items-center gap-2 text-sm text-foreground'>
@@ -249,7 +252,8 @@ export default function SearchContent() {
 									size='compact'
 									onClick={() => setSortBy('relevance')}
 								>
-									Сортировка: {SORT_OPTIONS.find(option => option.value === sortBy)?.label}
+									Сортировка:{' '}
+									{SORT_OPTIONS.find(option => option.value === sortBy)?.label}
 								</Button>
 							) : null}
 							{inStock ? (

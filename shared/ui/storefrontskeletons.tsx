@@ -26,10 +26,7 @@ function DesktopStorefrontChromeSkeleton() {
 					<Skeleton className='h-11 flex-1 rounded-full' />
 					<div className='flex items-center gap-4 lg:gap-6'>
 						{Array.from({ length: 4 }).map((_, index) => (
-							<div
-								key={index}
-								className='flex flex-col items-center gap-2'
-							>
+							<div key={index} className='flex flex-col items-center gap-2'>
 								<Skeleton className='h-6 w-6 rounded-full' />
 								<Skeleton className='h-3 w-14' />
 							</div>
@@ -78,7 +75,7 @@ function SectionHeadingSkeleton({
 			) : null}
 		</div>
 	)
-	}
+}
 
 function ProductCardSkeleton() {
 	return (
@@ -134,7 +131,7 @@ function CategoryRailSkeleton() {
 					<Skeleton className='h-4 w-4/5' />
 					<Skeleton className='h-3 w-1/2' />
 				</div>
-				))}
+			))}
 		</div>
 	)
 }
@@ -146,10 +143,7 @@ function SidebarSkeleton() {
 				<div key={index} className='space-y-3'>
 					<Skeleton className='h-4 w-28' />
 					{Array.from({ length: 4 }).map((__, optionIndex) => (
-						<Skeleton
-							key={optionIndex}
-							className='h-9 w-full rounded-xl'
-						/>
+						<Skeleton key={optionIndex} className='h-9 w-full rounded-xl' />
 					))}
 				</div>
 			))}
@@ -224,7 +218,10 @@ export function CatalogContentSkeleton() {
 						<Skeleton className='h-8 w-40' />
 						<Skeleton className='h-9 w-28 rounded-md' />
 					</div>
-					<ProductGridSkeleton count={4} className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4' />
+					<ProductGridSkeleton
+						count={4}
+						className='grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4'
+					/>
 				</section>
 			))}
 		</div>
@@ -373,7 +370,10 @@ export function ProductPageSkeleton() {
 							</div>
 							<div className='grid grid-cols-1 gap-4 xl:grid-cols-2'>
 								{Array.from({ length: 4 }).map((_, index) => (
-									<div key={index} className='rounded-2xl border border-border p-4 space-y-3'>
+									<div
+										key={index}
+										className='rounded-2xl border border-border p-4 space-y-3'
+									>
 										<Skeleton className='h-4 w-32' />
 										{Array.from({ length: 3 }).map((__, rowIndex) => (
 											<Skeleton key={rowIndex} className='h-4 w-full' />

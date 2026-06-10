@@ -37,7 +37,7 @@ export default function ProductCard({
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-contain p-2 transition-transform duration-500 group-hover:scale-[1.03]'
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-[1.03]'
 						fallbackClassName='rounded-t-2xl'
 					/>
 					{hasDiscount ? (

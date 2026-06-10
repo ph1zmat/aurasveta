@@ -70,7 +70,7 @@ export default function FavoriteProductCard({
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-cover transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-[1.03]'
 						fallbackClassName='bg-muted/30'
 					/>
 				</div>
@@ -108,7 +108,10 @@ export default function FavoriteProductCard({
 
 			{/* Price row */}
 			<div className='mb-3 flex items-center gap-2 flex-wrap'>
-				<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
+				<PriceBYN
+					value={price}
+					className='text-lg font-semibold text-foreground'
+				/>
 				{discountPercent && bonusAmount ? (
 					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white'>
 						{discountPercent}%
@@ -134,7 +137,12 @@ export default function FavoriteProductCard({
 						{cartButtonLabel}
 					</Button>
 				) : (
-					<Button asChild variant='primary' size='xs' className='w-full sm:w-auto'>
+					<Button
+						asChild
+						variant='primary'
+						size='xs'
+						className='w-full sm:w-auto'
+					>
 						<Link href={href}>{cartButtonLabel}</Link>
 					</Button>
 				)}

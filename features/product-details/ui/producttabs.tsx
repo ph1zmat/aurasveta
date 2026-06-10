@@ -48,7 +48,8 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 	if (groups.length === 0) {
 		return (
 			<div className='rounded-2xl border border-border bg-card/40 p-6 text-sm leading-6 text-muted-foreground'>
-				Характеристики для этого товара появятся здесь после обновления каталога.
+				Характеристики для этого товара появятся здесь после обновления
+				каталога.
 			</div>
 		)
 	}
@@ -62,7 +63,10 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 		<div className='grid grid-cols-1 gap-x-12 gap-y-8 xl:grid-cols-2'>
 			<div className='space-y-8'>
 				{leftGroups.map(group => (
-					<div key={group.title} className='rounded-2xl border border-border bg-card/30 p-5'>
+					<div
+						key={group.title}
+						className='rounded-2xl border border-border bg-card/30 p-5'
+					>
 						<h3 className='mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-foreground'>
 							{group.title}
 						</h3>
@@ -76,7 +80,10 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 			</div>
 			<div className='space-y-8'>
 				{rightGroups.map(group => (
-					<div key={group.title} className='rounded-2xl border border-border bg-card/30 p-5'>
+					<div
+						key={group.title}
+						className='rounded-2xl border border-border bg-card/30 p-5'
+					>
 						<h3 className='mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-foreground'>
 							{group.title}
 						</h3>

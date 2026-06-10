@@ -127,7 +127,10 @@ export default function CatalogSidebar({
 
 			{/* Sort */}
 			<FilterSection title='Сортировка' defaultOpen>
-				<Select value={sortBy} onValueChange={value => onSortChange?.(value as SortOption)}>
+				<Select
+					value={sortBy}
+					onValueChange={value => onSortChange?.(value as SortOption)}
+				>
 					<SelectTrigger className='w-full bg-background'>
 						<SelectValue placeholder='Выберите сортировку' />
 					</SelectTrigger>

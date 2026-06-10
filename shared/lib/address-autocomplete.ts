@@ -85,12 +85,11 @@ export function mapPhotonFeatureToSuggestion(
 
 	const city = properties.city?.trim() || properties.district?.trim() || ''
 	const postcode = properties.postcode?.trim() || ''
-	const secondaryLabel = compactParts([
-		city,
-		properties.state,
-		postcode,
-	]).join(' · ')
-	const osmId = properties.osm_id != null ? String(properties.osm_id) : String(index)
+	const secondaryLabel = compactParts([city, properties.state, postcode]).join(
+		' · ',
+	)
+	const osmId =
+		properties.osm_id != null ? String(properties.osm_id) : String(index)
 	const osmType = properties.osm_type?.trim() || 'feature'
 	const coordinates =
 		feature.geometry?.coordinates && feature.geometry.coordinates.length === 2
@@ -122,7 +121,10 @@ export function parsePhotonAutocompleteResponse(payload: unknown) {
 		.filter((value): value is AddressAutocompleteSuggestion => value !== null)
 }
 
-export function splitHighlightedText(value: string, query: string): HighlightPart[] {
+export function splitHighlightedText(
+	value: string,
+	query: string,
+): HighlightPart[] {
 	const source = value.trim()
 	const normalizedQuery = query.trim()
 

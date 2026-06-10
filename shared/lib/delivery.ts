@@ -19,14 +19,18 @@ function normalizeLocation(value: string): string {
 		.trim()
 }
 
-export function isMozyrDeliveryLocation(value: string | null | undefined): boolean {
+export function isMozyrDeliveryLocation(
+	value: string | null | undefined,
+): boolean {
 	if (!value) return false
 
 	const normalized = normalizeLocation(value)
 	return normalized.includes('мозыр') || normalized.includes('mozyr')
 }
 
-export function isMozyrDeliveryAddress(address: string | null | undefined): boolean {
+export function isMozyrDeliveryAddress(
+	address: string | null | undefined,
+): boolean {
 	return isMozyrDeliveryLocation(address)
 }
 
@@ -35,7 +39,9 @@ export function calculateDeliveryCost(input: {
 	city?: string | null
 	address?: string | null
 }): DeliveryCalculation {
-	const subtotal = Number.isFinite(input.subtotal) ? Math.max(0, input.subtotal) : 0
+	const subtotal = Number.isFinite(input.subtotal)
+		? Math.max(0, input.subtotal)
+		: 0
 	const city = input.city?.trim() ?? ''
 	const zoneSource = city.length > 0 ? city : input.address
 	const zone: DeliveryZone = isMozyrDeliveryLocation(zoneSource)
@@ -47,7 +53,8 @@ export function calculateDeliveryCost(input: {
 			zone,
 			cost: 0,
 			isFree: true,
-			qualifiesForBelarusFreeDelivery: subtotal >= BELARUS_FREE_DELIVERY_THRESHOLD,
+			qualifiesForBelarusFreeDelivery:
+				subtotal >= BELARUS_FREE_DELIVERY_THRESHOLD,
 		}
 	}
 
@@ -70,7 +77,9 @@ export function getDeliveryPreviewLabel(subtotal: number): string {
 	return `Мозырь — бесплатно, Беларусь — ${BELARUS_DELIVERY_RATE} BYN`
 }
 
-export function getDeliveryExplanation(calculation: DeliveryCalculation): string {
+export function getDeliveryExplanation(
+	calculation: DeliveryCalculation,
+): string {
 	if (calculation.zone === 'MOZYR') {
 		return 'Для адресов в Мозыре доставка всегда бесплатная.'
 	}

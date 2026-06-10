@@ -29,7 +29,8 @@ const COLS_MAP: Record<number, string> = {
 }
 
 export default function RoomsSection({ title, config }: RoomsSectionProps) {
-	const items: RoomItem[] = config?.items && config.items.length > 0 ? config.items : []
+	const items: RoomItem[] =
+		config?.items && config.items.length > 0 ? config.items : []
 	const columns = config?.columns ?? 4
 	const gridClass = COLS_MAP[columns] ?? 'grid-cols-2 sm:grid-cols-4'
 
@@ -44,7 +45,9 @@ export default function RoomsSection({ title, config }: RoomsSectionProps) {
 					<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
 						Пространства
 					</p>
-					<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>{heading}</h2>
+					<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+						{heading}
+					</h2>
 				</div>
 			)}
 			<div className={`grid gap-3 ${gridClass}`}>

@@ -37,7 +37,12 @@ export default function CompareProductCard({
 	const cartButtonDisabled = Boolean(isInCart)
 
 	return (
-		<div className={cn('group flex flex-col', className)}>
+		<div
+			className={cn(
+				'group flex flex-col rounded-2xl border border-border bg-card p-3 transition-shadow duration-200 hover:shadow-sm',
+				className,
+			)}
+		>
 			{/* Actions — heart + remove */}
 			<div className='mb-1 flex items-center gap-1'>
 				<Button
@@ -62,17 +67,16 @@ export default function CompareProductCard({
 			</div>
 
 			{/* Image */}
-			<Link href={href} className='relative mb-3 block overflow-hidden'>
-				<div className='relative h-40 w-full sm:h-56'>
+			<Link href={href} className='relative mb-3 block overflow-hidden rounded-xl'>
+				<div className='relative h-40 w-full bg-background sm:h-56'>
 					<DeferredImage
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-cover transition-transform duration-500 group-hover:scale-105'
-						fallbackClassName='bg-muted/30'
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-[1.03]'
+						fallbackClassName='rounded-xl'
 					/>
 				</div>
-				<div className='mt-2 h-[3px] w-12 bg-foreground' />
 			</Link>
 
 			{/* Name */}

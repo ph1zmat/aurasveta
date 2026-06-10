@@ -109,7 +109,8 @@ export default async function Footer() {
 		getFooterBrandLinks(),
 	])
 	const currentYear = new Date().getFullYear()
-	const socialLinks = settings?.socialLinks.filter(link => Boolean(link.url?.trim())) ?? []
+	const socialLinks =
+		settings?.socialLinks.filter(link => Boolean(link.url?.trim())) ?? []
 
 	return (
 		<footer className='border-t border-card/10 bg-foreground text-card'>
@@ -120,11 +121,13 @@ export default async function Footer() {
 							Аура Света
 						</p>
 						<h2 className='max-w-2xl text-xl font-semibold tracking-[0.04em] text-card sm:text-2xl'>
-							Освещение для дома, бизнеса и интерьерных проектов — с понятным каталогом и живой консультацией.
+							Освещение для дома, бизнеса и интерьерных проектов — с понятным
+							каталогом и живой консультацией.
 						</h2>
 					</div>
 					<p className='max-w-md text-sm leading-6 text-card/60 md:text-right'>
-						Помогаем подобрать люстры, светильники, бра и декоративный свет под стиль, площадь и бюджет.
+						Помогаем подобрать люстры, светильники, бра и декоративный свет под
+						стиль, площадь и бюджет.
 					</p>
 				</div>
 
@@ -146,7 +149,7 @@ export default async function Footer() {
 
 						<p className='max-w-xs text-sm leading-6 text-card/65'>
 							Интернет-магазин освещения с подбором люстр, светильников и
-							 интерьерных решений для дома и бизнеса.
+							интерьерных решений для дома и бизнеса.
 						</p>
 
 						<div className='space-y-3 rounded-2xl border border-card/12 bg-card/5 p-4 text-sm'>
@@ -165,64 +168,60 @@ export default async function Footer() {
 							)}
 
 							<div className='space-y-2 text-sm'>
-							{settings?.phone && (
-								<a
-									href={`tel:${normalizePhoneHref(settings.phone)}`}
-									aria-label={`Позвонить: ${settings.phone}`}
-									className={contactLinkClass}
-								>
-									<Phone className='h-4 w-4' />
-									{settings.phone}
-								</a>
-							)}
-							{settings?.additionalPhone && (
-								<a
-									href={`tel:${normalizePhoneHref(settings.additionalPhone)}`}
-									aria-label={`Позвонить: ${settings.additionalPhone}`}
-									className={contactLinkClass}
-								>
-									<Phone className='h-4 w-4' />
-									{settings.additionalPhone}
-								</a>
-							)}
-							{settings?.email && (
-								<a
-									href={`mailto:${settings.email}`}
-									aria-label={`Написать на email: ${settings.email}`}
-									className={contactLinkClass}
-								>
-									<Mail className='h-4 w-4' />
-									{settings.email}
-								</a>
-							)}
-							{settings?.workingHours &&
-								Object.keys(settings.workingHours).length > 0 && (
-									<div className='mt-1 space-y-1 text-xs text-card/50'>
-										{Object.entries(settings.workingHours).map(
-											([days, hours]) => (
-												<div key={days}>
-													<span className='text-card/70'>{days}:</span> {hours}
-												</div>
-											),
-										)}
-									</div>
+								{settings?.phone && (
+									<a
+										href={`tel:${normalizePhoneHref(settings.phone)}`}
+										aria-label={`Позвонить: ${settings.phone}`}
+										className={contactLinkClass}
+									>
+										<Phone className='h-4 w-4' />
+										{settings.phone}
+									</a>
 								)}
-								</div>
+								{settings?.additionalPhone && (
+									<a
+										href={`tel:${normalizePhoneHref(settings.additionalPhone)}`}
+										aria-label={`Позвонить: ${settings.additionalPhone}`}
+										className={contactLinkClass}
+									>
+										<Phone className='h-4 w-4' />
+										{settings.additionalPhone}
+									</a>
+								)}
+								{settings?.email && (
+									<a
+										href={`mailto:${settings.email}`}
+										aria-label={`Написать на email: ${settings.email}`}
+										className={contactLinkClass}
+									>
+										<Mail className='h-4 w-4' />
+										{settings.email}
+									</a>
+								)}
+								{settings?.workingHours &&
+									Object.keys(settings.workingHours).length > 0 && (
+										<div className='mt-1 space-y-1 text-xs text-card/50'>
+											{Object.entries(settings.workingHours).map(
+												([days, hours]) => (
+													<div key={days}>
+														<span className='text-card/70'>{days}:</span>{' '}
+														{hours}
+													</div>
+												),
+											)}
+										</div>
+									)}
+							</div>
 						</div>
 					</div>
 
 					{/* Column 2: About */}
 					<div>
-							<h3 className={sectionTitleClass}>
-							О Ауре Света
-						</h3>
+						<h3 className={sectionTitleClass}>О Ауре Света</h3>
 						<ul className='space-y-2.5'>
 							{aboutLinks.map(link => (
 								<li key={link.href}>
-									<Link
-										href={link.href}
-											className={footerLinkClass}
-									>
+									<Link href={link.href} className={footerLinkClass}>
 										{link.label}
 									</Link>
 								</li>
@@ -232,16 +231,11 @@ export default async function Footer() {
 
 					{/* Column 3: Catalog */}
 					<div>
-						<h3 className={sectionTitleClass}>
-							Каталог
-						</h3>
+						<h3 className={sectionTitleClass}>Каталог</h3>
 						<ul className='space-y-2.5'>
 							{catalogLinks.map(link => (
 								<li key={link.href}>
-									<Link
-										href={link.href}
-										className={footerLinkClass}
-									>
+									<Link href={link.href} className={footerLinkClass}>
 										{link.label}
 									</Link>
 								</li>
@@ -252,17 +246,12 @@ export default async function Footer() {
 					{/* Column 4: Brands & Social */}
 					<div className='space-y-6'>
 						<div>
-							<h3 className={sectionTitleClass}>
-								Бренды
-							</h3>
+							<h3 className={sectionTitleClass}>Бренды</h3>
 							{brandLinks.length > 0 ? (
 								<ul className='space-y-2.5'>
 									{brandLinks.map(brand => (
 										<li key={brand.href}>
-											<Link
-												href={brand.href}
-												className={footerLinkClass}
-											>
+											<Link href={brand.href} className={footerLinkClass}>
 												{brand.label}
 											</Link>
 										</li>
@@ -276,9 +265,7 @@ export default async function Footer() {
 						</div>
 
 						<div>
-							<h3 className={sectionTitleClass}>
-								Мы в соцсетях
-							</h3>
+							<h3 className={sectionTitleClass}>Мы в соцсетях</h3>
 							{socialLinks.length > 0 ? (
 								<div className='flex flex-wrap gap-2'>
 									{socialLinks.map(link => (
@@ -292,7 +279,8 @@ export default async function Footer() {
 								</div>
 							) : (
 								<p className='text-sm leading-6 text-card/55'>
-									Ссылки на соцсети появятся здесь после заполнения настроек магазина.
+									Ссылки на соцсети появятся здесь после заполнения настроек
+									магазина.
 								</p>
 							)}
 						</div>
@@ -312,7 +300,8 @@ export default async function Footer() {
 							Политика в области обработки персональных данных
 						</Link>
 						<p className='text-center text-[11px] leading-5 text-card/40 sm:text-right'>
-							Каталог, контакты и бренды обновляются автоматически из настроек и базы данных.
+							Каталог, контакты и бренды обновляются автоматически из настроек и
+							базы данных.
 						</p>
 					</div>
 				</div>

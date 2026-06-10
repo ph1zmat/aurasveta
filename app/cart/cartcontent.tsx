@@ -178,7 +178,8 @@ export default function CartContent() {
 		AddressAutocompleteSuggestion[]
 	>([])
 	const [isAddressLoading, setIsAddressLoading] = useState(false)
-	const [isAddressSuggestionsOpen, setIsAddressSuggestionsOpen] = useState(false)
+	const [isAddressSuggestionsOpen, setIsAddressSuggestionsOpen] =
+		useState(false)
 	const [addressAutocompleteError, setAddressAutocompleteError] = useState('')
 	const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
 	const cityFieldId = useId()
@@ -222,7 +223,8 @@ export default function CartContent() {
 		return ''
 	}, [phone])
 
-	const isCheckoutValid = cityError === '' && addressError === '' && phoneError === ''
+	const isCheckoutValid =
+		cityError === '' && addressError === '' && phoneError === ''
 
 	useEffect(() => {
 		const normalizedCityValue = city.trim()
@@ -245,7 +247,9 @@ export default function CartContent() {
 					`/api/address/autocomplete?city=${encodeURIComponent(normalizedCityValue)}&q=${encodeURIComponent(normalizedAddressValue)}`,
 					{ signal: controller.signal },
 				)
-				const payload = (await response.json().catch(() => ({ suggestions: [] }))) as {
+				const payload = (await response
+					.json()
+					.catch(() => ({ suggestions: [] }))) as {
 					suggestions?: AddressAutocompleteSuggestion[]
 				}
 				const suggestions = Array.isArray(payload.suggestions)
@@ -388,13 +392,19 @@ export default function CartContent() {
 			const data = (await res.json().catch(() => ({}))) as {
 				message?: string
 				error?: string
-				result?: { sent?: number; totalDevices?: number; diagnostics?: string[] }
+				result?: {
+					sent?: number
+					totalDevices?: number
+					diagnostics?: string[]
+				}
 			}
 			if (res.ok) {
 				toast.success(data.message || 'Тестовое уведомление отправлено')
 			} else {
 				toast.error(
-					data.message || data.error || 'Не удалось отправить тестовое уведомление',
+					data.message ||
+						data.error ||
+						'Не удалось отправить тестовое уведомление',
 				)
 			}
 		} catch {
@@ -455,7 +465,8 @@ export default function CartContent() {
 						В корзине {itemsCount} {pluralizeProduct(itemsCount)}
 					</h1>
 					<p className='mt-2 text-sm text-muted-foreground'>
-						Проверьте состав заказа, стоимость доставки и перейдите к оформлению.
+						Проверьте состав заказа, стоимость доставки и перейдите к
+						оформлению.
 					</p>
 				</div>
 				<div className='flex flex-wrap gap-2 self-start'>
@@ -520,11 +531,18 @@ export default function CartContent() {
 								<p className='mb-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground'>
 									Заказ
 								</p>
-								<h2 id={checkoutDialogTitleId} className='text-lg font-semibold text-foreground'>
-							Оформление заказа
+								<h2
+									id={checkoutDialogTitleId}
+									className='text-lg font-semibold text-foreground'
+								>
+									Оформление заказа
 								</h2>
-								<p id={checkoutDialogDescriptionId} className='mt-2 max-w-md text-sm leading-6 text-muted-foreground'>
-									Укажите данные для связи и доставки. Стоимость пересчитается автоматически по городу и адресу.
+								<p
+									id={checkoutDialogDescriptionId}
+									className='mt-2 max-w-md text-sm leading-6 text-muted-foreground'
+								>
+									Укажите данные для связи и доставки. Стоимость пересчитается
+									автоматически по городу и адресу.
 								</p>
 							</div>
 							<Button
@@ -552,7 +570,10 @@ export default function CartContent() {
 									Сумма товаров
 								</p>
 								<div className='mt-2'>
-									<PriceBYN value={productsTotal} className='text-sm font-medium' />
+									<PriceBYN
+										value={productsTotal}
+										className='text-sm font-medium'
+									/>
 								</div>
 							</div>
 							<div>
@@ -560,7 +581,9 @@ export default function CartContent() {
 									Доставка
 								</p>
 								<p className='mt-2 text-sm font-medium text-foreground'>
-									{checkoutDelivery ? getDeliveryPreviewLabel(checkoutTotal) : deliveryPreviewLabel}
+									{checkoutDelivery
+										? getDeliveryPreviewLabel(checkoutTotal)
+										: deliveryPreviewLabel}
 								</p>
 							</div>
 						</div>
@@ -610,7 +633,10 @@ export default function CartContent() {
 											}
 										}}
 										onBlur={() => {
-											window.setTimeout(() => setIsAddressSuggestionsOpen(false), 120)
+											window.setTimeout(
+												() => setIsAddressSuggestionsOpen(false),
+												120,
+											)
 										}}
 										onKeyDown={handleAddressKeyDown}
 										autoComplete='street-address'
@@ -632,44 +658,54 @@ export default function CartContent() {
 									<div className='pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] text-muted-foreground'>
 										{isAddressLoading ? 'Поиск…' : 'Photon'}
 									</div>
-									{isAddressSuggestionsOpen && addressSuggestions.length > 0 && (
-										<div
-											id={addressSuggestionsId}
-											role='listbox'
-											className='absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl'
-										>
-											<ul className='max-h-64 overflow-y-auto py-1'>
-												{addressSuggestions.map((suggestion, index) => (
-													<li key={suggestion.id}>
-														<button
-															id={`${addressSuggestionsId}-option-${index}`}
-															type='button'
-															role='option'
-															aria-selected={activeSuggestionIndex === index}
-															onMouseDown={e => {
-																e.preventDefault()
-																applyAddressSuggestion(suggestion)
-															}}
-															onMouseEnter={() => setActiveSuggestionIndex(index)}
-															className={cn(
-																'flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition-colors hover:bg-muted/70 focus:bg-muted/70 focus:outline-none',
-																activeSuggestionIndex === index && 'bg-muted/70',
-															)}
-														>
-															<span className='text-sm text-foreground'>
-																{renderHighlightedText(suggestion.label, address)}
-															</span>
-															{suggestion.secondaryLabel && (
-																<span className='text-xs text-muted-foreground'>
-																	{renderHighlightedText(suggestion.secondaryLabel, city)}
+									{isAddressSuggestionsOpen &&
+										addressSuggestions.length > 0 && (
+											<div
+												id={addressSuggestionsId}
+												role='listbox'
+												className='absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl'
+											>
+												<ul className='max-h-64 overflow-y-auto py-1'>
+													{addressSuggestions.map((suggestion, index) => (
+														<li key={suggestion.id}>
+															<button
+																id={`${addressSuggestionsId}-option-${index}`}
+																type='button'
+																role='option'
+																aria-selected={activeSuggestionIndex === index}
+																onMouseDown={e => {
+																	e.preventDefault()
+																	applyAddressSuggestion(suggestion)
+																}}
+																onMouseEnter={() =>
+																	setActiveSuggestionIndex(index)
+																}
+																className={cn(
+																	'flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition-colors hover:bg-muted/70 focus:bg-muted/70 focus:outline-none',
+																	activeSuggestionIndex === index &&
+																		'bg-muted/70',
+																)}
+															>
+																<span className='text-sm text-foreground'>
+																	{renderHighlightedText(
+																		suggestion.label,
+																		address,
+																	)}
 																</span>
-															)}
-														</button>
-													</li>
-												))}
-											</ul>
-										</div>
-									)}
+																{suggestion.secondaryLabel && (
+																	<span className='text-xs text-muted-foreground'>
+																		{renderHighlightedText(
+																			suggestion.secondaryLabel,
+																			city,
+																		)}
+																	</span>
+																)}
+															</button>
+														</li>
+													))}
+												</ul>
+											</div>
+										)}
 								</div>
 							</Field>
 							<fieldset className='space-y-2'>
@@ -748,7 +784,9 @@ export default function CartContent() {
 									<div className='text-right'>
 										{checkoutDelivery ? (
 											checkoutDelivery.cost === 0 ? (
-												<span className='font-medium text-primary'>Бесплатно</span>
+												<span className='font-medium text-primary'>
+													Бесплатно
+												</span>
 											) : (
 												<PriceBYN
 													value={checkoutDelivery.cost}
@@ -765,9 +803,14 @@ export default function CartContent() {
 								<div className='border-t border-border/70 pt-3'>
 									<div className='flex items-center justify-between gap-3'>
 										<span className='font-medium text-foreground'>
-											{checkoutDelivery ? 'Итого к оплате' : 'Итого без доставки'}
+											{checkoutDelivery
+												? 'Итого к оплате'
+												: 'Итого без доставки'}
 										</span>
-										<PriceBYN value={checkoutDelivery ? checkoutTotal : productsTotal} className='font-semibold' />
+										<PriceBYN
+											value={checkoutDelivery ? checkoutTotal : productsTotal}
+											className='font-semibold'
+										/>
 									</div>
 								</div>
 								<p className='text-xs leading-relaxed text-muted-foreground'>

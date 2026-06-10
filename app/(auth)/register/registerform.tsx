@@ -145,11 +145,7 @@ export default function RegisterForm() {
 				/>
 			</Field>
 
-			<Field
-				label='Пароль'
-				htmlFor='password'
-				hint='Минимум 8 символов.'
-			>
+			<Field label='Пароль' htmlFor='password' hint='Минимум 8 символов.'>
 				<Input
 					id='password'
 					type='password'

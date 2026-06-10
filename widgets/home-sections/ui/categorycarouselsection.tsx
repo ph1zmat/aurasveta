@@ -28,40 +28,46 @@ export default async function CategoryCarouselSection({
 	const orderField = config?.orderBy ?? 'name'
 	const explicitIds = config?.categories
 
-	const categories = explicitIds && explicitIds.length > 0
-		? await prisma.category.findMany({
-				where: { id: { in: explicitIds } },
-				select: {
-					id: true,
-					name: true,
-					slug: true,
-					imagePath: true,
-					image: true,
-					children: {
-						select: { name: true, slug: true },
-						orderBy: { name: 'asc' },
+	const categories =
+		explicitIds && explicitIds.length > 0
+			? await prisma.category
+					.findMany({
+						where: { id: { in: explicitIds } },
+						select: {
+							id: true,
+							name: true,
+							slug: true,
+							imagePath: true,
+							image: true,
+							children: {
+								select: { name: true, slug: true },
+								orderBy: { name: 'asc' },
+							},
+						},
+					})
+					.then(
+						cats =>
+							// Preserve the manual order from explicitIds
+							explicitIds
+								.map(id => cats.find(c => c.id === id))
+								.filter(Boolean) as typeof cats,
+					)
+			: await prisma.category.findMany({
+					where: { parentId: config?.parentId ?? null },
+					orderBy: { [orderField]: 'asc' },
+					select: {
+						id: true,
+						name: true,
+						slug: true,
+						imagePath: true,
+						image: true,
+						children: {
+							select: { name: true, slug: true },
+							orderBy: { name: 'asc' },
+						},
 					},
-				},
-			}).then(cats =>
-				// Preserve the manual order from explicitIds
-				explicitIds.map(id => cats.find(c => c.id === id)).filter(Boolean) as typeof cats,
-			)
-		: await prisma.category.findMany({
-				where: { parentId: config?.parentId ?? null },
-				orderBy: { [orderField]: 'asc' },
-				select: {
-					id: true,
-					name: true,
-					slug: true,
-					imagePath: true,
-					image: true,
-					children: {
-						select: { name: true, slug: true },
-						orderBy: { name: 'asc' },
-					},
-				},
-				take: limit,
-			})
+					take: limit,
+				})
 
 	if (categories.length === 0) return null
 

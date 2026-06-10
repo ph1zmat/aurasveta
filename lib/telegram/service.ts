@@ -78,17 +78,22 @@ async function telegramRequest<T = unknown>(
 		return { ok: false, description: 'telegram_config_is_missing' }
 	}
 
-	const response = await fetch(`${TELEGRAM_API_URL}/bot${config.botToken}/${method}`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
+	const response = await fetch(
+		`${TELEGRAM_API_URL}/bot${config.botToken}/${method}`,
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(payload),
 		},
-		body: JSON.stringify(payload),
-	})
+	)
 
 	const data = (await response.json()) as TelegramApiResponse<T>
 	if (!response.ok || !data.ok) {
-		throw new Error(data.description ?? `Telegram API error (${response.status})`)
+		throw new Error(
+			data.description ?? `Telegram API error (${response.status})`,
+		)
 	}
 
 	return data
@@ -136,10 +141,14 @@ function formatOrderMessage(order: TelegramOrder, decisionLine?: string) {
 
 	for (const item of order.items) {
 		const collection = item.product.properties.find(
-			pv => pv.property.slug === 'collection'
+			pv => pv.property.slug === 'collection',
 		)?.propertyValue.value
-		lines.push(`• ${escapeHtml(item.product.name)} × ${item.quantity} — ${escapeHtml(formatMoney(item.price * item.quantity))}`)
-		lines.push(`  🏷 Бренд: ${escapeHtml(item.product.brand?.trim() || 'Не указан')}`)
+		lines.push(
+			`• ${escapeHtml(item.product.name)} × ${item.quantity} — ${escapeHtml(formatMoney(item.price * item.quantity))}`,
+		)
+		lines.push(
+			`  🏷 Бренд: ${escapeHtml(item.product.brand?.trim() || 'Не указан')}`,
+		)
 		if (collection) {
 			lines.push(`  📋 Коллекция: ${escapeHtml(collection)}`)
 		}
@@ -155,7 +164,9 @@ function formatOrderMessage(order: TelegramOrder, decisionLine?: string) {
 	return lines.join('\n')
 }
 
-async function getOrderForTelegram(orderId: string): Promise<TelegramOrder | null> {
+async function getOrderForTelegram(
+	orderId: string,
+): Promise<TelegramOrder | null> {
 	const order = await prisma.order.findUnique({
 		where: { id: orderId },
 		include: {

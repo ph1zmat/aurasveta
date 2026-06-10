@@ -128,7 +128,8 @@ export default function CompareContent() {
 	/* ── map to CompareProduct ── */
 	const allProducts = useMemo<CompareProduct[]>(() => {
 		if (!productsRaw) return []
-		const safeProducts = (productsRaw ?? []) as unknown as CompareSourceProduct[]
+		const safeProducts = (productsRaw ??
+			[]) as unknown as CompareSourceProduct[]
 		return safeProducts.map(p => {
 			const props: Record<string, string> = {}
 			const labels: Record<string, string> = {}
@@ -304,7 +305,9 @@ export default function CompareContent() {
 							size='compact'
 							onClick={() => setSelectedCategory(null)}
 						>
-							Категория: {categories.find(cat => (cat.id ?? '__none') === selectedCategory)?.name ?? 'Выбрана'}
+							Категория:{' '}
+							{categories.find(cat => (cat.id ?? '__none') === selectedCategory)
+								?.name ?? 'Выбрана'}
 						</Button>
 					)}
 					{filterMode === 'diff' && (

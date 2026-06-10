@@ -24,7 +24,10 @@ export default function QuickSpecs({
 					Характеристики
 				</h2>
 			</div>
-			<Card padding='compact' className='rounded-[20px] border border-border bg-card/50'>
+			<Card
+				padding='compact'
+				className='rounded-[20px] border border-border bg-card/50'
+			>
 				<div className='grid grid-cols-1 gap-x-6 sm:grid-cols-2'>
 					{specs.map(spec => (
 						<div

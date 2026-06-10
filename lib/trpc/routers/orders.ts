@@ -279,12 +279,14 @@ export const ordersRouter = createTRPCRouter({
 			}
 		}),
 
-	getAdminById: adminProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		return ctx.prisma.order.findUnique({
-			where: { id: input },
-			include: adminOrderInclude,
-		})
-	}),
+	getAdminById: adminProcedure
+		.input(z.string())
+		.query(async ({ ctx, input }) => {
+			return ctx.prisma.order.findUnique({
+				where: { id: input },
+				include: adminOrderInclude,
+			})
+		}),
 
 	updateAdminOrder: adminProcedure
 		.input(AdminOrderUpdateInputSchema)
@@ -340,7 +342,7 @@ export const ordersRouter = createTRPCRouter({
 		})
 
 		const result = Object.fromEntries(
-			statuses.map((s) => [s, [] as typeof orders]),
+			statuses.map(s => [s, [] as typeof orders]),
 		) as Record<(typeof statuses)[number], typeof orders>
 
 		for (const order of orders) {

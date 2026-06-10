@@ -17,7 +17,9 @@ describe('address autocomplete helpers', () => {
 
 		expect(url).toContain('https://photon.komoot.io/structured?')
 		expect(url).toContain('city=%D0%9C%D0%BE%D0%B7%D1%8B%D1%80%D1%8C')
-		expect(url).toContain('street=%D0%A1%D0%BE%D0%B2%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F+10')
+		expect(url).toContain(
+			'street=%D0%A1%D0%BE%D0%B2%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F+10',
+		)
 		expect(url).toContain('countrycode=BY')
 		expect(url).toContain('lang=ru')
 	})
@@ -26,7 +28,9 @@ describe('address autocomplete helpers', () => {
 		expect(
 			formatPhotonAddressLine({ street: 'улица Советская', housenumber: '10' }),
 		).toBe('улица Советская, 10')
-		expect(formatPhotonAddressLine({ name: 'ТРЦ Catapult' })).toBe('ТРЦ Catapult')
+		expect(formatPhotonAddressLine({ name: 'ТРЦ Catapult' })).toBe(
+			'ТРЦ Catapult',
+		)
 	})
 
 	it('maps Photon response into suggestions', () => {

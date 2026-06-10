@@ -60,7 +60,10 @@ export default function CartSummary({
 				<span className='text-base font-semibold uppercase text-foreground'>
 					Итого
 				</span>
-				<PriceBYN value={total} className='text-lg font-semibold text-foreground' />
+				<PriceBYN
+					value={total}
+					className='text-lg font-semibold text-foreground'
+				/>
 			</div>
 
 			{/* CTA */}
@@ -70,7 +73,8 @@ export default function CartSummary({
 				</Button>
 
 				<p className='mt-4 text-xs tracking-wider leading-relaxed text-muted-foreground'>
-					Точную стоимость, способ и время доставки пересчитаем после ввода адреса.
+					Точную стоимость, способ и время доставки пересчитаем после ввода
+					адреса.
 				</p>
 			</div>
 		</Card>

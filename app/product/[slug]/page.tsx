@@ -98,7 +98,7 @@ export async function generateMetadata({
 		images: product.images,
 		brand: product.brand,
 	})
-  const canonicalUrl = `https://aurasveta.by/product/${slug}`
+	const canonicalUrl = `https://aurasveta.by/product/${slug}`
 	const metadata = seoToProductMetadata(seo, {
 		canonicalUrl,
 		imageUrl: getProductImageUrl(product),
@@ -125,15 +125,19 @@ export default async function ProductPage({
 	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
 	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
 
-	const [specGroups, productViews, deliveryAdvantagesSetting, effectivePolicies] =
-		await Promise.all([
-			getProductSpecGroups(product.id),
-			prisma.productView.count({ where: { productId } }).catch(() => 0),
-			prisma.setting
-				.findUnique({ where: { key: 'delivery.advantages' } })
-				.catch(() => null),
-			getEffectiveMerchantPolicies(prisma, productId),
-		])
+	const [
+		specGroups,
+		productViews,
+		deliveryAdvantagesSetting,
+		effectivePolicies,
+	] = await Promise.all([
+		getProductSpecGroups(product.id),
+		prisma.productView.count({ where: { productId } }).catch(() => 0),
+		prisma.setting
+			.findUnique({ where: { key: 'delivery.advantages' } })
+			.catch(() => null),
+		getEffectiveMerchantPolicies(prisma, productId),
+	])
 
 	const allImages = normalizeProductImages(product.images)
 		.map(image => getResolvedProductImageUrl(image))
@@ -185,10 +189,8 @@ export default async function ProductPage({
 				warrantyPolicy={
 					effectivePolicies.warrantyPolicy
 						? {
-								durationMonths:
-									effectivePolicies.warrantyPolicy.durationMonths,
-								warrantyScope:
-									effectivePolicies.warrantyPolicy.warrantyScope,
+								durationMonths: effectivePolicies.warrantyPolicy.durationMonths,
+								warrantyScope: effectivePolicies.warrantyPolicy.warrantyScope,
 							}
 						: null
 				}
@@ -256,7 +258,8 @@ export default async function ProductPage({
 						{product.name}
 					</h1>
 					<p className='mt-3 max-w-3xl text-sm leading-6 text-muted-foreground'>
-						Подробная карточка товара с актуальной ценой, характеристиками и быстрым оформлением заказа.
+						Подробная карточка товара с актуальной ценой, характеристиками и
+						быстрым оформлением заказа.
 					</p>
 					<div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
 						<div className='flex flex-wrap items-center gap-3 text-xs text-muted-foreground'>
@@ -290,7 +293,8 @@ export default async function ProductPage({
 										Характеристики и детали
 									</h2>
 									<p className='text-sm leading-6 text-muted-foreground'>
-										Сравните параметры, материалы и особенности модели перед оформлением заказа.
+										Сравните параметры, материалы и особенности модели перед
+										оформлением заказа.
 									</p>
 								</div>
 								<ProductTabs specGroups={specGroups} />
@@ -306,7 +310,8 @@ export default async function ProductPage({
 									Покупка
 								</p>
 								<p className='mt-2 text-sm leading-6 text-foreground'>
-									Оформите заказ онлайн или сохраните товар в избранное, чтобы вернуться к нему позже.
+									Оформите заказ онлайн или сохраните товар в избранное, чтобы
+									вернуться к нему позже.
 								</p>
 							</div>
 							<ProductPriceBlock
