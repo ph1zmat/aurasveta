@@ -159,14 +159,19 @@ export default async function ProductGridSection({
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
-			<div className='mb-4 flex items-center justify-between md:mb-6'>
-				<h2 className='text-base font-semibold uppercase tracking-widest text-foreground md:text-lg'>
-					{heading}
-				</h2>
+			<div className='mb-5 flex items-end justify-between gap-4 md:mb-6'>
+				<div>
+					<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Ассортимент
+					</p>
+					<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+						{heading}
+					</h2>
+				</div>
 				{resolvedViewAllHref ? (
 					<Link
 						href={resolvedViewAllHref}
-						className='text-xs text-muted-foreground underline-offset-4 hover:underline md:text-sm'
+						className='shrink-0 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline'
 					>
 						{config?.viewAllLabel ?? 'Смотреть все'}
 					</Link>

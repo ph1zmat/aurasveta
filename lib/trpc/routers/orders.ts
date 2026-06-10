@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import type { Prisma } from '@prisma/client'
 import { createTRPCRouter, protectedProcedure, adminProcedure } from '../init'
+import { calculateDeliveryCost } from '@/shared/lib/delivery'
 import { sendPushToAdmins } from '@/lib/push/send'
 import { adminEventBus } from '@/lib/realtime/adminevents'
 import { productImageSelect } from '@/lib/products/productimages'
@@ -77,6 +78,7 @@ export const ordersRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
 			z.object({
+				city: z.string().min(1),
 				address: z.string().min(1),
 				phone: z.string().min(1),
 				contactMethod: z.enum(['PHONE', 'VIBER']).default('PHONE'),
@@ -90,6 +92,12 @@ export const ordersRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const city = input.city.trim()
+			const address = input.address.trim()
+			const fullAddress = `${city}, ${address}`
+			const phone = input.phone.trim()
+			const comment = input.comment?.trim() || undefined
+
 			const order = await ctx.prisma.$transaction(async tx => {
 				// Fetch products with current prices and stock
 				const products = await tx.product.findMany({
@@ -124,22 +132,28 @@ export const ordersRouter = createTRPCRouter({
 					})
 				}
 
-				// Calculate total from current DB prices
-				const total = input.items.reduce(
+				// Calculate products total from current DB prices
+				const productsTotal = input.items.reduce(
 					(sum, item) =>
 						sum + (productMap.get(item.productId)?.price ?? 0) * item.quantity,
 					0,
 				)
+				const delivery = calculateDeliveryCost({
+					subtotal: productsTotal,
+					city,
+					address: fullAddress,
+				})
+				const total = productsTotal + delivery.cost
 
 				// Create order
 				return tx.order.create({
 					data: {
 						userId: ctx.userId,
 						total,
-						address: input.address,
-						phone: input.phone,
+						address: fullAddress,
+						phone,
 						contactMethod: input.contactMethod,
-						comment: input.comment,
+						comment,
 						items: {
 							create: input.items.map(item => ({
 								productId: item.productId,

@@ -50,24 +50,29 @@ export default function StickyProductHeader({
 	if (!visible) return null
 
 	return (
-		<div className='fixed top-0 left-0 right-0 z-50 hidden border-b border-border bg-muted shadow-sm md:block'>
-			<div className='container mx-auto flex max-w-7xl items-center gap-4 py-2'>
+		<div className='fixed left-0 right-0 top-0 z-50 hidden border-b border-border bg-background/95 backdrop-blur md:block'>
+			<div className='container mx-auto flex max-w-7xl items-center gap-4 py-2.5'>
 				{/* Product thumbnail */}
-				<div className='relative h-10 w-10 shrink-0'>
+				<div className='relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border bg-card'>
 					<Image src={image} alt={name} fill className='object-contain' />
 				</div>
 
 				{/* Product name */}
-				<p className='min-w-0 flex-1 truncate text-sm font-normal tracking-wide text-foreground'>
-					{name}
-				</p>
+				<div className='min-w-0 flex-1'>
+					<p className='text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Карточка товара
+					</p>
+					<p className='truncate text-sm tracking-wide text-foreground'>
+						{name}
+					</p>
+				</div>
 
 				{/* Price + bonus */}
-				<div className='flex items-center gap-2'>
+				<div className='flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5'>
 					<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
 					{discountPercent && bonusAmount ? (
 						<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-normal text-foreground'>
-							{discountPercent}%
+							-{discountPercent}%
 							<PriceBYN
 								value={bonusAmount}
 								className='font-semibold text-primary'

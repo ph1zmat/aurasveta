@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { calculateDeliveryCost } from '@/shared/lib/delivery'
 
 // We test the router logic by directly testing the business logic patterns
 // since tRPC routers depend on Prisma + auth context.
@@ -8,6 +9,8 @@ describe('orders.create – business logic validation', () => {
 	function validateAndCalculateOrder(
 		items: Array<{ productId: string; quantity: number }>,
 		products: Array<{ id: string; price: number; stock: number; name: string }>,
+		city = 'Мозырь',
+		address = 'г. Мозырь, ул. Интернациональная, 5',
 	) {
 		const productMap = new Map(products.map(p => [p.id, p]))
 
@@ -23,11 +26,13 @@ describe('orders.create – business logic validation', () => {
 			}
 		}
 
-		const total = items.reduce(
+		const productsTotal = items.reduce(
 			(sum, item) =>
 				sum + (productMap.get(item.productId)?.price ?? 0) * item.quantity,
 			0,
 		)
+		const delivery = calculateDeliveryCost({ subtotal: productsTotal, city, address })
+		const total = productsTotal + delivery.cost
 
 		const updatedStock = new Map<string, number>()
 		for (const item of items) {
@@ -51,6 +56,34 @@ describe('orders.create – business logic validation', () => {
 
 		const result = validateAndCalculateOrder(items, products)
 		expect(result.total).toBe(3800) // 1500*2 + 800*1
+	})
+
+	it('adds 100 BYN delivery for Belarus orders below 400 BYN', () => {
+		const items = [{ productId: 'p1', quantity: 1 }]
+		const products = [{ id: 'p1', price: 250, stock: 3, name: 'Люстра' }]
+
+		const result = validateAndCalculateOrder(
+			items,
+			products,
+			'Гомель',
+			'г. Гомель, ул. Советская, 10',
+		)
+
+		expect(result.total).toBe(350)
+	})
+
+	it('keeps Belarus delivery free from 400 BYN', () => {
+		const items = [{ productId: 'p1', quantity: 2 }]
+		const products = [{ id: 'p1', price: 250, stock: 3, name: 'Люстра' }]
+
+		const result = validateAndCalculateOrder(
+			items,
+			products,
+			'Минск',
+			'г. Минск, пр. Победителей, 1',
+		)
+
+		expect(result.total).toBe(500)
 	})
 
 	it('decrements stock correctly', () => {

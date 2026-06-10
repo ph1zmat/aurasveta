@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useSetAtom } from 'jotai'
 import { authClient } from '@/lib/auth/authclient'
 import { Button } from '@/shared/ui/button'
+import Field from '@/shared/ui/field'
+import { Input } from '@/shared/ui/input'
 import { trpc } from '@/lib/trpc/client'
 import {
 	anonymousSessionIdAtom,
@@ -104,68 +106,61 @@ export default function RegisterForm() {
 				</div>
 			)}
 
-			<div className='space-y-2'>
-				<label htmlFor='name' className='text-sm font-medium text-foreground'>
-					Имя
-				</label>
-				<input
+			<Field label='Имя' htmlFor='name'>
+				<Input
 					id='name'
 					type='text'
 					value={name}
 					onChange={e => setName(e.target.value)}
 					required
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='Ваше имя'
+					autoComplete='name'
 				/>
-			</div>
+			</Field>
 
-			<div className='space-y-2'>
-				<label htmlFor='email' className='text-sm font-medium text-foreground'>
-					Email
-				</label>
-				<input
+			<Field label='Email' htmlFor='email'>
+				<Input
 					id='email'
 					type='email'
 					value={email}
 					onChange={e => setEmail(e.target.value)}
 					required
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='your@email.com'
+					autoComplete='email'
 				/>
-			</div>
+			</Field>
 
-			<div className='space-y-2'>
-				<label htmlFor='phone' className='text-sm font-medium text-foreground'>
-					Телефон <span className='text-muted-foreground'>(необязательно)</span>
-				</label>
-				<input
+			<Field
+				label='Телефон'
+				htmlFor='phone'
+				hint='Необязательно — пригодится для связи по заказу.'
+			>
+				<Input
 					id='phone'
 					type='tel'
 					value={phone}
 					onChange={e => setPhone(e.target.value)}
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='+375 29 123-45-67'
+					autoComplete='tel'
 				/>
-			</div>
+			</Field>
 
-			<div className='space-y-2'>
-				<label
-					htmlFor='password'
-					className='text-sm font-medium text-foreground'
-				>
-					Пароль
-				</label>
-				<input
+			<Field
+				label='Пароль'
+				htmlFor='password'
+				hint='Минимум 8 символов.'
+			>
+				<Input
 					id='password'
 					type='password'
 					value={password}
 					onChange={e => setPassword(e.target.value)}
 					required
 					minLength={8}
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='Минимум 8 символов'
+					autoComplete='new-password'
 				/>
-			</div>
+			</Field>
 
 			<Button
 				type='submit'

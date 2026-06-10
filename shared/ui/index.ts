@@ -1,6 +1,19 @@
 export { Button, buttonVariants, type ButtonProps } from './button'
 export { Input, inputVariants, type InputProps } from './input'
 export { Checkbox, checkboxVariants, type CheckboxProps } from './checkbox'
+export { default as Field } from './field'
+export {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectScrollDownButton,
+	SelectScrollUpButton,
+	SelectSeparator,
+	SelectTrigger,
+	SelectValue,
+} from './select'
 export { Card, cardVariants, type CardProps } from './card'
 export {
 	Slider,

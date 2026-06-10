@@ -15,16 +15,21 @@ export default function CartSummary({
 	itemsCount,
 	subtotal,
 	discount,
-	deliveryLabel = 'Бесплатно',
+	deliveryLabel = 'Рассчитывается по адресу',
 	onCheckout,
 }: CartSummaryProps) {
 	const total = subtotal - discount
 
 	return (
-		<Card className='bg-muted rounded-4xl'>
-			<h2 className='mb-6 text-lg font-semibold uppercase tracking-widest text-foreground'>
-				Ваша корзина
-			</h2>
+		<Card className='rounded-4xl border border-border bg-card/60'>
+			<div className='mb-5'>
+				<p className='mb-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					Оформление
+				</p>
+				<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+					Ваша корзина
+				</h2>
+			</div>
 
 			{/* Lines */}
 			<div className='space-y-3 text-sm'>
@@ -44,7 +49,9 @@ export default function CartSummary({
 
 				<div className='flex items-center justify-between'>
 					<span className='text-muted-foreground'>Доставка</span>
-					<span className='text-foreground'>{deliveryLabel}</span>
+					<span className='max-w-[14rem] text-right text-foreground'>
+						{deliveryLabel}
+					</span>
 				</div>
 			</div>
 
@@ -63,7 +70,7 @@ export default function CartSummary({
 				</Button>
 
 				<p className='mt-4 text-xs tracking-wider leading-relaxed text-muted-foreground'>
-					Способ и время доставки можно выбрать на следующем шаге
+					Точную стоимость, способ и время доставки пересчитаем после ввода адреса.
 				</p>
 			</div>
 		</Card>

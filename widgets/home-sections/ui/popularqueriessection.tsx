@@ -63,9 +63,14 @@ export default async function PopularQueriesSection({
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
-			<h2 className='mb-3 text-base font-semibold uppercase tracking-widest text-foreground md:mb-4 md:text-lg'>
-				{heading}
-			</h2>
+			<div className='mb-4 md:mb-5'>
+				<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					Поиск
+				</p>
+				<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+					{heading}
+				</h2>
+			</div>
 			<div className='flex flex-wrap gap-2'>
 				{queries.map(query => (
 					<Button asChild key={query} variant='chip'>

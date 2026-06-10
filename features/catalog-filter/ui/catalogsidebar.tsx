@@ -2,6 +2,14 @@
 
 import CategoryTree from '@/entities/category/ui/categorytree'
 import type { CategoryTreeItem } from '@/entities/category/ui/categorytree'
+import { Input } from '@/shared/ui/input'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/shared/ui/select'
 import FilterSection, {
 	CheckboxFilterItem,
 } from '@/features/catalog-filter/ui/filtersection'
@@ -94,7 +102,7 @@ export default function CatalogSidebar({
 			{/* Price */}
 			<FilterSection title='Цена' defaultOpen>
 				<div className='flex gap-2 p-1'>
-					<input
+					<Input
 						type='number'
 						placeholder='От'
 						defaultValue={minPrice}
@@ -102,9 +110,9 @@ export default function CatalogSidebar({
 							const val = e.target.value ? Number(e.target.value) : undefined
 							onPriceChange?.(val, maxPrice)
 						}}
-						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+						className='h-8 px-2 py-1.5'
 					/>
-					<input
+					<Input
 						type='number'
 						placeholder='До'
 						defaultValue={maxPrice}
@@ -112,31 +120,25 @@ export default function CatalogSidebar({
 							const val = e.target.value ? Number(e.target.value) : undefined
 							onPriceChange?.(minPrice, val)
 						}}
-						className='h-8 w-full rounded-[6px] border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+						className='h-8 px-2 py-1.5'
 					/>
 				</div>
 			</FilterSection>
 
 			{/* Sort */}
 			<FilterSection title='Сортировка' defaultOpen>
-				<div className='space-y-0.5'>
-					{SORT_OPTIONS.map(opt => (
-						<label
-							key={opt.value}
-							className='-mx-1 flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-muted/50'
-						>
-							<input
-								type='radio'
-								name='sidebar-sort'
-								value={opt.value}
-								checked={sortBy === opt.value}
-								onChange={() => onSortChange?.(opt.value)}
-								className='accent-primary'
-							/>
-							<span className='text-sm text-foreground'>{opt.label}</span>
-						</label>
-					))}
-				</div>
+				<Select value={sortBy} onValueChange={value => onSortChange?.(value as SortOption)}>
+					<SelectTrigger className='w-full bg-background'>
+						<SelectValue placeholder='Выберите сортировку' />
+					</SelectTrigger>
+					<SelectContent>
+						{SORT_OPTIONS.map(opt => (
+							<SelectItem key={opt.value} value={opt.value}>
+								{opt.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</FilterSection>
 
 			{hasAnyFilters && (

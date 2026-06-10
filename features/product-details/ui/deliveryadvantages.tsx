@@ -1,7 +1,5 @@
 import { Truck, ShieldCheck, RotateCcw, CreditCard } from 'lucide-react'
-import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
-import { cn } from '@/shared/lib/utils'
 
 const ICON_MAP: Record<string, LucideIcon> = {
 	Truck,
@@ -19,8 +17,8 @@ export type DeliveryAdvantage = {
 const DEFAULT_ADVANTAGES: DeliveryAdvantage[] = [
 	{
 		icon: 'Truck',
-		title: 'Доставка по Мозырю от 100 BYN — бесплатно',
-		description: 'Доставим товар прямо до двери в удобное для вас время.',
+		title: 'Мозырь — бесплатно, Беларусь — бесплатно от 400 BYN',
+		description: 'По Беларуси для заказов до 400 BYN стоимость доставки составляет 100 BYN.',
 	},
 	{
 		icon: 'ShieldCheck',
@@ -59,34 +57,36 @@ export default function DeliveryAdvantages({ dbValue }: DeliveryAdvantagesProps)
 	const advantages = parseAdvantages(dbValue)
 
 	return (
-		<div className='grid grid-cols-1 gap-4 py-6 px-4 sm:grid-cols-2 bg-muted rounded-[20px]'>
-			{advantages.map((adv, idx) => {
-				const Icon = ICON_MAP[adv.icon] ?? Truck
-				return (
-					<div
-						key={`${adv.title}-${idx}`}
-						className='flex gap-3 rounded-sm px-2 py-3 transition-colors'
-					>
-						<Icon
-							className='mt-0.5 h-5 w-5 shrink-0 text-primary'
-							strokeWidth={1.5}
-						/>
-						<div>
-							<Link
-								href='#'
-								className={cn(
-									'text-sm font-normal text-primary underline underline-offset-2 transition-colors hover:text-foreground',
-								)}
-							>
-								{adv.title}
-							</Link>
-							<p className='mt-1 text-xs tracking-wider text-muted-foreground leading-relaxed'>
-								{adv.description}
-							</p>
+		<div className='rounded-[24px] border border-border bg-card/50'>
+			<div className='border-b border-border px-4 py-3'>
+				<p className='text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					Условия
+				</p>
+			</div>
+			<div className='grid grid-cols-1 sm:grid-cols-2'>
+				{advantages.map((adv, idx) => {
+					const Icon = ICON_MAP[adv.icon] ?? Truck
+					return (
+						<div
+							key={`${adv.title}-${idx}`}
+							className='flex gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:nth-last-[-n+2]:border-b-0'
+						>
+							<Icon
+								className='mt-0.5 h-4 w-4 shrink-0 text-primary'
+								strokeWidth={1.5}
+							/>
+							<div>
+								<p className='text-sm font-medium leading-5 text-foreground'>
+									{adv.title}
+								</p>
+								<p className='mt-0.5 text-xs leading-5 text-muted-foreground'>
+									{adv.description}
+								</p>
+							</div>
 						</div>
-					</div>
-				)
-			})}
+					)
+				})}
+			</div>
 		</div>
 	)
 }

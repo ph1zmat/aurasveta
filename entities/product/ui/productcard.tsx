@@ -26,38 +26,46 @@ export default function ProductCard({
 		<Link
 			href={href}
 			className={cn(
-				'group relative flex flex-col items-center p-4 ',
+				'group relative flex flex-col rounded-2xl border border-border bg-card transition-shadow duration-200 hover:shadow-md',
 				className,
 			)}
 		>
-			<div className='relative mb-3 h-40 w-full rounded-sm z-10'>
-				<DeferredImage
-					src={image}
-					alt={name}
-					fill
-					imageClassName='object-cover transition-transform group-hover:scale-115 duration-1000'
-					fallbackClassName='rounded-sm'
-				/>
+			{/* Image */}
+			<div className='relative overflow-hidden rounded-t-2xl'>
+				<div className='relative h-40 w-full overflow-hidden bg-background sm:h-52'>
+					<DeferredImage
+						src={image}
+						alt={name}
+						fill
+						imageClassName='object-contain p-2 transition-transform duration-500 group-hover:scale-[1.03]'
+						fallbackClassName='rounded-t-2xl'
+					/>
+					{hasDiscount ? (
+						<span className='absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-foreground'>
+							-{Math.round(((oldPrice - price) / oldPrice) * 100)}%
+						</span>
+					) : null}
+				</div>
 			</div>
 
-			<h3 className='mb-2 line-clamp-2 text-center text-sm tracking-wide text-foreground z-10'>
-				{name}
-			</h3>
+			{/* Body */}
+			<div className='flex flex-1 flex-col gap-1.5 p-3'>
+				<h3 className='line-clamp-2 text-sm leading-5 tracking-wide text-foreground transition-colors group-hover:text-primary'>
+					{name}
+				</h3>
 
-			<div className='flex items-center gap-2 z-10'>
-				<PriceBYN
-					value={price}
-					className={cn(
-						'font-medium',
-						hasDiscount ? 'text-destructive' : 'text-foreground',
-					)}
-				/>
-				{hasDiscount && (
+				<div className='mt-auto flex flex-wrap items-baseline gap-2 pt-1'>
 					<PriceBYN
-						value={oldPrice}
-						className='text-sm text-muted-foreground line-through'
+						value={price}
+						className='text-lg font-semibold text-foreground'
 					/>
-				)}
+					{hasDiscount && (
+						<PriceBYN
+							value={oldPrice}
+							className='text-sm text-muted-foreground line-through'
+						/>
+					)}
+				</div>
 			</div>
 		</Link>
 	)

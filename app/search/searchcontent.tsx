@@ -2,12 +2,20 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2, SlidersHorizontal, Home, RotateCcw, LogOut } from 'lucide-react'
+import { Loader2, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { trpc, type RouterOutputs } from '@/lib/trpc/client'
 import { useDebounce } from '@/shared/lib/usedebounce'
 import { getTrackingSessionId } from '@/shared/lib/trackingsession'
-import { authClient } from '@/lib/auth/authclient'
+import { Button } from '@/shared/ui/button'
+import { Checkbox } from '@/shared/ui/checkbox'
 import EmptyState from '@/shared/ui/emptystate'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/shared/ui/select'
 import Skeleton from '@/shared/ui/skeleton'
 import InteractiveCatalogCard from '@/entities/product/ui/interactivecatalogcard'
 
@@ -131,33 +139,26 @@ export default function SearchContent() {
 	}, [data?.pages])
 
 	const total = data?.pages[0]?.total ?? 0
-
-	const handleSortChange = useCallback(
-		(e: React.ChangeEvent<HTMLSelectElement>) => {
-			setSortBy(e.target.value as SortOption)
-		},
-		[],
-	)
+	const hasActiveControls = sortBy !== 'relevance' || inStock
 
 	const handleReset = useCallback(() => {
 		router.push('/catalog')
 	}, [router])
 
-	const handleGoHome = useCallback(() => {
-		router.push('/')
-	}, [router])
-
-	const handleSignOut = useCallback(async () => {
-		await authClient.signOut()
-		router.push('/')
-	}, [router])
+	const resetSearchControls = useCallback(() => {
+		setSortBy('relevance')
+		setInStock(false)
+	}, [])
 
 	return (
 		<div className='mx-auto max-w-7xl px-4 py-6'>
 			{/* Header */}
-			<div className='mb-4 flex flex-wrap items-start justify-between gap-4'>
+			<div className='mb-4 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4'>
 				<div>
-					<h1 className='text-2xl font-semibold text-foreground'>
+					<p className='mb-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Поиск по каталогу
+					</p>
+					<h1 className='text-2xl font-semibold tracking-[0.02em] text-foreground'>
 						{debouncedSearch.length >= 2
 							? `Результаты поиска: «${debouncedSearch}»`
 							: 'Поиск товаров'}
@@ -171,62 +172,98 @@ export default function SearchContent() {
 					)}
 				</div>
 
-				{/* Navigation controls */}
+				{/* Action controls */}
 				<div className='flex flex-wrap gap-2'>
-					<button
+					{hasActiveControls ? (
+						<Button
+							type='button'
+							variant='ghost'
+							size='sm'
+							onClick={resetSearchControls}
+							className='gap-1.5'
+						>
+							<RotateCcw className='h-3.5 w-3.5' strokeWidth={1.5} />
+							Сбросить фильтры
+						</Button>
+					) : null}
+					<Button
 						type='button'
+						variant='outline'
+						size='sm'
 						onClick={handleReset}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
+						className='gap-1.5'
 					>
 						<RotateCcw className='h-3.5 w-3.5' strokeWidth={1.5} />
 						Сбросить
-					</button>
-					<button
-						type='button'
-						onClick={handleGoHome}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
-					>
-						<Home className='h-3.5 w-3.5' strokeWidth={1.5} />
-						На главную
-					</button>
-					<button
-						type='button'
-						onClick={handleSignOut}
-						className='flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted'
-					>
-						<LogOut className='h-3.5 w-3.5' strokeWidth={1.5} />
-						Выйти
-					</button>
+					</Button>
 				</div>
 			</div>
 
 			{/* Filters bar */}
 			{debouncedSearch.length >= 2 && (
-				<div className='mb-6 flex flex-wrap items-center gap-4'>
-					<div className='flex items-center gap-2'>
+				<div className='mb-6 rounded-2xl border border-border bg-card/50 p-4'>
+					<div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+						<div className='flex flex-wrap items-center gap-4'>
+							<div className='flex items-center gap-2'>
 						<SlidersHorizontal className='h-4 w-4 text-muted-foreground' />
-						<select
-							value={sortBy}
-							onChange={handleSortChange}
-							className='rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground'
-						>
-							{SORT_OPTIONS.map(opt => (
-								<option key={opt.value} value={opt.value}>
-									{opt.label}
-								</option>
-							))}
-						</select>
+						<Select value={sortBy} onValueChange={value => setSortBy(value as SortOption)}>
+							<SelectTrigger className='min-w-[220px] bg-background'>
+								<SelectValue placeholder='Сортировка' />
+							</SelectTrigger>
+							<SelectContent>
+								{SORT_OPTIONS.map(opt => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+							</div>
+
+							<label className='flex cursor-pointer items-center gap-2 text-sm text-foreground'>
+								<Checkbox
+									checked={inStock}
+									onChange={e => setInStock(e.target.checked)}
+								/>
+								Только в наличии
+							</label>
+						</div>
+
+						<div className='flex flex-wrap items-center gap-2'>
+							<span className='text-sm text-muted-foreground'>
+								Найдено{' '}
+								<span className='font-medium text-foreground'>
+									{total.toLocaleString('ru-RU')}
+								</span>{' '}
+								{pluralize(total, 'товар', 'товара', 'товаров')}
+							</span>
+						</div>
 					</div>
 
-					<label className='flex items-center gap-2 text-sm text-foreground cursor-pointer'>
-						<input
-							type='checkbox'
-							checked={inStock}
-							onChange={e => setInStock(e.target.checked)}
-							className='rounded border-border'
-						/>
-						Только в наличии
-					</label>
+					{hasActiveControls ? (
+						<div className='mt-4 flex flex-wrap gap-2 border-t border-border pt-4'>
+							{sortBy !== 'relevance' ? (
+								<Button
+									type='button'
+									variant='subtle'
+									size='compact'
+									onClick={() => setSortBy('relevance')}
+								>
+									Сортировка: {SORT_OPTIONS.find(option => option.value === sortBy)?.label}
+								</Button>
+							) : null}
+							{inStock ? (
+								<Button
+									type='button'
+									variant='subtle'
+									size='compact'
+									onClick={() => setInStock(false)}
+								>
+									Только в наличии
+								</Button>
+							) : null}
+						</div>
+					) : null}
 				</div>
 			)}
 
@@ -255,9 +292,11 @@ export default function SearchContent() {
 
 			{/* Error state */}
 			{isError && (
-				<div className='py-20 text-center text-sm text-destructive'>
-					Произошла ошибка при поиске. Попробуйте изменить запрос.
-				</div>
+				<EmptyState
+					title='Поиск временно недоступен'
+					description='Не удалось загрузить результаты. Попробуйте повторить запрос или перейти в каталог.'
+					primaryAction={{ label: 'Открыть каталог', href: '/catalog' }}
+				/>
 			)}
 
 			{/* Empty state */}

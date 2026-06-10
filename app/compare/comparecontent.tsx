@@ -1,18 +1,16 @@
 'use client'
 
 import { useState, useMemo, Fragment } from 'react'
-import Link from 'next/link'
-import { Heart, X } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { trpc } from '@/lib/trpc/client'
 import { useCompare } from '@/features/compare/usecompare'
+import CompareProductCard from '@/features/compare/ui/compareproductcard'
 import { useFavorites } from '@/features/favorites/usefavorites'
 import { useCart } from '@/features/cart/usecart'
 import { Button } from '@/shared/ui/button'
 import EmptyState from '@/shared/ui/emptystate'
 import { getProductImageUrl } from '@/shared/lib/productutils'
 import { CompareContentSkeleton } from '@/shared/ui/storefrontskeletons'
-import DeferredImage from '@/shared/ui/deferredimage'
 import { PriceBYN } from '@/shared/ui/pricebyn'
 import type { ProductImage } from '@/shared/types/product'
 
@@ -265,17 +263,61 @@ export default function CompareContent() {
 	return (
 		<>
 			{/* Heading */}
-			<div className='flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between md:py-6'>
-				<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-xl'>
-					Сравнение{' '}
-					<span className='text-muted-foreground font-normal text-base'>
-						{allProducts.length} {pluralizeProduct(allProducts.length)}
-					</span>
-				</h1>
-				<Button variant='ghost' onClick={clear}>
-					Очистить сравнение
-				</Button>
+			<div className='flex flex-col gap-3 border-b border-border py-4 sm:flex-row sm:items-end sm:justify-between md:py-6'>
+				<div>
+					<p className='mb-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Сравнение товаров
+					</p>
+					<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-xl'>
+						Сравнение{' '}
+						<span className='text-base font-normal text-muted-foreground'>
+							{allProducts.length} {pluralizeProduct(allProducts.length)}
+						</span>
+					</h1>
+					<p className='mt-2 text-sm text-muted-foreground'>
+						Сопоставьте цены, бренд, наличие и характеристики в одной таблице.
+					</p>
+				</div>
+				<div className='flex flex-wrap gap-2'>
+					{(selectedCategory || filterMode !== 'all') && (
+						<Button
+							variant='ghost'
+							onClick={() => {
+								setSelectedCategory(null)
+								setFilterMode('all')
+							}}
+						>
+							Сбросить фильтры
+						</Button>
+					)}
+					<Button variant='ghost' onClick={clear}>
+						Очистить сравнение
+					</Button>
+				</div>
 			</div>
+
+			{(selectedCategory || filterMode !== 'all') && (
+				<div className='flex flex-wrap gap-2 py-4'>
+					{selectedCategory && (
+						<Button
+							variant='subtle'
+							size='compact'
+							onClick={() => setSelectedCategory(null)}
+						>
+							Категория: {categories.find(cat => (cat.id ?? '__none') === selectedCategory)?.name ?? 'Выбрана'}
+						</Button>
+					)}
+					{filterMode === 'diff' && (
+						<Button
+							variant='subtle'
+							size='compact'
+							onClick={() => setFilterMode('all')}
+						>
+							Только различия
+						</Button>
+					)}
+				</div>
+			)}
 
 			{/* Category filter */}
 			{categories.length > 1 && (
@@ -354,96 +396,23 @@ export default function CompareContent() {
 
 								{/* Product cards */}
 								{products.map(product => {
-									const hasDiscount =
-										product.oldPrice != null && product.oldPrice > product.price
 									return (
 										<th
 											key={product.id}
 											className='min-w-[180px] p-2 align-top font-normal'
 										>
-											<div className='flex flex-col'>
-												{/* Actions */}
-												<div className='mb-2 flex items-center justify-end gap-1'>
-													<Button
-														variant='icon'
-														aria-label='В избранное'
-														onClick={() => favorites.toggle(product.id)}
-													>
-														<Heart
-															className={cn(
-																'h-4 w-4',
-																favorites.has(product.id) &&
-																	'fill-foreground text-foreground',
-															)}
-														/>
-													</Button>
-													<Button
-														variant='icon'
-														aria-label='Удалить из сравнения'
-														onClick={() => remove(product.id)}
-													>
-														<X className='h-4 w-4' />
-													</Button>
-												</div>
-
-												{/* Image */}
-												<Link
-													href={`/product/${product.slug}`}
-													className='relative mb-3 block h-40 w-full'
-												>
-														<DeferredImage
-														src={product.image}
-														alt={product.name}
-														fill
-															imageClassName='object-contain'
-															fallbackClassName='bg-muted/30'
-													/>
-												</Link>
-
-												{/* Name */}
-												<Link
-													href={`/product/${product.slug}`}
-													className='mb-2'
-												>
-													<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
-														{product.name}
-													</h3>
-												</Link>
-
-												{/* Price */}
-												<div className='mb-4 flex flex-wrap items-center gap-2'>
-													<PriceBYN
-														value={product.price}
-														className={cn(
-															'text-base font-semibold',
-															hasDiscount ? 'text-primary' : 'text-foreground',
-														)}
-													/>
-													{hasDiscount && (
-														<PriceBYN
-															value={product.oldPrice!}
-															className='text-sm text-muted-foreground line-through'
-														/>
-													)}
-												</div>
-
-												{/* CTA */}
-													{(() => {
-														const inCart = cart.has(product.id)
-														return (
-												<Button
-													variant='primary'
-													size='xs'
-													fullWidth
-													className='mt-auto py-3'
-													onClick={() => cart.add(product.id)}
-														disabled={inCart}
-												>
-														{inCart ? 'В КОРЗИНЕ' : 'В корзину'}
-												</Button>
-														)
-													})()}
-											</div>
+											<CompareProductCard
+												name={product.name}
+												href={`/product/${product.slug}`}
+												image={product.image}
+												price={product.price}
+												oldPrice={product.oldPrice}
+												isFavorite={favorites.has(product.id)}
+												onToggleFavorite={() => favorites.toggle(product.id)}
+												onRemove={() => remove(product.id)}
+												isInCart={cart.has(product.id)}
+												onAddToCart={() => cart.add(product.id)}
+											/>
 										</th>
 									)
 								})}

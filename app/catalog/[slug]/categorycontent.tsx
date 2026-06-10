@@ -12,6 +12,7 @@ import InteractiveCatalogCard from '@/entities/product/ui/interactivecatalogcard
 import Pagination from '@/features/catalog-filter/ui/pagination'
 import Breadcrumbs from '@/shared/ui/breadcrumbs'
 import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
 import { X } from 'lucide-react'
 import { CategoryContentSkeleton } from '@/shared/ui/storefrontskeletons'
 import {
@@ -347,7 +348,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 
 						{/* Search */}
 						<div className='mb-4 flex gap-2'>
-							<input
+							<Input
 								type='search'
 								placeholder='Поиск в категории...'
 								value={searchInput}
@@ -360,7 +361,7 @@ export default function CategoryContent({ slug }: { slug: string }) {
 										})
 									}
 								}}
-								className='flex h-9 flex-1 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+								className='h-9 flex-1 px-3 py-2'
 							/>
 							<Button
 								variant='primary'
@@ -371,14 +372,13 @@ export default function CategoryContent({ slug }: { slug: string }) {
 							>
 								Найти
 							</Button>
-							{hasActiveFilters && (
-								<Button variant='ghost' size='sm' onClick={resetFilters}>
-									Сбросить
-								</Button>
-							)}
 						</div>
 
-						<ResultsBar total={totalProducts} />
+						<ResultsBar
+							total={totalProducts}
+							filterCount={activeFilterCount}
+							onReset={resetFilters}
+						/>
 
 						{/* Active filter chips */}
 						{hasActiveFilters && (

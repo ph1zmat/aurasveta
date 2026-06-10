@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, X } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
+import DeferredImage from '@/shared/ui/deferredimage'
 import { PriceBYN } from '@/shared/ui/pricebyn'
 
 export interface CompareProductCardProps {
@@ -37,9 +37,9 @@ export default function CompareProductCard({
 	const cartButtonDisabled = Boolean(isInCart)
 
 	return (
-		<div className={cn('flex flex-col', className)}>
+		<div className={cn('group flex flex-col', className)}>
 			{/* Actions — heart + remove */}
-			<div className='mb-2 flex items-center justify-end gap-1'>
+			<div className='mb-1 flex items-center gap-1'>
 				<Button
 					variant='icon'
 					aria-label='В избранное'
@@ -62,12 +62,21 @@ export default function CompareProductCard({
 			</div>
 
 			{/* Image */}
-			<Link href={href} className='relative mb-3 block h-40 w-full'>
-				<Image src={image} alt={name} fill className='object-contain' />
+			<Link href={href} className='relative mb-3 block overflow-hidden'>
+				<div className='relative h-40 w-full sm:h-56'>
+					<DeferredImage
+						src={image}
+						alt={name}
+						fill
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-105'
+						fallbackClassName='bg-muted/30'
+					/>
+				</div>
+				<div className='mt-2 h-[3px] w-12 bg-foreground' />
 			</Link>
 
 			{/* Name */}
-			<Link href={href} className='mb-2'>
+			<Link href={href} className='mb-1'>
 				<h3 className='line-clamp-2 text-sm tracking-wide text-foreground transition-colors hover:text-primary'>
 					{name}
 				</h3>
@@ -78,8 +87,8 @@ export default function CompareProductCard({
 				<PriceBYN
 					value={price}
 					className={cn(
-						'text-base font-semibold',
-						hasDiscount ? 'text-primary' : 'text-foreground',
+						'text-lg font-semibold',
+						hasDiscount ? 'text-destructive' : 'text-foreground',
 					)}
 				/>
 				{hasDiscount && (
@@ -94,8 +103,7 @@ export default function CompareProductCard({
 			<Button
 				variant='primary'
 				size='xs'
-				fullWidth
-				className='mt-auto py-3'
+				className='mt-auto w-full sm:w-auto'
 				onClick={onAddToCart}
 				disabled={cartButtonDisabled}
 			>

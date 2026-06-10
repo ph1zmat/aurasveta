@@ -6,6 +6,15 @@ import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 import SocialIcon from '@/shared/ui/socialicon'
 import { prisma } from '@/lib/prisma'
 
+const sectionTitleClass =
+	'mb-4 text-xs font-medium uppercase tracking-[0.22em] text-card/80'
+
+const footerLinkClass =
+	'inline-flex rounded-md text-sm text-card/60 transition-colors duration-200 hover:text-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-card focus-visible:ring-offset-2 focus-visible:ring-offset-foreground'
+
+const contactLinkClass =
+	'flex items-center gap-2 rounded-md text-card/80 transition-colors duration-200 hover:text-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-card focus-visible:ring-offset-2 focus-visible:ring-offset-foreground'
+
 const fallbackCategoryLinks = [
 	{ label: 'Светильники', href: '/catalog/svetilniki' },
 	{ label: 'Люстры', href: '/catalog/lyustry' },
@@ -18,6 +27,10 @@ const fallbackCategoryLinks = [
 
 const BRANDS_LIMIT = 10
 const CATEGORIES_LIMIT = 10
+
+function normalizePhoneHref(phone: string) {
+	return phone.replace(/[^\d+]/g, '')
+}
 
 async function getFooterCatalogLinks() {
 	try {
@@ -95,44 +108,68 @@ export default async function Footer() {
 		getFooterCatalogLinks(),
 		getFooterBrandLinks(),
 	])
+	const currentYear = new Date().getFullYear()
+	const socialLinks = settings?.socialLinks.filter(link => Boolean(link.url?.trim())) ?? []
 
 	return (
-		<footer className='bg-foreground text-card'>
-			<div className='mx-auto max-w-7xl px-4 py-12'>
-				<div className='grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4'>
+		<footer className='border-t border-card/10 bg-foreground text-card'>
+			<div className='mx-auto max-w-7xl px-4 py-12 lg:py-14'>
+				<div className='mb-8 flex flex-col gap-3 border-b border-card/12 pb-6 md:flex-row md:items-end md:justify-between'>
+					<div className='space-y-2'>
+						<p className='text-xs font-medium uppercase tracking-[0.24em] text-card/55'>
+							Аура Света
+						</p>
+						<h2 className='max-w-2xl text-xl font-semibold tracking-[0.04em] text-card sm:text-2xl'>
+							Освещение для дома, бизнеса и интерьерных проектов — с понятным каталогом и живой консультацией.
+						</h2>
+					</div>
+					<p className='max-w-md text-sm leading-6 text-card/60 md:text-right'>
+						Помогаем подобрать люстры, светильники, бра и декоративный свет под стиль, площадь и бюджет.
+					</p>
+				</div>
+
+				<div className='grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4'>
 					{/* Column 1: Logo & Contact */}
 					<div className='space-y-6'>
-						<Link href='/' className='flex items-center gap-2 shrink-0'>
+						<Link
+							href='/'
+							className='inline-flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-card focus-visible:ring-offset-2 focus-visible:ring-offset-foreground'
+						>
 							<Image
 								src='/auralogonolinewhite.png'
-								alt='Logo'
+								alt='Аура Света'
 								width={128}
 								height={48}
 								className='h-12 w-40 object-cover'
 							/>
 						</Link>
 
-						<div className='space-y-3 text-sm'>
-							<div className='font-normal uppercase tracking-widest text-card/80'>
+						<p className='max-w-xs text-sm leading-6 text-card/65'>
+							Интернет-магазин освещения с подбором люстр, светильников и
+							 интерьерных решений для дома и бизнеса.
+						</p>
+
+						<div className='space-y-3 rounded-2xl border border-card/12 bg-card/5 p-4 text-sm'>
+							<div className='text-xs font-medium uppercase tracking-[0.22em] text-card/80'>
 								Отдел продаж
 							</div>
 							{(settings?.city || settings?.address) && (
 								<div className='flex items-start gap-2 text-card/70'>
 									<MapPin className='mt-0.5 h-4 w-4 shrink-0' />
-									<span>
+									<p className='leading-6'>
 										{[settings.city, settings.address]
 											.filter(Boolean)
 											.join(', ')}
-									</span>
+									</p>
 								</div>
 							)}
-						</div>
 
-						<div className='space-y-2 text-sm'>
+							<div className='space-y-2 text-sm'>
 							{settings?.phone && (
 								<a
-									href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`}
-									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+									href={`tel:${normalizePhoneHref(settings.phone)}`}
+									aria-label={`Позвонить: ${settings.phone}`}
+									className={contactLinkClass}
 								>
 									<Phone className='h-4 w-4' />
 									{settings.phone}
@@ -140,8 +177,9 @@ export default async function Footer() {
 							)}
 							{settings?.additionalPhone && (
 								<a
-									href={`tel:${settings.additionalPhone.replace(/[^\d+]/g, '')}`}
-									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+									href={`tel:${normalizePhoneHref(settings.additionalPhone)}`}
+									aria-label={`Позвонить: ${settings.additionalPhone}`}
+									className={contactLinkClass}
 								>
 									<Phone className='h-4 w-4' />
 									{settings.additionalPhone}
@@ -150,7 +188,8 @@ export default async function Footer() {
 							{settings?.email && (
 								<a
 									href={`mailto:${settings.email}`}
-									className='flex items-center gap-2 text-card/80 hover:text-card transition-colors'
+									aria-label={`Написать на email: ${settings.email}`}
+									className={contactLinkClass}
 								>
 									<Mail className='h-4 w-4' />
 									{settings.email}
@@ -158,7 +197,7 @@ export default async function Footer() {
 							)}
 							{settings?.workingHours &&
 								Object.keys(settings.workingHours).length > 0 && (
-									<div className='text-card/50 text-xs mt-1 space-y-0.5'>
+									<div className='mt-1 space-y-1 text-xs text-card/50'>
 										{Object.entries(settings.workingHours).map(
 											([days, hours]) => (
 												<div key={days}>
@@ -168,20 +207,21 @@ export default async function Footer() {
 										)}
 									</div>
 								)}
+								</div>
 						</div>
 					</div>
 
 					{/* Column 2: About */}
 					<div>
-						<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
+							<h3 className={sectionTitleClass}>
 							О Ауре Света
 						</h3>
-						<ul className='space-y-2'>
+						<ul className='space-y-2.5'>
 							{aboutLinks.map(link => (
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-card/60 hover:text-card transition-colors'
+											className={footerLinkClass}
 									>
 										{link.label}
 									</Link>
@@ -192,15 +232,15 @@ export default async function Footer() {
 
 					{/* Column 3: Catalog */}
 					<div>
-						<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
+						<h3 className={sectionTitleClass}>
 							Каталог
 						</h3>
-						<ul className='space-y-2'>
+						<ul className='space-y-2.5'>
 							{catalogLinks.map(link => (
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-card/60 hover:text-card transition-colors'
+										className={footerLinkClass}
 									>
 										{link.label}
 									</Link>
@@ -212,54 +252,69 @@ export default async function Footer() {
 					{/* Column 4: Brands & Social */}
 					<div className='space-y-6'>
 						<div>
-							<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
+							<h3 className={sectionTitleClass}>
 								Бренды
 							</h3>
-							<ul className='space-y-2'>
-								{brandLinks.map(brand => (
-									<li key={brand.href}>
-										<Link
-											href={brand.href}
-											className='text-sm text-card/60 hover:text-card transition-colors'
-										>
-											{brand.label}
-										</Link>
-									</li>
-								))}
-							</ul>
+							{brandLinks.length > 0 ? (
+								<ul className='space-y-2.5'>
+									{brandLinks.map(brand => (
+										<li key={brand.href}>
+											<Link
+												href={brand.href}
+												className={footerLinkClass}
+											>
+												{brand.label}
+											</Link>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className='text-sm leading-6 text-card/55'>
+									Популярные бренды появятся здесь после обновления каталога.
+								</p>
+							)}
 						</div>
 
 						<div>
-							<h3 className='mb-4 text-sm font-normal uppercase tracking-widest text-card/80'>
+							<h3 className={sectionTitleClass}>
 								Мы в соцсетях
 							</h3>
-							{settings?.socialLinks && settings.socialLinks.length > 0 ? (
-								<div className='flex flex-wrap gap-1'>
-									{settings.socialLinks.map(link => (
+							{socialLinks.length > 0 ? (
+								<div className='flex flex-wrap gap-2'>
+									{socialLinks.map(link => (
 										<SocialIcon
 											key={`${link.platform}-${link.url}`}
 											platform={link.platform}
 											url={link.url}
-											className='text-card/70 hover:text-card'
+											className='text-card/70 transition-colors hover:text-card'
 										/>
 									))}
 								</div>
-							) : null}
+							) : (
+								<p className='text-sm leading-6 text-card/55'>
+									Ссылки на соцсети появятся здесь после заполнения настроек магазина.
+								</p>
+							)}
 						</div>
 					</div>
 				</div>
 
 				{/* Bottom */}
-				<div className='mt-10 flex flex-col items-center justify-between gap-4 border-t border-card/20 pt-6 sm:flex-row'>
-					<p className='text-xs text-card/50'>
-						Аура Света © 2011–2026 Все права защищены
+				<div className='mt-10 flex flex-col gap-4 border-t border-card/20 pt-6 sm:flex-row sm:items-center sm:justify-between'>
+					<p className='text-center text-xs text-card/50 sm:text-left'>
+						Аура Света © 2011–{currentYear} Все права защищены
 					</p>
-					<Link
-						href='/privacy'
-						className='text-xs text-card/50 hover:text-card/80 underline'
-					>
-						Политика в области обработки персональных данных
-					</Link>
+					<div className='flex flex-col items-center gap-2 sm:items-end'>
+						<Link
+							href='/privacy'
+							className='rounded-md text-center text-xs text-card/50 underline underline-offset-4 transition-colors hover:text-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-card focus-visible:ring-offset-2 focus-visible:ring-offset-foreground'
+						>
+							Политика в области обработки персональных данных
+						</Link>
+						<p className='text-center text-[11px] leading-5 text-card/40 sm:text-right'>
+							Каталог, контакты и бренды обновляются автоматически из настроек и базы данных.
+						</p>
+					</div>
 				</div>
 			</div>
 		</footer>

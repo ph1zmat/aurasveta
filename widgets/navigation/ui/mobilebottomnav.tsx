@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { Home, Search, Heart, ShoppingCart, User, LogOut } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Home, Grid2x2, Heart, ShoppingCart, User } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import CountBadge from '@/shared/ui/countbadge'
 import { useFavorites } from '@/features/favorites/usefavorites'
@@ -11,15 +11,18 @@ import { authClient } from '@/lib/auth/authclient'
 
 export default function MobileBottomNav() {
 	const pathname = usePathname()
-	const router = useRouter()
 	const { count: favoritesCount } = useFavorites()
 	const { items: cartItems } = useCart()
 	const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 	const { data: session } = authClient.useSession()
+	const profileHref =
+		session?.user?.role === 'ADMIN' || session?.user?.role === 'EDITOR'
+			? '/admin'
+			: '/login'
 
 	const tabs = [
 		{ icon: Home, label: 'Главная', href: '/' },
-		{ icon: Search, label: 'Каталог', href: '/catalog' },
+		{ icon: Grid2x2, label: 'Каталог', href: '/catalog' },
 		{
 			icon: Heart,
 			label: 'Избранное',
@@ -35,9 +38,9 @@ export default function MobileBottomNav() {
 			hidden: pathname === '/cart',
 		},
 		{
-			icon: session ? LogOut : User,
-			label: session ? 'Выйти' : 'Профиль',
-			href: session ? '#logout' : '/login',
+			icon: User,
+			label: session ? 'Профиль' : 'Войти',
+			href: profileHref,
 		},
 	]
 
@@ -48,36 +51,15 @@ export default function MobileBottomNav() {
 		>
 			<div className='mobile-edge-padding pb-[calc(env(safe-area-inset-bottom)+0.25rem)]'>
 				<ul className='flex items-stretch'>
-				{tabs
-					.filter(tab => !('hidden' in tab && tab.hidden))
-					.map(tab => {
+					{tabs.filter(tab => !('hidden' in tab && tab.hidden)).map(tab => {
 					const isActive = pathname === tab.href
-					const isLogout = tab.href === '#logout'
-
-					if (isLogout) {
-						return (
-							<li key='logout' className='flex-1'>
-								<button
-									onClick={async () => {
-										await authClient.signOut()
-										router.push('/')
-									}}
-									className='flex w-full flex-col items-center gap-0.5 rounded-lg py-2.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-									aria-label='Выйти'
-								>
-									<tab.icon className='h-5 w-5' strokeWidth={1.5} />
-									<span>{tab.label}</span>
-								</button>
-							</li>
-						)
-					}
 
 					return (
 						<li key={tab.href} className='flex-1'>
 							<Link
 								href={tab.href}
 								className={cn(
-									'flex flex-col items-center gap-0.5 rounded-lg py-2.5 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+									'flex flex-col items-center gap-1 rounded-lg py-2.5 text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
 									isActive
 										? 'text-primary font-medium'
 										: 'text-muted-foreground hover:text-foreground',
@@ -91,7 +73,7 @@ export default function MobileBottomNav() {
 							</Link>
 						</li>
 					)
-				})}
+					})}
 				</ul>
 			</div>
 		</nav>

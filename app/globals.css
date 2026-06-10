@@ -53,6 +53,12 @@
 	--color-border: var(--border);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-destructive: var(--destructive);
+	--color-success-foreground: var(--success-foreground);
+	--color-success: var(--success);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-warning: var(--warning);
+	--color-info-foreground: var(--info-foreground);
+	--color-info: var(--info);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
 	--color-muted-foreground: var(--muted-foreground);
@@ -116,6 +122,12 @@
 	--accent-foreground: var(--nl-accent-fg);
 	--destructive: var(--nl-destructive);
 	--destructive-foreground: var(--nl-destructive-fg);
+	--success: var(--nl-success);
+	--success-foreground: #f3fff8;
+	--warning: var(--nl-warning);
+	--warning-foreground: #221506;
+	--info: var(--nl-info);
+	--info-foreground: #f5f9ff;
 	--border: var(--nl-border);
 	--input: var(--nl-input);
 	--ring: var(--nl-ring);
@@ -182,6 +194,12 @@
 	--accent-foreground: var(--nl-accent-fg);
 	--destructive: var(--nl-destructive);
 	--destructive-foreground: var(--nl-destructive-fg);
+	--success: var(--nl-success);
+	--success-foreground: #f3fff8;
+	--warning: var(--nl-warning);
+	--warning-foreground: #241604;
+	--info: var(--nl-info);
+	--info-foreground: #eff6ff;
 	--border: var(--nl-border);
 	--input: var(--nl-input);
 	--ring: var(--nl-ring);
@@ -331,6 +349,7 @@
 	--nl-destructive-fg: #fff6f6;
 	--nl-success: #2e9f64;
 	--nl-warning: #d6a23d;
+	--nl-info: #3b82f6;
 
 	/* ── Surfaces ── */
 	--nl-surface-1: #ffffff;
@@ -429,6 +448,7 @@
 	--nl-destructive-fg: #fff6f6;
 	--nl-success: #46b978;
 	--nl-warning: #e0b04b;
+	--nl-info: #60a5fa;
 
 	/* ── Surfaces — dark ── */
 	--nl-surface-1: #171b22;

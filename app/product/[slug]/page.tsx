@@ -30,6 +30,7 @@ import BackToListLink from '@/shared/ui/backtolistlink'
 import ProductBreadcrumbs from '@/features/product-details/ui/productbreadcrumbs'
 import {
 	CompareButton,
+	FavoriteButton,
 	AddToCartButton,
 } from '@/features/product-details/ui/productactions'
 import { prisma } from '@/lib/prisma'
@@ -138,6 +139,11 @@ export default async function ProductPage({
 		.map(image => getResolvedProductImageUrl(image))
 		.filter((imageUrl): imageUrl is string => Boolean(imageUrl))
 	const productImages = allImages.length > 0 ? allImages : ['/bulb.svg']
+	const availabilityLabel = product.inStock
+		? product.stockQuantity
+			? `В наличии ${product.stockQuantity} шт.`
+			: 'В наличии'
+		: 'Наличие уточняйте у менеджера'
 	return (
 		<div className='flex flex-col bg-background'>
 			<TrackRecentlyViewed productId={String(product.id)} />
@@ -210,6 +216,8 @@ export default async function ProductPage({
 				price={product.price}
 				discountPercent={product.discountPercent}
 				bonusAmount={product.bonusAmount}
+				actionLabel={product.inStock ? 'В КОРЗИНУ' : 'К БЛОКУ ПОКУПКИ'}
+				actionHref='#product-purchase'
 			/>
 
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
@@ -233,15 +241,32 @@ export default async function ProductPage({
 				/>
 
 				{/* Product title + article */}
-				<div className='mb-6'>
-					<h1 className='text-xl font-semibold tracking-widest text-foreground lg:text-2xl'>
+				<div className='mb-6 border-b border-border pb-6'>
+					<div className='mb-2 flex flex-wrap items-center gap-2'>
+						{product.category ? (
+							<span className='inline-flex rounded-full border border-border bg-card/50 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+								{product.category}
+							</span>
+						) : null}
+						<span className='inline-flex rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+							{availabilityLabel}
+						</span>
+					</div>
+					<h1 className='text-xl font-semibold tracking-[0.08em] text-foreground lg:text-2xl'>
 						{product.name}
 					</h1>
-					<div className='mt-1 flex items-center gap-4'>
-						<span className='text-xs text-muted-foreground'>
-							Артикул: {product.slug}
-						</span>
-						<CompareButton productId={String(product.id)} />
+					<p className='mt-3 max-w-3xl text-sm leading-6 text-muted-foreground'>
+						Подробная карточка товара с актуальной ценой, характеристиками и быстрым оформлением заказа.
+					</p>
+					<div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
+						<div className='flex flex-wrap items-center gap-3 text-xs text-muted-foreground'>
+							<span>Артикул: {product.slug}</span>
+							{product.brand ? <span>Бренд: {product.brand}</span> : null}
+						</div>
+						<div className='flex flex-wrap items-center gap-2'>
+							<CompareButton productId={String(product.id)} />
+							<FavoriteButton productId={String(product.id)} />
+						</div>
 					</div>
 				</div>
 
@@ -257,6 +282,17 @@ export default async function ProductPage({
 						<div id='product-tabs' className='flex gap-4 py-6 md:gap-8 md:py-8'>
 							{/* Left: Tabs content */}
 							<div className='min-w-0 flex-1'>
+								<div className='mb-5 flex flex-col gap-2 border-b border-border pb-4'>
+									<p className='text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+										Информация о товаре
+									</p>
+									<h2 className='text-lg font-semibold text-foreground'>
+										Характеристики и детали
+									</h2>
+									<p className='text-sm leading-6 text-muted-foreground'>
+										Сравните параметры, материалы и особенности модели перед оформлением заказа.
+									</p>
+								</div>
 								<ProductTabs specGroups={specGroups} />
 							</div>
 						</div>
@@ -264,19 +300,21 @@ export default async function ProductPage({
 
 					{/* Right: Price block + specs */}
 					<div className='lg:w-[45%]'>
-						<div className='lg:sticky lg:top-4 space-y-4'>
+						<div id='product-purchase' className='space-y-4 lg:sticky lg:top-4'>
+							<div className='rounded-2xl border border-border bg-card/40 p-4'>
+								<p className='text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+									Покупка
+								</p>
+								<p className='mt-2 text-sm leading-6 text-foreground'>
+									Оформите заказ онлайн или сохраните товар в избранное, чтобы вернуться к нему позже.
+								</p>
+							</div>
 							<ProductPriceBlock
 								price={product.price}
 								oldPrice={product.oldPrice}
 								discountPercent={product.discountPercent}
 								bonusAmount={product.bonusAmount}
-								availability={
-									product.inStock
-										? product.stockQuantity
-											? `В наличии ${product.stockQuantity} шт.`
-											: 'В наличии'
-										: 'Наличие уточняйте у менеджера'
-								}
+								availability={availabilityLabel}
 								cartAction={
 									<AddToCartButton
 										productId={String(product.id)}

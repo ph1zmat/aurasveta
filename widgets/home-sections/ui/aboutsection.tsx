@@ -36,9 +36,14 @@ export default function AboutSection({ title, config }: AboutSectionProps) {
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-10'>
-			<h2 className='mb-4 text-xl font-semibold tracking-widest text-foreground'>
-				{heading}
-			</h2>
+			<div className='mb-4 md:mb-6'>
+				<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					О компании
+				</p>
+				<h2 className='text-xl font-semibold tracking-[0.04em] text-foreground'>
+					{heading}
+				</h2>
+			</div>
 			<div
 				className={cn(
 					'overflow-hidden text-sm leading-relaxed tracking-wider text-muted-foreground transition-all duration-300',

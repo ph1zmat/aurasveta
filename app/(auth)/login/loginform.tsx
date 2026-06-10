@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useSetAtom } from 'jotai'
 import { authClient } from '@/lib/auth/authclient'
 import { Button } from '@/shared/ui/button'
+import Field from '@/shared/ui/field'
+import { Input } from '@/shared/ui/input'
 import { trpc } from '@/lib/trpc/client'
 import {
 	anonymousSessionIdAtom,
@@ -100,39 +102,30 @@ export default function LoginForm() {
 				</div>
 			)}
 
-			<div className='space-y-2'>
-				<label htmlFor='email' className='text-sm font-medium text-foreground'>
-					Email
-				</label>
-				<input
+			<Field label='Email' htmlFor='email'>
+				<Input
 					id='email'
 					type='email'
 					value={email}
 					onChange={e => setEmail(e.target.value)}
 					required
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='your@email.com'
+					autoComplete='email'
 				/>
-			</div>
+			</Field>
 
-			<div className='space-y-2'>
-				<label
-					htmlFor='password'
-					className='text-sm font-medium text-foreground'
-				>
-					Пароль
-				</label>
-				<input
+			<Field label='Пароль' htmlFor='password'>
+				<Input
 					id='password'
 					type='password'
 					value={password}
 					onChange={e => setPassword(e.target.value)}
 					required
 					minLength={8}
-					className='flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 					placeholder='••••••••'
+					autoComplete='current-password'
 				/>
-			</div>
+			</Field>
 
 			<Button
 				type='submit'

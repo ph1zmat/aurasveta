@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Eye, BarChart3, Heart, Star } from 'lucide-react'
+import { BarChart3, Heart, Star } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import DeferredImage from '@/shared/ui/deferredimage'
@@ -51,9 +51,6 @@ export default function FavoriteProductCard({
 		<div className={cn('group relative flex flex-col', className)}>
 			{/* Action icons row */}
 			<div className='mb-1 flex items-center gap-1'>
-				<Button variant='icon' aria-label='Быстрый просмотр'>
-					<Eye className='h-4 w-4' />
-				</Button>
 				<Button
 					variant='icon'
 					aria-label='Убрать из избранного'
@@ -64,12 +61,6 @@ export default function FavoriteProductCard({
 				<Button variant='icon' aria-label='Сравнить' onClick={onToggleCompare}>
 					<BarChart3 className={cn('h-4 w-4', isCompare && 'text-primary')} />
 				</Button>
-				<Button variant='icon' aria-label='Быстрый просмотр'>
-					<Eye className='h-4 w-4' />
-				</Button>
-				<span className='text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer'>
-					Быстрый просмотр
-				</span>
 			</div>
 
 			{/* Image */}
@@ -79,7 +70,7 @@ export default function FavoriteProductCard({
 						src={image}
 						alt={name}
 						fill
-						imageClassName='object-contain transition-transform duration-500 group-hover:scale-105'
+						imageClassName='object-cover transition-transform duration-500 group-hover:scale-105'
 						fallbackClassName='bg-muted/30'
 					/>
 				</div>
@@ -119,30 +110,31 @@ export default function FavoriteProductCard({
 			<div className='mb-3 flex items-center gap-2 flex-wrap'>
 				<PriceBYN value={price} className='text-lg font-semibold text-foreground' />
 				{discountPercent && bonusAmount ? (
-					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-foreground'>
+					<span className='inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white'>
 						{discountPercent}%
 						<PriceBYN
 							value={bonusAmount}
-							className='font-semibold text-primary'
-							iconClassName='text-primary opacity-100'
+							className='font-semibold text-white'
+							iconClassName='text-white opacity-100'
 						/>
 					</span>
 				) : null}
 			</div>
 
 			{/* Button + Stock */}
-			<div className='mt-auto flex items-center gap-3'>
+			<div className='mt-auto flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
 				{onAddToCart ? (
 					<Button
 						variant='primary'
 						size='xs'
+						className='w-full sm:w-auto'
 						onClick={onAddToCart}
 						disabled={cartButtonDisabled}
 					>
 						{cartButtonLabel}
 					</Button>
 				) : (
-					<Button asChild variant='primary' size='xs'>
+					<Button asChild variant='primary' size='xs' className='w-full sm:w-auto'>
 						<Link href={href}>{cartButtonLabel}</Link>
 					</Button>
 				)}

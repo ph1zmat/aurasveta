@@ -16,9 +16,11 @@ interface ProductTabsProps {
 
 function SpecRowCell({ row }: { row: SpecRow }) {
 	return (
-		<div className='flex items-center justify-between border-b border-border py-2 last:border-b-0'>
-			<span className='text-sm text-muted-foreground'>{row.label}</span>
-			<span className='flex items-center gap-1 text-sm text-foreground'>
+		<div className='flex items-start justify-between gap-4 border-b border-border py-3 last:border-b-0'>
+			<span className='max-w-[45%] text-sm leading-6 text-muted-foreground'>
+				{row.label}
+			</span>
+			<span className='flex max-w-[50%] items-center gap-1 text-right text-sm leading-6 text-foreground'>
 				{row.href ? (
 					<Link
 						href={row.href}
@@ -43,17 +45,25 @@ function SpecRowCell({ row }: { row: SpecRow }) {
 /* ── Specs table ── */
 
 function SpecsTable({ groups }: { groups: SpecGroup[] }) {
+	if (groups.length === 0) {
+		return (
+			<div className='rounded-2xl border border-border bg-card/40 p-6 text-sm leading-6 text-muted-foreground'>
+				Характеристики для этого товара появятся здесь после обновления каталога.
+			</div>
+		)
+	}
+
 	/* Split groups into 2 columns */
 	const mid = Math.ceil(groups.length / 2)
 	const leftGroups = groups.slice(0, mid)
 	const rightGroups = groups.slice(mid)
 
 	return (
-		<div className='grid grid-cols-1 gap-x-12 gap-y-8'>
+		<div className='grid grid-cols-1 gap-x-12 gap-y-8 xl:grid-cols-2'>
 			<div className='space-y-8'>
 				{leftGroups.map(group => (
-					<div key={group.title}>
-						<h3 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
+					<div key={group.title} className='rounded-2xl border border-border bg-card/30 p-5'>
+						<h3 className='mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-foreground'>
 							{group.title}
 						</h3>
 						<div>
@@ -66,8 +76,8 @@ function SpecsTable({ groups }: { groups: SpecGroup[] }) {
 			</div>
 			<div className='space-y-8'>
 				{rightGroups.map(group => (
-					<div key={group.title}>
-						<h3 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
+					<div key={group.title} className='rounded-2xl border border-border bg-card/30 p-5'>
+						<h3 className='mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-foreground'>
 							{group.title}
 						</h3>
 						<div>

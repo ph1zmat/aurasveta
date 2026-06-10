@@ -76,10 +76,18 @@ export default function FavoritesContent() {
 
 	return (
 		<>
-			<div className='flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between md:py-6'>
-				<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-xl'>
-					Избранное
-				</h1>
+			<div className='flex flex-col gap-3 border-b border-border py-4 sm:flex-row sm:items-end sm:justify-between md:py-6'>
+				<div>
+					<p className='mb-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Сохранённые товары
+					</p>
+					<h1 className='text-lg font-semibold uppercase tracking-widest text-foreground md:text-xl'>
+						Избранное
+					</h1>
+					<p className='mt-2 text-sm tracking-wide text-muted-foreground'>
+						{products.length} {pluralizeProduct(products.length)} в быстром доступе
+					</p>
+				</div>
 				<Button
 					variant='ghost'
 					className='uppercase tracking-widest'
@@ -89,9 +97,11 @@ export default function FavoritesContent() {
 				</Button>
 			</div>
 
-			<p className='py-4 text-sm tracking-wider text-muted-foreground'>
-				{products.length} товара
-			</p>
+			<div className='py-4'>
+				<div className='inline-flex rounded-full border border-border bg-card/60 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>
+					Можно вернуться позже, сравнить или сразу отправить в корзину
+				</div>
+			</div>
 
 			<div className={`${CATALOG_GRID.default} pb-8`}>
 				{products.map(product => (
@@ -108,4 +118,13 @@ export default function FavoritesContent() {
 			</div>
 		</>
 	)
+}
+
+function pluralizeProduct(n: number): string {
+	const mod10 = n % 10
+	const mod100 = n % 100
+	if (mod100 >= 11 && mod100 <= 14) return 'товаров'
+	if (mod10 === 1) return 'товар'
+	if (mod10 >= 2 && mod10 <= 4) return 'товара'
+	return 'товаров'
 }

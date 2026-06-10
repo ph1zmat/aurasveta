@@ -35,13 +35,15 @@ type TelegramOrder = {
 		product: {
 			name: string
 			slug: string
-			brand: string
+			brand: string | null
 			sku: string | null
-			propertyValues: Array<{
+			properties: Array<{
 				property: {
 					slug: string
 				}
-				value: string
+				propertyValue: {
+					value: string
+				}
 			}>
 		}
 	}>
@@ -133,11 +135,11 @@ function formatOrderMessage(order: TelegramOrder, decisionLine?: string) {
 	lines.push('', '<b>🛒 Состав заказа:</b>')
 
 	for (const item of order.items) {
-		const collection = item.product.propertyValues.find(
+		const collection = item.product.properties.find(
 			pv => pv.property.slug === 'collection'
-		)?.value
+		)?.propertyValue.value
 		lines.push(`• ${escapeHtml(item.product.name)} × ${item.quantity} — ${escapeHtml(formatMoney(item.price * item.quantity))}`)
-		lines.push(`  🏷 Бренд: ${escapeHtml(item.product.brand)}`)
+		lines.push(`  🏷 Бренд: ${escapeHtml(item.product.brand?.trim() || 'Не указан')}`)
 		if (collection) {
 			lines.push(`  📋 Коллекция: ${escapeHtml(collection)}`)
 		}
@@ -166,13 +168,13 @@ async function getOrderForTelegram(orderId: string): Promise<TelegramOrder | nul
 							slug: true,
 							brand: true,
 							sku: true,
-						},
-						include: {
-							propertyValues: {
+							properties: {
 								select: {
-									value: true,
 									property: {
 										select: { slug: true },
+									},
+									propertyValue: {
+										select: { value: true },
 									},
 								},
 							},

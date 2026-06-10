@@ -40,7 +40,12 @@ export default function RoomsSection({ title, config }: RoomsSectionProps) {
 	return (
 		<section className='mx-auto max-w-7xl px-3 py-6 sm:px-4 md:py-10'>
 			{heading && (
-				<h2 className='text-xl font-bold tracking-tight mb-6 sm:text-2xl'>{heading}</h2>
+				<div className='mb-5 md:mb-6'>
+					<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+						Пространства
+					</p>
+					<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>{heading}</h2>
+				</div>
 			)}
 			<div className={`grid gap-3 ${gridClass}`}>
 				{items.map((item, i) => (

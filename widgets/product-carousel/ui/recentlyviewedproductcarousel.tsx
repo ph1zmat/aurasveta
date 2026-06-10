@@ -70,5 +70,5 @@ export default function RecentlyViewedProductCarousel({
 
 	if (cards.length === 0) return null
 
-	return <ProductCarousel title={title} products={cards} />
+	return <ProductCarousel title={title} eyebrow='История' products={cards} />
 }

@@ -6,18 +6,41 @@ import { Slider } from '@/shared/ui/slider'
 
 interface ProductCarouselProps {
 	title: string
+	eyebrow?: string
+	viewAllHref?: string
+	viewAllLabel?: string
 	products: (CatalogProductCardProps & { productId: string })[]
 }
 
 export default function ProductCarousel({
 	title,
+	eyebrow,
+	viewAllHref,
+	viewAllLabel = 'Смотреть все',
 	products,
 }: ProductCarouselProps) {
 	return (
-		<section className='py-8'>
-			<h2 className='mb-6 text-lg font-semibold tracking-widest text-foreground'>
-				{title}
-			</h2>
+		<section className='py-6 md:py-8'>
+			<div className='mb-5 flex items-end justify-between gap-4 md:mb-6'>
+				<div>
+					{eyebrow ? (
+						<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+							{eyebrow}
+						</p>
+					) : null}
+					<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+						{title}
+					</h2>
+				</div>
+				{viewAllHref ? (
+					<a
+						href={viewAllHref}
+						className='shrink-0 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline'
+					>
+						{viewAllLabel}
+					</a>
+				) : null}
+			</div>
 			<Slider
 				visibleItems={5}
 				gap={16}

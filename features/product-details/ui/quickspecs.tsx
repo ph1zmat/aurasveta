@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ChevronRight, Info } from 'lucide-react'
-import { cn } from '@/shared/lib/utils'
 import { Card } from '@/shared/ui/card'
 import type { SpecItem } from '@/entities/spec/model/types'
 
@@ -17,21 +16,23 @@ export default function QuickSpecs({
 }: QuickSpecsProps) {
 	return (
 		<div className='mt-4'>
-			<h2 className='mb-3 text-base font-semibold tracking-widest text-foreground'>
-				Характеристики
-			</h2>
-			<Card padding='compact' className='bg-muted border-0 rounded-[20px]'>
+			<div className='mb-3'>
+				<p className='mb-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					Товар
+				</p>
+				<h2 className='text-base font-semibold tracking-[0.04em] text-foreground'>
+					Характеристики
+				</h2>
+			</div>
+			<Card padding='compact' className='rounded-[20px] border border-border bg-card/50'>
 				<div className='grid grid-cols-1 gap-x-6 sm:grid-cols-2'>
-					{specs.map((spec, i) => (
+					{specs.map(spec => (
 						<div
 							key={spec.label}
-							className={cn(
-								'flex items-center justify-between rounded-sm px-2 py-2 text-sm',
-								i % 2 === 0 && 'bg-muted/30',
-							)}
+							className='flex items-center justify-between gap-4 border-b border-border py-2 text-sm last:border-b-0'
 						>
 							<span className='text-muted-foreground'>{spec.label}</span>
-							<span className='flex items-center gap-1 font-medium text-foreground'>
+							<span className='flex items-center gap-1 font-medium text-foreground text-right'>
 								{spec.value}
 								{spec.tooltip && (
 									<Info

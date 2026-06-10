@@ -82,9 +82,14 @@ export default async function RoomCategories({
 
 	return (
 		<section className='mx-auto max-w-7xl px-4 py-6 md:py-8'>
-			<h2 className='mb-4 text-base font-semibold uppercase tracking-widest text-foreground md:mb-6 md:text-lg'>
-				{heading}
-			</h2>
+			<div className='mb-5 md:mb-6'>
+				<p className='mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground'>
+					По помещению
+				</p>
+				<h2 className='text-lg font-semibold tracking-[0.04em] text-foreground'>
+					{heading}
+				</h2>
+			</div>
 			<div className='grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4 md:grid-cols-7'>
 				{rooms.map((room, idx) => (
 					<Link
