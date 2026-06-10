@@ -26,7 +26,7 @@ export interface BannerSlide {
 
 export interface BannerSectionConfig {
 	slides?: BannerSlide[]
-	/** Minimum slide height in px, default 280 */
+	/** Minimum slide height in px для мобильных устройств, desktop увеличивается адаптивно */
 	minHeight?: number
 	autoPlay?: boolean
 	autoPlayInterval?: number
@@ -64,7 +64,8 @@ const DEFAULT_SLIDES: BannerSlide[] = [
 export default function BannerSection({ config }: BannerSectionProps) {
 	const slides =
 		config?.slides && config.slides.length > 0 ? config.slides : DEFAULT_SLIDES
-	const minH = config?.minHeight ?? 280
+	const mobileMinH = Math.max(config?.minHeight ?? 340, 340)
+	const desktopMinH = Math.max(Math.round(mobileMinH * 1.5), 520)
 
 	return (
 		<section className='mx-auto max-w-7xl px-3 py-2 sm:px-4 md:py-4'>
@@ -120,9 +121,12 @@ export default function BannerSection({ config }: BannerSectionProps) {
 					return (
 						<div
 							key={idx}
-							style={{ minHeight: minH }}
+							style={{
+								['--banner-mobile-min-height' as string]: `${mobileMinH}px`,
+								['--banner-desktop-min-height' as string]: `${desktopMinH}px`,
+							}}
 							className={cn(
-								'relative flex items-center overflow-hidden rounded-xl',
+								'relative flex min-h-[var(--banner-mobile-min-height)] items-center overflow-hidden rounded-xl lg:min-h-[var(--banner-desktop-min-height)]',
 								primarySrc
 									? 'bg-foreground/40'
 									: `bg-linear-to-r ${slide.bg ?? 'from-foreground/80 to-foreground/60'}`,
@@ -132,10 +136,18 @@ export default function BannerSection({ config }: BannerSectionProps) {
 								<div className='absolute inset-0 z-0'>
 									{hasResponsive ? (
 										<picture>
-											{src1300 && <source media='(min-width: 1300px)' srcSet={src1300} />}
-											{src992 && <source media='(min-width: 992px)' srcSet={src992} />}
-											{src768 && <source media='(min-width: 768px)' srcSet={src768} />}
-											{src375 && <source media='(min-width: 375px)' srcSet={src375} />}
+											{src1300 && (
+												<source media='(min-width: 1300px)' srcSet={src1300} />
+											)}
+											{src992 && (
+												<source media='(min-width: 992px)' srcSet={src992} />
+											)}
+											{src768 && (
+												<source media='(min-width: 768px)' srcSet={src768} />
+											)}
+											{src375 && (
+												<source media='(min-width: 375px)' srcSet={src375} />
+											)}
 
 											<img
 												src={primarySrc}
