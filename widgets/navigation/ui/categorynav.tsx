@@ -49,6 +49,7 @@ export default function CategoryNav() {
 		if (!el) return
 
 		let frame = 0
+		const RELAX_THRESHOLD = 0.82
 
 		const recalcDensity = () => {
 			cancelAnimationFrame(frame)
@@ -57,16 +58,26 @@ export default function CategoryNav() {
 				if (!current) return
 
 				const hasOverflow = current.scrollWidth > current.clientWidth + 1
-				if (!hasOverflow) {
-					if (density !== 'normal') setDensity('normal')
-					return
-				}
+				const fitRatio =
+					current.clientWidth > 0
+						? current.scrollWidth / current.clientWidth
+						: 1
 
-				if (density === 'normal') {
-					setDensity('compact')
-				} else if (density === 'compact') {
-					setDensity('tight')
-				}
+				setDensity(prev => {
+					if (hasOverflow) {
+						if (prev === 'normal') return 'compact'
+						if (prev === 'compact') return 'tight'
+						return prev
+					}
+
+					// Не расширяем обратно агрессивно, чтобы избежать дерганья normal <-> compact
+					if (fitRatio < RELAX_THRESHOLD) {
+						if (prev === 'tight') return 'compact'
+						if (prev === 'compact') return 'normal'
+					}
+
+					return prev
+				})
 			})
 		}
 
@@ -80,7 +91,7 @@ export default function CategoryNav() {
 			observer.disconnect()
 			window.removeEventListener('resize', recalcDensity)
 		}
-	}, [categories.length, density])
+	}, [categories.length])
 
 	const linkDensityClass =
 		density === 'normal'

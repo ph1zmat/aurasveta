@@ -67,7 +67,10 @@ export default function CompareProductCard({
 			</div>
 
 			{/* Image */}
-			<Link href={href} className='relative mb-3 block overflow-hidden rounded-xl'>
+			<Link
+				href={href}
+				className='relative mb-3 block overflow-hidden rounded-xl'
+			>
 				<div className='relative h-40 w-full bg-background sm:h-56'>
 					<DeferredImage
 						src={image}
