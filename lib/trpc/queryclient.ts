@@ -13,6 +13,8 @@ export function makeQueryClient() {
 				// На малом VPS не делаем лишних retry, чтобы не нагружать CPU/сеть.
 				retry: 1,
 				refetchOnWindowFocus: false,
+				// Данные уже префетчены на сервере — не перезапрашиваем их при монтировании клиентских страниц.
+				refetchOnMount: false,
 			},
 			mutations: {
 				retry: false,

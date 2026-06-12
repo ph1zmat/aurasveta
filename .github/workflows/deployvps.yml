@@ -114,7 +114,7 @@ jobs:
             echo "=== Phase: npm install ($(date -Is)) ==="
             # npm ci удаляет node_modules и может вызвать ошибки у работающего сервиса.
             # Для паттерна без остановки используем npm install с lockfile.
-            NODE_OPTIONS=--max-old-space-size=1024 npm install --include=dev --no-audit --no-fund
+            NODE_OPTIONS=--max-old-space-size=1280 npm install --include=dev --no-audit --no-fund
 
             # Синхронизация схемы БД перед временными сид-скриптами.
             echo "=== Phase: prisma migrate deploy ($(date -Is)) ==="
@@ -150,7 +150,7 @@ jobs:
             # === FIX: Уменьшен max-old-space-size с 2048 до 1024 ===
             # На сервере с 918MB RAM 2GB heap вызывает агрессивный swap/thrashing.
             # 1024MB — оптимально для сборки с 4GB swap.
-            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1024 ./node_modules/.bin/next build --turbopack
+            NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1280 ./node_modules/.bin/next build --turbopack
 
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на

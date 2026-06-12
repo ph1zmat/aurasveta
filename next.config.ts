@@ -78,6 +78,7 @@ const nextConfig: NextConfig = {
 		ignoreBuildErrors: true,
 	},
 	staticPageGenerationTimeout: 300,
+	productionBrowserSourceMaps: false,
 	images: {
 		dangerouslyAllowSVG: true,
 		contentDispositionType: 'inline',
@@ -87,6 +88,16 @@ const nextConfig: NextConfig = {
 		imageSizes: [16, 32, 48, 64, 96, 128, 256],
 		localPatterns: getStorageLocalPatterns(),
 		remotePatterns: getStorageRemotePatterns(),
+		minimumCacheTTL: 86400,
+	},
+	experimental: {
+		// Оптимизация barrel-импортов тяжёлых UI-библиотек — уменьшает размер бандла
+		optimizePackageImports: [
+			'lucide-react',
+			'recharts',
+			'@radix-ui/react-progress',
+			'@radix-ui/react-separator',
+		],
 	},
 	compiler: {
 		removeConsole: { exclude: ['error', 'warn'] },
