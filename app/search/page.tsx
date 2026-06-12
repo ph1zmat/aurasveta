@@ -21,13 +21,18 @@ export default async function SearchPage({
 	const sp = await searchParams
 	const query = typeof sp.q === 'string' ? sp.q : ''
 
-	// Prefetch search results when arriving with ?q=
+	// SSR-first: получаем начальные результаты поиска на сервере
+	let initialSearchResults = null
 	if (query.length >= 2) {
-		void trpc.search.search.prefetchInfinite({
-			query,
-			limit: 12,
-			sortBy: 'relevance',
-		})
+		try {
+			initialSearchResults = await trpc.search.search({
+				query,
+				limit: 12,
+				sortBy: 'relevance',
+			})
+		} catch {
+			// Fallback: показываем клиентский рендер
+		}
 	}
 
 	return (
@@ -52,7 +57,7 @@ export default async function SearchPage({
 					</div>
 				}
 			>
-				<SearchContent />
+				<SearchContent initialResults={initialSearchResults} />
 			</Suspense>
 		</HydrateClient>
 	)

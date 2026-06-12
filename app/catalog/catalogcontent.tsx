@@ -12,6 +12,13 @@ import {
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 
 type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
+type CategoriesTree = RouterOutputs['categories']['getTree']
+type ProductsList = RouterOutputs['products']['getMany']
+
+type CatalogContentProps = {
+	initialCategoriesTree?: CategoriesTree
+	initialFallbackProductsData?: ProductsList
+}
 type CatalogCategoryCard = {
 	id: string
 	slug: string
@@ -53,9 +60,13 @@ function CatalogCategoryProductsSection({
 	)
 }
 
-export default function CatalogContent() {
+export default function CatalogContent({
+	initialCategoriesTree,
+	initialFallbackProductsData,
+}: CatalogContentProps) {
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
+		initialData: initialCategoriesTree,
 	})
 	const { data: fallbackProductsData } = trpc.products.getMany.useQuery(
 		{
@@ -63,7 +74,10 @@ export default function CatalogContent() {
 			limit: 8,
 			sortBy: 'newest',
 		},
-		{ staleTime: 3 * 60 * 1000 },
+		{
+			staleTime: 3 * 60 * 1000,
+			initialData: initialFallbackProductsData,
+		},
 	)
 
 	const categories: CatalogCategoryCard[] = (categoriesTree ?? []).map(

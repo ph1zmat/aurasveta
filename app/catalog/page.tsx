@@ -25,9 +25,15 @@ export const metadata: Metadata = {
 }
 
 export default async function CatalogPage() {
-	// Prefetch data on the server for instant hydration
-	void trpc.categories.getTree.prefetch()
-	void trpc.products.getMany.prefetch({ page: 1, limit: 24 })
+	// SSR-first: отдаем начальные данные каталога сразу с сервера
+	const [initialCategoriesTree, initialFallbackProductsData] = await Promise.all([
+		trpc.categories.getTree(),
+		trpc.products.getMany({
+			page: 1,
+			limit: 8,
+			sortBy: 'newest',
+		}),
+	])
 
 	return (
 		<HydrateClient>
@@ -51,7 +57,10 @@ export default async function CatalogPage() {
 					</div>
 
 					<Suspense fallback={<CatalogContentSkeleton />}>
-						<CatalogContent />
+						<CatalogContent
+							initialCategoriesTree={initialCategoriesTree}
+							initialFallbackProductsData={initialFallbackProductsData}
+						/>
 					</Suspense>
 				</main>
 

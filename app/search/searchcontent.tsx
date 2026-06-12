@@ -21,6 +21,11 @@ import InteractiveCatalogCard from '@/entities/product/ui/interactivecatalogcard
 
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
 type SearchItem = RouterOutputs['search']['search']['items'][number]
+type SearchResult = RouterOutputs['search']['search']
+
+type SearchContentProps = {
+	initialResults?: SearchResult | null
+}
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'relevance', label: 'По релевантности' },
@@ -29,7 +34,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'newest', label: 'Сначала новые' },
 ]
 
-export default function SearchContent() {
+export default function SearchContent({ initialResults }: SearchContentProps) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const searchTerm = searchParams.get('q') ?? ''
@@ -69,6 +74,12 @@ export default function SearchContent() {
 			enabled: debouncedSearch.length >= 2,
 			getNextPageParam: lastPage => lastPage.nextCursor,
 			staleTime: 1000 * 60 * 2,
+			initialData: initialResults
+				? {
+						pages: [initialResults],
+						pageParams: [undefined],
+					}
+				: undefined,
 		},
 	)
 

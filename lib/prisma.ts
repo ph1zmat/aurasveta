@@ -8,7 +8,9 @@ function createPrismaClient() {
 	}
 	const url = new URL(connectionString)
 	if (!url.searchParams.has('connection_limit')) {
-		url.searchParams.set('connection_limit', '20')
+		const envLimit = process.env.PRISMA_CONNECTION_LIMIT?.trim()
+		// Для малых VPS по умолчанию используем более консервативный пул.
+		url.searchParams.set('connection_limit', envLimit && /^\d+$/.test(envLimit) ? envLimit : '8')
 	}
 	const adapter = new PrismaPg(url.toString())
 	return new PrismaClient({ adapter })
