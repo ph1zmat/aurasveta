@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
 import type { Prisma } from '@prisma/client'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
 import PublicSectionRenderer from '@/entities/section/ui/publicsectionrenderer'
 import DynamicHomeSection from '@/widgets/home-sections/ui/dynamichomesection'
 import { getUnifiedHomePageRenderData } from '@/lib/sections/publicpagedata'
@@ -66,6 +70,10 @@ export default async function Home() {
 	return (
 		<div className='flex flex-col bg-background'>
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
+				<TopBar />
+				<Header />
+				<CategoryNav />
+
 				{/* SEO: H1 заголовок главной страницы */}
 				{homeH1 ? (
 					<h1 className='py-6 text-xl font-semibold uppercase tracking-widest text-foreground md:text-2xl'>
@@ -87,6 +95,8 @@ export default async function Home() {
 					</div>
 				)}
 			</main>
+
+			<Footer />
 		</div>
 	)
 }

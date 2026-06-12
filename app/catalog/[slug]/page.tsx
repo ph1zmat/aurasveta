@@ -191,33 +191,8 @@ export default async function CategoryPage({
 	const hasProperties = Object.keys(properties).length > 0
 	const hasQueryParams = hasActiveQueryParams(sp)
 
-	const productsQueryInput = {
-		categorySlug: slug,
-		includeChildren: true,
-		page,
-		limit: 12,
-		search,
-		sortBy,
-		minPrice,
-		maxPrice,
-		isNew,
-		onSale,
-		freeShipping,
-		properties: hasProperties ? properties : undefined,
-	}
-
-	const [category, categoriesTree, availableFilters, initialProductsData] =
-		await Promise.all([
-			trpc.categories.getBySlug(slug),
-			trpc.categories.getTree(),
-			trpc.products.getAvailableFilters({
-				categorySlug: slug,
-				includeChildren: true,
-			}),
-			trpc.products.getMany(productsQueryInput),
-		])
-
-	// Получаем имя категории для BreadcrumbList
+	// Получаем имя категории для BreadcrumbList (React cache deduplicates)
+	const category = await trpc.categories.getBySlug(slug)
 	if (!category) notFound()
 	const schemaBreadcrumbItems = category
 		? await buildCategoryBreadcrumbSchemaItems({
@@ -229,12 +204,33 @@ export default async function CategoryPage({
 
 	const shouldRenderItemListSchema = !hasQueryParams && page === 1
 	const schemaProducts =
-		category && shouldRenderItemListSchema ? initialProductsData : null
+		category && shouldRenderItemListSchema
+			? await trpc.products.getMany({
+					categorySlug: slug,
+					includeChildren: true,
+					page,
+					limit: 12,
+					search,
+					sortBy,
+					minPrice,
+					maxPrice,
+					isNew,
+					onSale,
+					freeShipping,
+					properties: hasProperties ? properties : undefined,
+				})
+			: null
 
 	// Данные для пагинации next/prev
 	let paginationLinks: ReactElement[] = []
 	if (!hasQueryParams) {
-		const totalPages = initialProductsData.totalPages || 1
+		const productsResult = await trpc.products.getMany({
+			categorySlug: slug,
+			includeChildren: true,
+			limit: 1,
+			page: 1,
+		})
+		const totalPages = productsResult.totalPages || 1
 		if (page > 1) {
 			paginationLinks.push(
 				<link
@@ -254,6 +250,28 @@ export default async function CategoryPage({
 			)
 		}
 	}
+
+	// Prefetch category, tree, filters, and products with actual URL params
+	void trpc.categories.getBySlug.prefetch(slug)
+	void trpc.categories.getTree.prefetch()
+	void trpc.products.getAvailableFilters.prefetch({
+		categorySlug: slug,
+		includeChildren: true,
+	})
+	void trpc.products.getMany.prefetch({
+		categorySlug: slug,
+		includeChildren: true,
+		page,
+		limit: 12,
+		search,
+		sortBy,
+		minPrice,
+		maxPrice,
+		isNew,
+		onSale,
+		freeShipping,
+		properties: hasProperties ? properties : undefined,
+	})
 
 	return (
 		<HydrateClient>
@@ -290,13 +308,7 @@ export default async function CategoryPage({
 					<CategoryNav />
 
 					<Suspense fallback={<CategoryContentSkeleton />}>
-						<CategoryContent
-							slug={slug}
-							initialCategory={category}
-							initialCategoriesTree={categoriesTree}
-							initialAvailableFilters={availableFilters}
-							initialProductsData={initialProductsData}
-						/>
+						<CategoryContent slug={slug} />
 					</Suspense>
 				</main>
 

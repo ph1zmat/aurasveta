@@ -12,13 +12,6 @@ import {
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 
 type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
-type CategoriesTree = RouterOutputs['categories']['getTree']
-type ProductsList = RouterOutputs['products']['getMany']
-
-type CatalogContentProps = {
-	initialCategoriesTree?: CategoriesTree
-	initialFallbackProductsData?: ProductsList
-}
 type CatalogCategoryCard = {
 	id: string
 	slug: string
@@ -60,13 +53,9 @@ function CatalogCategoryProductsSection({
 	)
 }
 
-export default function CatalogContent({
-	initialCategoriesTree,
-	initialFallbackProductsData,
-}: CatalogContentProps) {
+export default function CatalogContent() {
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
-		initialData: initialCategoriesTree,
 	})
 	const { data: fallbackProductsData } = trpc.products.getMany.useQuery(
 		{
@@ -74,23 +63,20 @@ export default function CatalogContent({
 			limit: 8,
 			sortBy: 'newest',
 		},
-		{
-			staleTime: 3 * 60 * 1000,
-			initialData: initialFallbackProductsData,
-		},
+		{ staleTime: 3 * 60 * 1000 },
 	)
 
 	const categories: CatalogCategoryCard[] = (categoriesTree ?? []).map(
 		(cat: CategoryTreeNode) => ({
-			id: cat.id,
-			slug: cat.slug,
-			name: cat.name,
-			href: `/catalog/${cat.slug}`,
-			image:
-				cat.imageUrl ??
-				resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
-				'/images/categories/default.jpg',
-			productCount: cat._count?.products ?? 0,
+		id: cat.id,
+		slug: cat.slug,
+		name: cat.name,
+		href: `/catalog/${cat.slug}`,
+		image:
+			cat.imageUrl ??
+			resolveStorageFileUrl(cat.imagePath ?? cat.image) ??
+			'/images/categories/default.jpg',
+		productCount: cat._count?.products ?? 0,
 		}),
 	)
 

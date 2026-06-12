@@ -30,18 +30,6 @@ const STATIC_FILTER_KEYS = {
 
 const PROPERTY_PARAM_PREFIX = 'prop.'
 type CategoryTreeNode = RouterOutputs['categories']['getTree'][number]
-type Category = RouterOutputs['categories']['getBySlug']
-type CategoriesTree = RouterOutputs['categories']['getTree']
-type AvailableFilters = RouterOutputs['products']['getAvailableFilters']
-type ProductsList = RouterOutputs['products']['getMany']
-
-type CategoryContentProps = {
-	slug: string
-	initialCategory?: Category
-	initialCategoriesTree?: CategoriesTree
-	initialAvailableFilters?: AvailableFilters
-	initialProductsData?: ProductsList
-}
 
 function parsePropertyFiltersFromParams(
 	params: URLSearchParams,
@@ -82,13 +70,7 @@ function clearFilterParams(params: URLSearchParams) {
 	}
 }
 
-export default function CategoryContent({
-	slug,
-	initialCategory,
-	initialCategoriesTree,
-	initialAvailableFilters,
-	initialProductsData,
-}: CategoryContentProps) {
+export default function CategoryContent({ slug }: { slug: string }) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const pathname = usePathname()
@@ -119,11 +101,9 @@ export default function CategoryContent({
 	const { data: category, isLoading: isCategoryLoading } =
 		trpc.categories.getBySlug.useQuery(slug, {
 			staleTime: 5 * 60 * 1000,
-			initialData: initialCategory,
 		})
 	const { data: categoriesTree } = trpc.categories.getTree.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
-		initialData: initialCategoriesTree,
 	})
 	const { data: availableFilters, isLoading: isFiltersLoading } =
 		trpc.products.getAvailableFilters.useQuery(
@@ -133,7 +113,6 @@ export default function CategoryContent({
 			},
 			{
 				staleTime: 3 * 60 * 1000,
-				initialData: initialAvailableFilters,
 			},
 		)
 
@@ -158,7 +137,6 @@ export default function CategoryContent({
 			},
 			{
 				placeholderData: keepPreviousData,
-				initialData: currentPage === 1 ? initialProductsData : undefined,
 			},
 		)
 

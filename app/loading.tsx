@@ -1,5 +1,7 @@
 export default function Loading() {
-	// Глобальный route-level fallback отключен, чтобы не показывать
-	// искусственный полноэкранный loader между переходами.
-	return null
+	return (
+		<div className='flex min-h-screen items-center justify-center bg-background'>
+			<div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent' />
+		</div>
+	)
 }

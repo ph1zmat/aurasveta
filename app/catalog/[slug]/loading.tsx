@@ -1,4 +1,5 @@
+import { CategoryPageSkeleton } from '@/shared/ui/storefrontskeletons'
+
 export default function Loading() {
-	// Без искусственного полноэкранного skeleton — страница категории рендерится сразу.
-	return null
+	return <CategoryPageSkeleton />
 }
