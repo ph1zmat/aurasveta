@@ -152,6 +152,10 @@ jobs:
             # 1024MB — оптимально для сборки с 4GB swap.
             NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1280 ./node_modules/.bin/next build --turbopack
 
+            # Next.js 16 + Turbopack + output: standalone не копирует public в .next/standalone.
+            # Копируем вручную, чтобы статика из public/ (BYN.svg, favicon и т.д.) отдавалась standalone-сервером.
+            cp -a public .next/standalone/public
+
             # Next.js build выполняется от root в рамках CI-SSH, но сервис работает
             # от пользователя aurasveta. Фиксируем права, чтобы убрать EACCES на
             # runtime-кэше (.next/cache/images) и prerender-сегментах.
