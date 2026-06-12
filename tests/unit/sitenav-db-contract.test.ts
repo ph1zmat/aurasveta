@@ -5,15 +5,15 @@ import {
 	LEGACY_HEADER_SERVICE_LINKS,
 } from '@/shared/config/legacysitenav'
 
-const getPublicByZoneMock = vi.hoisted(() => vi.fn())
+const siteNavItemMock = vi.hoisted(() => ({
+	findMany: vi.fn(),
+}))
 
 vi.mock('server-only', () => ({}))
 
-vi.mock('@/lib/trpc/server', () => ({
-	trpc: {
-		siteNav: {
-			getPublicByZone: getPublicByZoneMock,
-		},
+vi.mock('@/lib/prisma', () => ({
+	prisma: {
+		siteNavItem: siteNavItemMock,
 	},
 }))
 
@@ -21,15 +21,39 @@ import { getFooterAboutLinks, getTopBarNavGroups } from '@/lib/navigation/sitena
 
 describe('site nav DB/fallback contract (phase H3)', () => {
 	beforeEach(() => {
-		getPublicByZoneMock.mockReset()
+		siteNavItemMock.findMany.mockReset()
 	})
 
 	it('использует DB-backed header links без отката на legacy', async () => {
-		getPublicByZoneMock.mockResolvedValueOnce([
-			{ id: '1', pageId: 'p1', label: 'Каталог', href: '/catalog', order: 0 },
-			{ id: '2', pageId: 'p2', label: 'Доставка и оплата', href: '/delivery', order: 1 },
-			{ id: '3', pageId: 'p3', label: 'Контакты', href: '/contacts', order: 2 },
-			{ id: '4', pageId: 'p4', label: 'Возврат', href: '/returns', order: 3 },
+		siteNavItemMock.findMany.mockResolvedValueOnce([
+			{
+				id: '1',
+				pageId: 'p1',
+				labelOverride: 'Каталог',
+				page: { id: 'p1', title: 'Каталог', slug: 'catalog' },
+				order: 0,
+			},
+			{
+				id: '2',
+				pageId: 'p2',
+				labelOverride: 'Доставка и оплата',
+				page: { id: 'p2', title: 'Доставка и оплата', slug: 'delivery' },
+				order: 1,
+			},
+			{
+				id: '3',
+				pageId: 'p3',
+				labelOverride: 'Контакты',
+				page: { id: 'p3', title: 'Контакты', slug: 'contacts' },
+				order: 2,
+			},
+			{
+				id: '4',
+				pageId: 'p4',
+				labelOverride: 'Возврат',
+				page: { id: 'p4', title: 'Возврат', slug: 'returns' },
+				order: 3,
+			},
 		])
 
 		const groups = await getTopBarNavGroups()
@@ -47,10 +71,28 @@ describe('site nav DB/fallback contract (phase H3)', () => {
 	})
 
 	it('использует DB-backed footer links без отката на legacy', async () => {
-		getPublicByZoneMock.mockResolvedValueOnce([
-			{ id: 'f1', pageId: 'p1', label: 'Доставка и оплата', href: '/delivery', order: 0 },
-			{ id: 'f2', pageId: 'p2', label: 'Контакты', href: '/contacts', order: 1 },
-			{ id: 'f3', pageId: 'p3', label: 'Гарантия качества', href: '/warranty', order: 2 },
+		siteNavItemMock.findMany.mockResolvedValueOnce([
+			{
+				id: 'f1',
+				pageId: 'p1',
+				labelOverride: 'Доставка и оплата',
+				page: { id: 'p1', title: 'Доставка и оплата', slug: 'delivery' },
+				order: 0,
+			},
+			{
+				id: 'f2',
+				pageId: 'p2',
+				labelOverride: 'Контакты',
+				page: { id: 'p2', title: 'Контакты', slug: 'contacts' },
+				order: 1,
+			},
+			{
+				id: 'f3',
+				pageId: 'p3',
+				labelOverride: 'Гарантия качества',
+				page: { id: 'p3', title: 'Гарантия качества', slug: 'warranty' },
+				order: 2,
+			},
 		])
 
 		const links = await getFooterAboutLinks()
@@ -64,12 +106,12 @@ describe('site nav DB/fallback contract (phase H3)', () => {
 	})
 
 	it('использует legacy fallback только при пустом DB-ответе', async () => {
-		getPublicByZoneMock.mockResolvedValueOnce([])
+		siteNavItemMock.findMany.mockResolvedValueOnce([])
 		const header = await getTopBarNavGroups()
 		expect(header.serviceLinks).toEqual(LEGACY_HEADER_SERVICE_LINKS)
 		expect(header.rightLinks).toEqual(LEGACY_HEADER_RIGHT_LINKS)
 
-		getPublicByZoneMock.mockResolvedValueOnce([])
+		siteNavItemMock.findMany.mockResolvedValueOnce([])
 		const footer = await getFooterAboutLinks()
 		expect(footer).toEqual(LEGACY_FOOTER_ABOUT_LINKS)
 	})

@@ -1,4 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
+
+const defaultPoliciesMock = vi.hoisted(() => ({
+	shippingPolicy: { findFirst: vi.fn() },
+	returnPolicy: { findFirst: vi.fn() },
+	warrantyPolicy: { findFirst: vi.fn() },
+}))
+
+vi.mock('@/lib/prisma', () => ({
+	prisma: defaultPoliciesMock,
+}))
+
 import { getEffectiveMerchantPolicies } from '@/lib/merchant-policies/geteffectivemerchantpolicies'
 
 describe('getEffectiveMerchantPolicies', () => {
@@ -31,6 +42,19 @@ describe('getEffectiveMerchantPolicies', () => {
 			},
 		}
 
+		defaultPoliciesMock.shippingPolicy.findFirst.mockResolvedValue({
+			id: 'ship-default',
+			isActive: true,
+		})
+		defaultPoliciesMock.returnPolicy.findFirst.mockResolvedValue({
+			id: 'ret-default',
+			isActive: true,
+		})
+		defaultPoliciesMock.warrantyPolicy.findFirst.mockResolvedValue({
+			id: 'war-default',
+			isActive: true,
+		})
+
 		const result = await getEffectiveMerchantPolicies(prisma as never, 'product-1')
 
 		expect(result.shippingPolicy?.id).toBe('ship-override')
@@ -60,6 +84,19 @@ describe('getEffectiveMerchantPolicies', () => {
 				findFirst: vi.fn(async () => ({ id: 'war-default', isActive: true })),
 			},
 		}
+
+		defaultPoliciesMock.shippingPolicy.findFirst.mockResolvedValue({
+			id: 'ship-default',
+			isActive: true,
+		})
+		defaultPoliciesMock.returnPolicy.findFirst.mockResolvedValue({
+			id: 'ret-default',
+			isActive: true,
+		})
+		defaultPoliciesMock.warrantyPolicy.findFirst.mockResolvedValue({
+			id: 'war-default',
+			isActive: true,
+		})
 
 		const result = await getEffectiveMerchantPolicies(prisma as never, 'product-1')
 

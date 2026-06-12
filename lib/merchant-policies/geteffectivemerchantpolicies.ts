@@ -1,4 +1,10 @@
 import type { PrismaClient } from '@prisma/client'
+import { unstable_cache } from 'next/cache'
+import { prisma } from '@/lib/prisma'
+
+const activePolicyFilter = {
+	isActive: true,
+} as const
 
 type ShippingPolicyRecord = {
 	id: string
@@ -38,10 +44,6 @@ export type EffectiveMerchantPolicies = {
 	warrantyPolicy: WarrantyPolicyRecord | null
 }
 
-const activePolicyFilter = {
-	isActive: true,
-} as const
-
 type PolicyPrismaClient = {
 	product: {
 		findUnique: PrismaClient['product']['findUnique']
@@ -57,13 +59,49 @@ type PolicyPrismaClient = {
 	}
 }
 
+async function fetchDefaultMerchantPolicies(
+	prisma: Pick<
+		PolicyPrismaClient,
+		'shippingPolicy' | 'returnPolicy' | 'warrantyPolicy'
+	>,
+): Promise<{
+	shippingPolicy: ShippingPolicyRecord | null
+	returnPolicy: ReturnPolicyRecord | null
+	warrantyPolicy: WarrantyPolicyRecord | null
+}> {
+	const [shippingDefault, returnDefault, warrantyDefault] = await Promise.all([
+		prisma.shippingPolicy.findFirst({
+			where: { isDefault: true, ...activePolicyFilter },
+			orderBy: { updatedAt: 'desc' },
+		}),
+		prisma.returnPolicy.findFirst({
+			where: { isDefault: true, ...activePolicyFilter },
+			orderBy: { updatedAt: 'desc' },
+		}),
+		prisma.warrantyPolicy.findFirst({
+			where: { isDefault: true, ...activePolicyFilter },
+			orderBy: { updatedAt: 'desc' },
+		}),
+	])
+
+	return {
+		shippingPolicy: (shippingDefault as ShippingPolicyRecord | null) ?? null,
+		returnPolicy: (returnDefault as ReturnPolicyRecord | null) ?? null,
+		warrantyPolicy: (warrantyDefault as WarrantyPolicyRecord | null) ?? null,
+	}
+}
+
+const getDefaultMerchantPoliciesCached = unstable_cache(
+	async () => fetchDefaultMerchantPolicies(prisma),
+	['merchant-policies-defaults'],
+	{ revalidate: 600 },
+)
+
 export async function getEffectiveMerchantPolicies(
 	prisma: PolicyPrismaClient,
 	productId: string,
 ): Promise<EffectiveMerchantPolicies> {
-	const policyClient = prisma
-
-	const product = await policyClient.product.findUnique({
+	const product = await prisma.product.findUnique({
 		where: { id: productId },
 		select: {
 			shippingPolicyId: true,
@@ -80,39 +118,35 @@ export async function getEffectiveMerchantPolicies(
 		}
 	}
 
-	const [shippingOverride, shippingDefault, returnOverride, returnDefault, warrantyOverride, warrantyDefault] = await Promise.all([
-		product.shippingPolicyId
-			? policyClient.shippingPolicy.findFirst({
-				where: { id: product.shippingPolicyId, ...activePolicyFilter },
-			})
-			: Promise.resolve(null),
-		policyClient.shippingPolicy.findFirst({
-			where: { isDefault: true, ...activePolicyFilter },
-			orderBy: { updatedAt: 'desc' },
-		}),
-		product.returnPolicyId
-			? policyClient.returnPolicy.findFirst({
-				where: { id: product.returnPolicyId, ...activePolicyFilter },
-			})
-			: Promise.resolve(null),
-		policyClient.returnPolicy.findFirst({
-			where: { isDefault: true, ...activePolicyFilter },
-			orderBy: { updatedAt: 'desc' },
-		}),
-		product.warrantyPolicyId
-			? policyClient.warrantyPolicy.findFirst({
-				where: { id: product.warrantyPolicyId, ...activePolicyFilter },
-			})
-			: Promise.resolve(null),
-		policyClient.warrantyPolicy.findFirst({
-			where: { isDefault: true, ...activePolicyFilter },
-			orderBy: { updatedAt: 'desc' },
-		}),
-	])
+	const [defaults, shippingOverride, returnOverride, warrantyOverride] =
+		await Promise.all([
+			getDefaultMerchantPoliciesCached(),
+			product.shippingPolicyId
+				? prisma.shippingPolicy.findFirst({
+						where: { id: product.shippingPolicyId, ...activePolicyFilter },
+					})
+				: Promise.resolve(null),
+			product.returnPolicyId
+				? prisma.returnPolicy.findFirst({
+						where: { id: product.returnPolicyId, ...activePolicyFilter },
+					})
+				: Promise.resolve(null),
+			product.warrantyPolicyId
+				? prisma.warrantyPolicy.findFirst({
+						where: { id: product.warrantyPolicyId, ...activePolicyFilter },
+					})
+				: Promise.resolve(null),
+		])
 
 	return {
-		shippingPolicy: (shippingOverride ?? shippingDefault) as ShippingPolicyRecord | null,
-		returnPolicy: (returnOverride ?? returnDefault) as ReturnPolicyRecord | null,
-		warrantyPolicy: (warrantyOverride ?? warrantyDefault) as WarrantyPolicyRecord | null,
+		shippingPolicy:
+			(shippingOverride as ShippingPolicyRecord | null) ??
+			(defaults.shippingPolicy as ShippingPolicyRecord | null),
+		returnPolicy:
+			(returnOverride as ReturnPolicyRecord | null) ??
+			(defaults.returnPolicy as ReturnPolicyRecord | null),
+		warrantyPolicy:
+			(warrantyOverride as WarrantyPolicyRecord | null) ??
+			(defaults.warrantyPolicy as WarrantyPolicyRecord | null),
 	}
 }

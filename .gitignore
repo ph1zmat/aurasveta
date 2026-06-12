@@ -98,6 +98,9 @@ HOSTER_API.md
 docs/**
 !docs/README.md
 
+# Kimi CLI context files
+.kimi-*.md
+
 data
 data/import/*
 

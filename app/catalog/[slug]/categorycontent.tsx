@@ -158,8 +158,7 @@ export default function CategoryContent({
 			},
 			{
 				placeholderData: keepPreviousData,
-				initialData:
-					currentPage === 1 ? initialProductsData : undefined,
+				initialData: currentPage === 1 ? initialProductsData : undefined,
 			},
 		)
 

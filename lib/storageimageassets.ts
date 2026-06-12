@@ -112,13 +112,21 @@ export async function createStorageImageAsset(
 			source: 'proxy',
 			expiresAt: null,
 		}
+	} else if (STORAGE_PUBLIC_URL) {
+		// Публичный CDN: отдаём прямую ссылку без подписи — мгновенно и без нагрузки на CPU.
+		result = {
+			key: normalizedCandidate,
+			url: `${STORAGE_PUBLIC_URL}/${normalizedCandidate}`,
+			source: 'public',
+			expiresAt: null,
+		}
 	} else {
 		try {
 			result = {
 				key: normalizedCandidate,
 				url: await getFileUrl(normalizedCandidate),
-				source: STORAGE_PUBLIC_URL ? 'public' : 'signed',
-				expiresAt: STORAGE_PUBLIC_URL ? null : computeExpiresAt(),
+				source: 'signed',
+				expiresAt: computeExpiresAt(),
 			}
 		} catch {
 			result = {

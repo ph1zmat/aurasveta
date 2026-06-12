@@ -9,12 +9,20 @@ import { appRouter, type AppRouter } from './routers/app'
 
 export const getQueryClient = cache(makeQueryClient)
 
-const caller = createCallerFactory(appRouter)(async () =>
+const authAwareCaller = createCallerFactory(appRouter)(async () =>
 	createTRPCContext({ headers: await headers() }),
 )
 
+const publicCaller = createCallerFactory(appRouter)(async () =>
+	// Публичный caller без чтения request headers — не форсирует dynamic rendering,
+	// поэтому его можно использовать в ISR-страницах storefront.
+	createTRPCContext({ headers: new Headers() }),
+)
+
 export const { trpc, HydrateClient } = createHydrationHelpers<AppRouter>(
-	caller,
+	authAwareCaller,
 	getQueryClient,
 )
 
+export const { trpc: publicTrpc, HydrateClient: PublicHydrateClient } =
+	createHydrationHelpers<AppRouter>(publicCaller, getQueryClient)

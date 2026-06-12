@@ -33,7 +33,16 @@ vi.mock('@/lib/trpc/server', () => ({
 			getMany: productsGetManyMock,
 		},
 	},
+	publicTrpc: {
+		categories: {
+			getBySlug: categoryGetBySlugMock,
+		},
+		products: {
+			getMany: productsGetManyMock,
+		},
+	},
 	HydrateClient: ({ children }: { children: React.ReactNode }) => children,
+	PublicHydrateClient: ({ children }: { children: React.ReactNode }) => children,
 }))
 
 vi.mock('@/lib/seo/getmetadata', () => ({

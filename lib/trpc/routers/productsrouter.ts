@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient } from '@prisma/client'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
 import { generateSlug } from '@/shared/lib/generateslug'
 import { validateWebhookUrl } from '@/shared/lib/validateurl'
@@ -12,6 +12,8 @@ import {
 import { deleteFile } from '@/lib/storage'
 import type { StorageImageAsset } from '@/shared/types/storage'
 import { SeoFieldsInputSchema } from '@/shared/types/seo'
+import { unstable_cache } from 'next/cache'
+import { prisma } from '@/lib/prisma'
 import { withResolvedProductImages } from '@/lib/storageimageassets'
 import {
 	isExternalOrLegacyImageKey,
@@ -23,6 +25,7 @@ import {
 import {
 	attachAutoBadges,
 	getAutoBadgeSettings,
+	getAutoBadgeSettingsForRead,
 	getNewSinceDate,
 } from '@/lib/products/autobadges'
 import { getMainImage } from '@/shared/lib/productutils'
@@ -271,9 +274,181 @@ async function enrichProducts<T extends ProductWithImagesReadShape>(
 	return Promise.all(products.map(product => enrichProduct(product, cache)))
 }
 
+type AvailableFiltersResult = {
+	staticFilters: Array<{
+		key: 'isNew' | 'onSale' | 'freeShipping'
+		label: string
+		count: number
+	}>
+	propertyFilters: Array<{
+		key: string
+		label: string
+		type: string
+		options: Array<{ value: string; label: string; count: number }>
+	}>
+}
+
+async function fetchAvailableFilters(
+	db: PrismaClient,
+	categorySlug: string | undefined,
+	includeChildren: boolean,
+): Promise<AvailableFiltersResult> {
+	const autoBadgeSettings = await getAutoBadgeSettingsForRead()
+	const newSinceDate = getNewSinceDate(autoBadgeSettings)
+
+	const baseWhere: Prisma.ProductWhereInput = { isActive: true }
+
+	if (categorySlug) {
+		const category = await db.category.findUnique({
+			where: { slug: categorySlug },
+			select: {
+				id: true,
+				parentId: true,
+				categoryMode: true,
+				filterKind: true,
+				filterPropertyId: true,
+				filterPropertyValueId: true,
+				children: { select: { id: true } },
+			},
+		})
+
+		if (!category) {
+			return {
+				staticFilters: [],
+				propertyFilters: [],
+			}
+		}
+
+		Object.assign(baseWhere, buildCategoryProductWhere(category, { includeChildren }))
+	}
+
+	const [newCount, saleCount, freeShippingCount, groupedValues] = await Promise.all([
+		db.product.count({
+			where: { ...baseWhere, createdAt: { gte: newSinceDate } },
+		}),
+		db.product.count({
+			where: { ...baseWhere, compareAtPrice: { not: null } },
+		}),
+		db.product.count({
+			where: {
+				...baseWhere,
+				properties: {
+					some: {
+						property: { slug: 'free_shipping' },
+						propertyValue: { value: { in: TRUE_VALUES } },
+					},
+				},
+			},
+		}),
+		db.productPropertyValue.groupBy({
+			by: ['propertyValueId'],
+			where: { product: baseWhere },
+			_count: { productId: true },
+		}),
+	])
+
+	const staticFilters = [
+		{ key: 'isNew' as const, label: 'Новинки', count: newCount },
+		{ key: 'onSale' as const, label: 'Товары со скидкой', count: saleCount },
+		{ key: 'freeShipping' as const, label: 'Бесплатная доставка', count: freeShippingCount },
+	].filter(item => item.count > 0)
+
+	if (groupedValues.length === 0) {
+		return { staticFilters, propertyFilters: [] }
+	}
+
+	const valueIds = groupedValues.map(row => row.propertyValueId)
+	const values = await db.propertyValue.findMany({
+		where: { id: { in: valueIds } },
+		select: {
+			id: true,
+			value: true,
+			slug: true,
+			propertyId: true,
+			property: { select: { slug: true, name: true } },
+		},
+	})
+	const valueById = new Map(values.map(value => [value.id, value]))
+
+	const grouped = new Map<
+		string,
+		{
+			key: string
+			label: string
+			options: Map<string, { label: string; count: number }>
+		}
+	>()
+
+	for (const row of groupedValues) {
+		const value = valueById.get(row.propertyValueId)
+		if (!value || !value.property) continue
+		const propertySlug = value.property.slug
+		const valueSlug = value.slug
+		const valueLabel = value.value
+		const existing = grouped.get(propertySlug)
+		if (!existing) {
+			grouped.set(propertySlug, {
+				key: propertySlug,
+				label: value.property.name,
+				options: new Map([[valueSlug, { label: valueLabel, count: row._count.productId }]]),
+			})
+			continue
+		}
+		const opt = existing.options.get(valueSlug)
+		if (opt) {
+			opt.count += row._count.productId
+		} else {
+			existing.options.set(valueSlug, { label: valueLabel, count: row._count.productId })
+		}
+	}
+
+	const propertyFilters = [...grouped.values()]
+		.map(group => ({
+			key: group.key,
+			type: 'string',
+			label: group.label,
+			options: [...group.options.entries()]
+				.map(([slug, { label, count }]) => ({ value: slug, label, count }))
+				.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+		}))
+		.filter(group => group.options.length > 0)
+		.sort((a, b) => a.label.localeCompare(b.label))
+
+	return { staticFilters, propertyFilters }
+}
+
+const getAvailableFiltersCached = (
+	categorySlug: string | undefined,
+	includeChildren: boolean,
+) =>
+	unstable_cache(
+		async () => fetchAvailableFilters(prisma, categorySlug, includeChildren),
+		[`available-filters-${categorySlug ?? 'all'}-${includeChildren}`],
+		{ revalidate: 300 },
+	)()
+
+async function searchProductIds(
+	db: PrismaClient,
+	search: string,
+	limit = 200,
+): Promise<string[]> {
+	const term = search.trim()
+	if (!term) return []
+
+	const rows = await db.$queryRaw<{ id: string }[]>`
+		SELECT id
+		FROM products
+		WHERE is_active = true
+			AND search_vector @@ plainto_tsquery('russian', ${term}::text)
+		ORDER BY ts_rank(search_vector, plainto_tsquery('russian', ${term}::text)) DESC
+		LIMIT ${limit}
+	`
+	return rows.map(row => row.id)
+}
+
 export const productsRouter = createTRPCRouter({
 	getMany: baseProcedure.input(productFilters).query(async ({ ctx, input }) => {
-		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+		const autoBadgeSettings = await getAutoBadgeSettingsForRead()
 		const newSinceDate = getNewSinceDate(autoBadgeSettings)
 
 		const {
@@ -353,13 +528,17 @@ export const productsRouter = createTRPCRouter({
 		}
 
 		if (search) {
-			andConditions.push({
-				OR: [
-					{ name: { contains: search, mode: 'insensitive' } },
-					{ description: { contains: search, mode: 'insensitive' } },
-					{ sku: { contains: search, mode: 'insensitive' } },
-				],
-			})
+			const searchIds = await searchProductIds(ctx.prisma, search)
+			if (searchIds.length === 0) {
+				return {
+					items: [],
+					total: 0,
+					page,
+					limit,
+					totalPages: 0,
+				}
+			}
+			where.id = { in: searchIds }
 		}
 
 		if (minPrice !== undefined || maxPrice !== undefined) {
@@ -487,166 +666,13 @@ export const productsRouter = createTRPCRouter({
 				includeChildren: z.boolean().default(true),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
-			const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
-			const newSinceDate = getNewSinceDate(autoBadgeSettings)
-
+		.query(async ({ input }) => {
 			const { categorySlug, includeChildren } = input
-			const baseWhere: Prisma.ProductWhereInput = { isActive: true }
-
-			if (categorySlug) {
-				const category = await ctx.prisma.category.findUnique({
-					where: { slug: categorySlug },
-					select: {
-						id: true,
-						parentId: true,
-						categoryMode: true,
-						filterKind: true,
-						filterPropertyId: true,
-						filterPropertyValueId: true,
-						children: { select: { id: true } },
-					},
-				})
-
-				if (!category) {
-					return {
-						staticFilters: [] as Array<{
-							key: 'isNew' | 'onSale' | 'freeShipping'
-							label: string
-							count: number
-						}>,
-						propertyFilters: [] as Array<{
-							key: string
-							label: string
-							type: string
-							options: Array<{ value: string; label: string; count: number }>
-						}>,
-					}
-				}
-
-				Object.assign(
-					baseWhere,
-					buildCategoryProductWhere(category, { includeChildren }),
-				)
-			}
-
-			const [newCount, saleCount, freeShippingCount, values] =
-				await Promise.all([
-					ctx.prisma.product.count({
-						where: {
-							...baseWhere,
-							createdAt: { gte: newSinceDate },
-						},
-					}),
-					ctx.prisma.product.count({
-						where: {
-							...baseWhere,
-							compareAtPrice: { not: null },
-						},
-					}),
-					ctx.prisma.product.count({
-						where: {
-							...baseWhere,
-							properties: {
-								some: {
-									property: { slug: 'free_shipping' },
-									propertyValue: { value: { in: TRUE_VALUES } },
-								},
-							},
-						},
-					}),
-					ctx.prisma.productPropertyValue.findMany({
-						where: { product: baseWhere },
-						select: {
-							property: {
-								select: {
-									slug: true,
-									name: true,
-								},
-							},
-							propertyValue: {
-								select: {
-									value: true,
-									slug: true,
-								},
-							},
-						},
-					}),
-				])
-
-			const staticFilters = [
-				{ key: 'isNew' as const, label: 'Новинки', count: newCount },
-				{
-					key: 'onSale' as const,
-					label: 'Товары со скидкой',
-					count: saleCount,
-				},
-				{
-					key: 'freeShipping' as const,
-					label: 'Бесплатная доставка',
-					count: freeShippingCount,
-				},
-			].filter(item => item.count > 0)
-
-			const grouped = new Map<
-				string,
-				{
-					key: string
-					label: string
-					options: Map<string, { label: string; count: number }>
-				}
-			>()
-
-			for (const row of values) {
-				if (!row.propertyValue) continue
-				const valueSlug = row.propertyValue.slug
-				const valueLabel = row.propertyValue.value
-
-				const propertySlug = row.property.slug
-				const existing = grouped.get(propertySlug)
-				if (!existing) {
-					grouped.set(propertySlug, {
-						key: propertySlug,
-						label: row.property.name,
-						options: new Map([[valueSlug, { label: valueLabel, count: 1 }]]),
-					})
-					continue
-				}
-
-				const opt = existing.options.get(valueSlug)
-				if (opt) {
-					opt.count++
-				} else {
-					existing.options.set(valueSlug, { label: valueLabel, count: 1 })
-				}
-			}
-
-			const propertyFilters = [...grouped.values()]
-				.map(group => ({
-					key: group.key,
-					type: 'string',
-					label: group.label,
-					options: [...group.options.entries()]
-						.map(([slug, { label, count }]) => ({
-							value: slug,
-							label,
-							count,
-						}))
-						.sort(
-							(a, b) => b.count - a.count || a.label.localeCompare(b.label),
-						),
-				}))
-				.filter(group => group.options.length > 0)
-				.sort((a, b) => a.label.localeCompare(b.label))
-
-			return {
-				staticFilters,
-				propertyFilters,
-			}
+			return getAvailableFiltersCached(categorySlug, includeChildren)
 		}),
 
 	getBySlug: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+		const autoBadgeSettings = await getAutoBadgeSettingsForRead()
 		const product = await ctx.prisma.product.findUnique({
 			where: { slug: input },
 			include: productDetailInclude,
@@ -663,7 +689,7 @@ export const productsRouter = createTRPCRouter({
 	}),
 
 	getById: baseProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		const autoBadgeSettings = await getAutoBadgeSettings(ctx.prisma)
+		const autoBadgeSettings = await getAutoBadgeSettingsForRead()
 		const product = await ctx.prisma.product.findUnique({
 			where: { id: input },
 			include: productDetailInclude,

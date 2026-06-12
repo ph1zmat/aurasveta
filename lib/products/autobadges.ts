@@ -1,4 +1,6 @@
+import { unstable_cache } from 'next/cache'
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 type ProductWithBadgeSource = {
 	id: string
@@ -348,4 +350,14 @@ export async function attachAutoBadges<T extends ProductWithBadgeSource>(params:
 			badges,
 		}
 	})
+}
+
+const getAutoBadgeSettingsCached = unstable_cache(
+	async () => getAutoBadgeSettings(prisma),
+	['auto-badge-settings'],
+	{ revalidate: 600 },
+)
+
+export async function getAutoBadgeSettingsForRead(): Promise<AutoBadgeSettings> {
+	return getAutoBadgeSettingsCached()
 }

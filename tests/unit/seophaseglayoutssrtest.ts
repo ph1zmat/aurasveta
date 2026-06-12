@@ -40,6 +40,22 @@ vi.mock('@/widgets/navigation/ui/mobilebottomnav', () => ({
 	default: () => null,
 }))
 
+vi.mock('@/widgets/header/ui/topbar', () => ({
+	default: () => null,
+}))
+
+vi.mock('@/widgets/header/ui/headerserver', () => ({
+	default: () => null,
+}))
+
+vi.mock('@/widgets/navigation/ui/categorynav', () => ({
+	default: () => null,
+}))
+
+vi.mock('@/widgets/footer/ui/footer', () => ({
+	default: () => null,
+}))
+
 describe('phase G: layout SSR schema presence', () => {
 	it('рендерит Organization и WebSite JSON-LD в layout head', async () => {
 		const layoutModule = await import('@/app/layout')

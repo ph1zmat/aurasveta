@@ -1,12 +1,14 @@
 import 'server-only'
 
-import { trpc } from '@/lib/trpc/server'
+import { unstable_cache } from 'next/cache'
+import { prisma } from '@/lib/prisma'
 import {
 	LEGACY_FOOTER_ABOUT_LINKS,
 	LEGACY_HEADER_RIGHT_LINKS,
 	LEGACY_HEADER_SERVICE_LINKS,
 	type LegacyNavLink,
 } from '@/shared/config/legacysitenav'
+import { DEPRECATED_NAV_PAGE_SLUGS_SET } from '@/shared/config/deprecated-nav-page-slugs'
 
 export type SiteNavLink = {
 	id: string
@@ -16,14 +18,47 @@ export type SiteNavLink = {
 	order: number
 }
 
-export async function getSiteNavLinksByZone(
+async function fetchSiteNavLinksByZone(
 	zone: 'HEADER' | 'FOOTER',
 ): Promise<SiteNavLink[]> {
 	try {
-		return await trpc.siteNav.getPublicByZone({ zone })
+		const items = await prisma.siteNavItem.findMany({
+			where: {
+				zone,
+				isActive: true,
+				page: { isPublished: true },
+			},
+			orderBy: { order: 'asc' },
+			include: {
+				page: { select: { id: true, title: true, slug: true } },
+			},
+		})
+
+		return items
+			.filter(item => !DEPRECATED_NAV_PAGE_SLUGS_SET.has(item.page.slug))
+			.map(item => ({
+				id: item.id,
+				pageId: item.pageId,
+				label: item.labelOverride ?? item.page.title,
+				href: `/${item.page.slug}`,
+				order: item.order,
+			}))
 	} catch {
 		return []
 	}
+}
+
+const getSiteNavLinksByZoneCached = (zone: 'HEADER' | 'FOOTER') =>
+	unstable_cache(
+		async () => fetchSiteNavLinksByZone(zone),
+		[`site-nav-${zone}`],
+		{ revalidate: 600 },
+	)()
+
+export async function getSiteNavLinksByZone(
+	zone: 'HEADER' | 'FOOTER',
+): Promise<SiteNavLink[]> {
+	return getSiteNavLinksByZoneCached(zone)
 }
 
 export async function getTopBarNavGroups(): Promise<{

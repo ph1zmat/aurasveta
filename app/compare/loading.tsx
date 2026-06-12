@@ -1,5 +1,4 @@
-import { ComparePageSkeleton } from '@/shared/ui/storefrontskeletons'
-
 export default function Loading() {
-	return <ComparePageSkeleton />
+	// Без искусственного полноэкранного skeleton — страница сравнения рендерится сразу.
+	return null
 }

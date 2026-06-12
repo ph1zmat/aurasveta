@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import {
 	mergeSeoFields,
@@ -32,24 +33,33 @@ interface SeoOverride {
 	noIndex: boolean
 }
 
+const getSeoOverrideCached = (targetType: string, targetId: string) =>
+	unstable_cache(
+		async (): Promise<SeoOverride | null> => {
+			const seo = await prisma.seoMetadata.findUnique({
+				where: { targetType_targetId: { targetType, targetId } },
+				select: {
+					title: true,
+					description: true,
+					keywords: true,
+					ogTitle: true,
+					ogDescription: true,
+					ogImage: true,
+					canonicalUrl: true,
+					noIndex: true,
+				},
+			})
+			return seo
+		},
+		[`seo-override-${targetType}-${targetId}`],
+		{ revalidate: 600 },
+	)()
+
 async function getSeoOverride(
 	targetType: string,
 	targetId: string,
 ): Promise<SeoOverride | null> {
-	const seo = await prisma.seoMetadata.findUnique({
-		where: { targetType_targetId: { targetType, targetId } },
-		select: {
-			title: true,
-			description: true,
-			keywords: true,
-			ogTitle: true,
-			ogDescription: true,
-			ogImage: true,
-			canonicalUrl: true,
-			noIndex: true,
-		},
-	})
-	return seo
+	return getSeoOverrideCached(targetType, targetId)
 }
 
 function merge(

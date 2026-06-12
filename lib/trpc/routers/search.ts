@@ -124,8 +124,8 @@ export const searchRouter = createTRPCRouter({
 						WHEN COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\' THEN 0.95
 						WHEN COALESCE(rc."name", c."name", '') ILIKE $2 ESCAPE '\\' THEN 0.9
 						WHEN p."name" ILIKE $2 ESCAPE '\\' THEN 0.85
+						WHEN p."sku" ILIKE $2 ESCAPE '\\' THEN 0.65
 						WHEN COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\' THEN 0.45
-						WHEN COALESCE(p."description", '') ILIKE $2 ESCAPE '\\' THEN 0.25
 						ELSE 0
 					END
 				) as rank
@@ -144,7 +144,7 @@ export const searchRouter = createTRPCRouter({
 				AND (
 					p."search_vector" @@ websearch_to_tsquery('russian', $1)
 					OR p."name" ILIKE $2 ESCAPE '\\'
-					OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+					OR p."sku" ILIKE $2 ESCAPE '\\'
 					OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
 					OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
 					OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'
@@ -173,7 +173,7 @@ export const searchRouter = createTRPCRouter({
 				AND (
 					p."search_vector" @@ websearch_to_tsquery('russian', $1)
 					OR p."name" ILIKE $2 ESCAPE '\\'
-					OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+					OR p."sku" ILIKE $2 ESCAPE '\\'
 					OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
 					OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
 					OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'
@@ -272,6 +272,7 @@ export const searchRouter = createTRPCRouter({
 							WHEN COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\' THEN 0.95
 							WHEN COALESCE(rc."name", c."name", '') ILIKE $2 ESCAPE '\\' THEN 0.9
 							WHEN p."name" ILIKE $2 ESCAPE '\\' THEN 0.85
+							WHEN p."sku" ILIKE $2 ESCAPE '\\' THEN 0.65
 							WHEN COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\' THEN 0.45
 							ELSE 0
 						END
@@ -291,7 +292,7 @@ export const searchRouter = createTRPCRouter({
 					AND (
 						p."search_vector" @@ websearch_to_tsquery('russian', $1)
 						OR p."name" ILIKE $2 ESCAPE '\\'
-						OR COALESCE(p."description", '') ILIKE $2 ESCAPE '\\'
+						OR p."sku" ILIKE $2 ESCAPE '\\'
 						OR COALESCE(p."brand", '') ILIKE $2 ESCAPE '\\'
 						OR COALESCE(sc."name", c."name", rc."name", '') ILIKE $2 ESCAPE '\\'
 						OR COALESCE(sc."slug", c."slug", rc."slug", '') ILIKE $2 ESCAPE '\\'

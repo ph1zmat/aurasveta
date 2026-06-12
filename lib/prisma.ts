@@ -9,8 +9,12 @@ function createPrismaClient() {
 	const url = new URL(connectionString)
 	if (!url.searchParams.has('connection_limit')) {
 		const envLimit = process.env.PRISMA_CONNECTION_LIMIT?.trim()
-		// Для малых VPS по умолчанию используем более консервативный пул.
-		url.searchParams.set('connection_limit', envLimit && /^\d+$/.test(envLimit) ? envLimit : '8')
+		// Для малых VPS (1 CPU / 2 GB RAM) используем минимальный пул,
+		// чтобы не перегружать Neon/PostgreSQL и не тратить память на idle-соединения.
+		url.searchParams.set(
+			'connection_limit',
+			envLimit && /^\d+$/.test(envLimit) ? envLimit : '3',
+		)
 	}
 	const adapter = new PrismaPg(url.toString())
 	return new PrismaClient({ adapter })
@@ -22,7 +26,6 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()
 
-if (process.env.NODE_ENV !== 'production') {
-	globalForPrisma.prisma = prisma
-}
-
+// Singleton в любом окружении: предотвращает создание нескольких клиентов
+// при hot-reload и снижает расход памяти в production.
+globalForPrisma.prisma = prisma

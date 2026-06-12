@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { createTRPCRouter, baseProcedure, adminProcedure } from '../init'
@@ -9,6 +9,7 @@ import { SeoFieldsInputSchema } from '@/shared/types/seo'
 import {
 	buildCategoryProductWhere,
 	getCategoryFilterSummary,
+	isFilteringCategory,
 	type CategoryFilterAware,
 } from '@/lib/categories/categoryfilters'
 import { productImageSelect } from '@/lib/products/productimages'
@@ -16,7 +17,10 @@ import {
 	withResolvedImageAsset,
 	withResolvedProductImages,
 } from '@/lib/storageimageassets'
-import { attachAutoBadges } from '@/lib/products/autobadges'
+import {
+	attachAutoBadges,
+	getAutoBadgeSettingsForRead,
+} from '@/lib/products/autobadges'
 
 const categoryFilterInputSchema = z.object({
 	categoryMode: z.enum(['MANUAL', 'FILTER']).default('MANUAL'),
@@ -247,7 +251,7 @@ async function batchResolveCategoryFallbackImages(
 	return resolved
 }
 
-/** Batch-вычисление counts для всех категорий (с учётом дочерних, где это применимо) */
+/** Batch-вычисление counts для всех категорий (один SQL-запрос для обычных категорий) */
 async function batchResolveCategoryProductCounts(
 	ctx: { prisma: PrismaClient },
 	categories: CategoryWithFilterMeta[],
@@ -261,17 +265,84 @@ async function batchResolveCategoryProductCounts(
 		}
 	}
 
-	await Promise.all(
-		[...uniqueCategories.values()].map(async (cat) => {
-			const count = await ctx.prisma.product.count({
-				where: {
-					isActive: true,
-					...buildCategoryProductWhere(cat, { includeChildren: true }),
-				},
-			})
-			counts.set(cat.id, count)
-		}),
+	const manualCategories = [...uniqueCategories.values()].filter(
+		cat => !isFilteringCategory(cat),
 	)
+	const filterCategories = [...uniqueCategories.values()].filter(
+		cat => isFilteringCategory(cat),
+	)
+
+	if (manualCategories.length > 0) {
+		const rows = await ctx.prisma.$queryRaw<{ id: string; count: number }[]>`
+			WITH cats(id, parent_id) AS (
+				VALUES ${Prisma.join(
+					manualCategories.map(
+						cat =>
+							Prisma.sql`(${cat.id}::text, ${cat.parentId ?? null})`,
+					),
+				)}
+			)
+			SELECT c.id, COUNT(DISTINCT p.id)::int as count
+			FROM cats c
+			JOIN products p ON (
+				(c.parent_id IS NULL AND (
+					p.root_category_id = c.id
+					OR p.category_id IN (SELECT id FROM category WHERE parent_id = c.id)
+					OR p.subcategory_id IN (SELECT id FROM category WHERE parent_id = c.id)
+				))
+				OR (c.parent_id IS NOT NULL AND (
+					p.category_id = c.id OR p.subcategory_id = c.id
+				))
+			)
+			WHERE p.is_active = true
+			GROUP BY c.id
+		`
+		for (const row of rows) {
+			counts.set(row.id, Number(row.count))
+		}
+	}
+
+	const saleFilterCategories = filterCategories.filter(
+		cat => cat.filterKind === 'SALE',
+	)
+	const propertyValueFilterCategories = filterCategories.filter(
+		(cat): cat is CategoryWithFilterMeta & { filterPropertyValueId: string } =>
+			cat.filterKind === 'PROPERTY_VALUE' && Boolean(cat.filterPropertyValueId),
+	)
+
+	if (saleFilterCategories.length > 0) {
+		const saleCount = await ctx.prisma.product.count({
+			where: { isActive: true, compareAtPrice: { not: null } },
+		})
+		for (const cat of saleFilterCategories) {
+			counts.set(cat.id, saleCount)
+		}
+	}
+
+	if (propertyValueFilterCategories.length > 0) {
+		const grouped = await ctx.prisma.productPropertyValue.groupBy({
+			by: ['propertyValueId'],
+			where: {
+				propertyValueId: {
+					in: propertyValueFilterCategories.map(cat => cat.filterPropertyValueId),
+				},
+				product: { isActive: true },
+			},
+			_count: { productId: true },
+		})
+		const countByValue = new Map(
+			grouped.map(row => [row.propertyValueId, row._count.productId]),
+		)
+		for (const cat of propertyValueFilterCategories) {
+			counts.set(cat.id, countByValue.get(cat.filterPropertyValueId) ?? 0)
+		}
+	}
+
+	for (const cat of filterCategories) {
+		if (!counts.has(cat.id)) {
+			counts.set(cat.id, 0)
+		}
+	}
 
 	return counts
 }
@@ -471,6 +542,7 @@ export const categoriesRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const { slug, includeChildren, page, limit, sortBy } = input
+			const autoBadgeSettings = await getAutoBadgeSettingsForRead()
 
 			const category = await ctx.prisma.category.findUnique({
 				where: { slug },
@@ -555,6 +627,7 @@ export const categoriesRouter = createTRPCRouter({
 			const itemsWithAutoBadges = await attachAutoBadges({
 				db: ctx.prisma,
 				products: enrichedItems,
+				settings: autoBadgeSettings,
 			})
 
 			return {

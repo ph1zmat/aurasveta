@@ -1,5 +1,5 @@
-import { ProductPageSkeleton } from '@/shared/ui/storefrontskeletons'
-
 export default function Loading() {
-	return <ProductPageSkeleton />
+	// Без искусственного полноэкранного skeleton — карточка товара рендерится сразу.
+	// Нижние блоки (похожие товары) используют собственный лёгкий placeholder.
+	return null
 }

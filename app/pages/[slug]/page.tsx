@@ -1,10 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
-import TopBar from '@/widgets/header/ui/topbar'
-import Header from '@/widgets/header/ui/headerserver'
-import CategoryNav from '@/widgets/navigation/ui/categorynav'
-import Footer from '@/widgets/footer/ui/footer'
 import Breadcrumbs from '@/shared/ui/breadcrumbs'
 import { resolveStorageFileUrl } from '@/shared/lib/storagefileurl'
 import { getMetadataForPage, seoToMetadata } from '@/lib/seo/getmetadata'
@@ -106,10 +102,6 @@ export default async function ContentPage({
 				/>
 			)}
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
-				<TopBar />
-				<Header />
-				<CategoryNav />
-
 				<Breadcrumbs
 					items={[{ label: 'Главная', href: '/' }, { label: page.title }]}
 				/>
@@ -151,8 +143,6 @@ export default async function ContentPage({
 					</article>
 				)}
 			</main>
-
-			<Footer />
 		</div>
 	)
 }

@@ -69,20 +69,22 @@ function getStorageRemotePatterns(): NonNullable<
 
 const nextConfig: NextConfig = {
 	trailingSlash: false,
+	output: 'standalone',
+	compress: true,
+	poweredByHeader: false,
 	// @ts-ignore
 	typescript: {
 		// Разрешаем сборку в продакшн, даже если в проекте есть ошибки типов.
 		ignoreBuildErrors: true,
 	},
-	// @ts-ignore
-	eslint: {
-		// Разрешаем сборку, даже если есть ошибки ESLint.
-		ignoreDuringBuilds: true,
-	},
+	staticPageGenerationTimeout: 300,
 	images: {
 		dangerouslyAllowSVG: true,
 		contentDispositionType: 'inline',
 		contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+		formats: ['image/avif', 'image/webp'],
+		deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+		imageSizes: [16, 32, 48, 64, 96, 128, 256],
 		localPatterns: getStorageLocalPatterns(),
 		remotePatterns: getStorageRemotePatterns(),
 	},
@@ -162,9 +164,18 @@ const nextConfig: NextConfig = {
 					},
 				],
 			},
-			// Статика public/
+			// Статика public/ и Next.js бандлов
 			{
 				source: '/images/:path*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, max-age=31536000, immutable',
+					},
+				],
+			},
+			{
+				source: '/_next/static/:path*',
 				headers: [
 					{
 						key: 'Cache-Control',

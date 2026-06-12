@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MapPin, Phone, Mail } from 'lucide-react'
 import Image from 'next/image'
+import { unstable_cache } from 'next/cache'
 import { getFooterAboutLinks } from '@/lib/navigation/sitenav'
 import { getPublicStoreSettings } from '@/lib/utils/getpublicstoresettings'
 import SocialIcon from '@/shared/ui/socialicon'
@@ -32,73 +33,89 @@ function normalizePhoneHref(phone: string) {
 	return phone.replace(/[^\d+]/g, '')
 }
 
-async function getFooterCatalogLinks() {
-	try {
-		const categories = await prisma.category.findMany({
-			where: {
-				parentId: null,
-				showInHeader: true,
-			},
-			select: { name: true, slug: true },
-			orderBy: { name: 'asc' },
-			take: CATEGORIES_LIMIT,
-		})
+const getFooterCatalogLinksCached = unstable_cache(
+	async () => {
+		try {
+			const categories = await prisma.category.findMany({
+				where: {
+					parentId: null,
+					showInHeader: true,
+				},
+				select: { name: true, slug: true },
+				orderBy: { name: 'asc' },
+				take: CATEGORIES_LIMIT,
+			})
 
-		if (categories.length === 0) {
+			if (categories.length === 0) {
+				return fallbackCategoryLinks
+			}
+
+			return categories.map(category => ({
+				label: category.name,
+				href: `/catalog/${category.slug}`,
+			}))
+		} catch {
 			return fallbackCategoryLinks
 		}
+	},
+	['footer-catalog-links'],
+	{ revalidate: 600 },
+)
 
-		return categories.map(category => ({
-			label: category.name,
-			href: `/catalog/${category.slug}`,
-		}))
-	} catch {
-		return fallbackCategoryLinks
-	}
+async function getFooterCatalogLinks() {
+	return getFooterCatalogLinksCached()
 }
 
-async function getFooterBrandLinks() {
-	try {
-		const brandProperty = await prisma.property.findUnique({
-			where: { slug: 'brand' },
-			select: {
-				values: {
-					orderBy: [{ order: 'asc' }, { value: 'asc' }],
-					select: { value: true, slug: true },
-					take: BRANDS_LIMIT,
+const getFooterBrandLinksCached = unstable_cache(
+	async () => {
+		try {
+			const brandProperty = await prisma.property.findUnique({
+				where: { slug: 'brand' },
+				select: {
+					values: {
+						orderBy: [{ order: 'asc' }, { value: 'asc' }],
+						select: { value: true, slug: true },
+						take: BRANDS_LIMIT,
+					},
 				},
-			},
-		})
+			})
 
-		if (brandProperty?.values.length) {
-			return brandProperty.values
-				.filter((item): item is { value: string; slug: string } =>
-					Boolean(item.value && item.slug),
-				)
-				.map(item => ({
-					label: item.value,
-					href: `/catalog?prop.brand=${item.slug}`,
+			if (brandProperty?.values.length) {
+				return brandProperty.values
+					.filter((item): item is { value: string; slug: string } =>
+						Boolean(item.value && item.slug),
+					)
+					.map(item => ({
+						label: item.value,
+						href: `/catalog?prop.brand=${item.slug}`,
+					}))
+			}
+
+			const brands = await prisma.product.findMany({
+				where: { isActive: true, brand: { not: null } },
+				select: { brand: true },
+				distinct: ['brand'],
+				orderBy: { brand: 'asc' },
+				take: BRANDS_LIMIT,
+			})
+
+			return brands
+				.map(row => row.brand)
+				.filter((brand): brand is string => Boolean(brand))
+				.map(brand => ({
+					label: brand,
+					href: `/catalog?prop.brand=${brand.toLowerCase().replace(/\s+/g, '-')}`,
 				}))
+		} catch {
+			return []
 		}
+	},
+	['footer-brand-links'],
+	{ revalidate: 600 },
+)
 
-		const brands = await prisma.product.findMany({
-			where: { isActive: true, brand: { not: null } },
-			select: { brand: true },
-			distinct: ['brand'],
-			orderBy: { brand: 'asc' },
-			take: BRANDS_LIMIT,
-		})
-
-		return brands
-			.map(row => row.brand)
-			.filter((brand): brand is string => Boolean(brand))
-			.map(brand => ({
-				label: brand,
-				href: `/catalog?prop.brand=${brand.toLowerCase().replace(/\s+/g, '-')}`,
-			}))
-	} catch {
-		return []
-	}
+async function getFooterBrandLinks() {
+	return getFooterBrandLinksCached()
 }
 
 export default async function Footer() {

@@ -6,6 +6,10 @@ export const revalidate = 3600
 
 import MobileHeader from '@/widgets/header/ui/mobileheader'
 import MobileBottomNav from '@/widgets/navigation/ui/mobilebottomnav'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
 import { TRPCProvider } from '@/lib/trpc/client'
 import { HydrateClient } from '@/lib/trpc/server'
 import Toaster from '@/shared/ui/toaster'
@@ -59,7 +63,11 @@ export default async function RootLayout({
 						<HydrateClient>
 							<Toaster />
 							<MobileHeader phone={storeSettings?.phone} logoUrl={storeSettings?.logoUrl} />
+							<TopBar />
+							<Header />
+							<CategoryNav />
 							<div className='mobile-content-offset'>{children}</div>
+							<Footer />
 							<MobileBottomNav />
 						</HydrateClient>
 					</TRPCProvider>
