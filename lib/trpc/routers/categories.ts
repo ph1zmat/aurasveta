@@ -287,8 +287,8 @@ async function batchResolveCategoryProductCounts(
 			JOIN products p ON (
 				(c.parent_id IS NULL AND (
 					p.root_category_id = c.id
-					OR p.category_id IN (SELECT id FROM category WHERE parent_id = c.id)
-					OR p.subcategory_id IN (SELECT id FROM category WHERE parent_id = c.id)
+					OR p.category_id IN (SELECT id FROM categories WHERE parent_id = c.id)
+					OR p.subcategory_id IN (SELECT id FROM categories WHERE parent_id = c.id)
 				))
 				OR (c.parent_id IS NOT NULL AND (
 					p.category_id = c.id OR p.subcategory_id = c.id
