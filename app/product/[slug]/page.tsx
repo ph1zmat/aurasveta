@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
 import ProductGallery from '@/features/product-details/ui/productgallery'
 import ProductPriceBlock from '@/features/product-details/ui/productpriceblock'
 import InterestCounter from '@/features/product-details/ui/interestcounter'
@@ -40,7 +44,7 @@ import {
 	toFrontendProduct,
 } from '@/entities/product/model/adapters'
 import { notFound } from 'next/navigation'
-import { publicTrpc } from '@/lib/trpc/server'
+import { trpc } from '@/lib/trpc/server'
 import {
 	getMetadataForProduct,
 	seoToProductMetadata,
@@ -118,8 +122,8 @@ export default async function ProductPage({
 	const productId = String(product.id)
 
 	// Прогреваем рекомендации параллельно с основными данными (React cache dedupe)
-	void publicTrpc.recommendations.getSimilarProducts({ productId, limit: 5 })
-	void publicTrpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
+	void trpc.recommendations.getSimilarProducts({ productId, limit: 5 })
+	void trpc.recommendations.getProductsFromBrand({ productId, limit: 5 })
 
 	const [
 		specGroups,
@@ -219,6 +223,10 @@ export default async function ProductPage({
 			/>
 
 			<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
+				<TopBar />
+				<Header />
+				<CategoryNav />
+
 				<div className='pt-4'>
 					<BackToListLink fallbackHref='/catalog' label='Назад к списку' />
 				</div>
@@ -342,12 +350,14 @@ export default async function ProductPage({
 					limit={5}
 				/>
 			</main>
+
+			<Footer />
 		</div>
 	)
 }
 
 async function SimilarProductsSection({ productId }: { productId: string }) {
-	const similarRaw = await publicTrpc.recommendations.getSimilarProducts({
+	const similarRaw = await trpc.recommendations.getSimilarProducts({
 		productId,
 		limit: 5,
 	})
@@ -359,7 +369,7 @@ async function SimilarProductsSection({ productId }: { productId: string }) {
 }
 
 async function CollectionProductsSection({ productId }: { productId: string }) {
-	const brandRaw = await publicTrpc.recommendations.getProductsFromBrand({
+	const brandRaw = await trpc.recommendations.getProductsFromBrand({
 		productId,
 		limit: 5,
 	})

@@ -1,8 +1,14 @@
+import TopBar from '@/widgets/header/ui/topbar'
+import Header from '@/widgets/header/ui/headerserver'
+import CategoryNav from '@/widgets/navigation/ui/categorynav'
+import Footer from '@/widgets/footer/ui/footer'
 import CategoryContent from './categorycontent'
+import { Suspense } from 'react'
 import type { ReactElement } from 'react'
-import { publicTrpc, PublicHydrateClient } from '@/lib/trpc/server'
+import { trpc, HydrateClient } from '@/lib/trpc/server'
 import type { Metadata } from 'next'
 import { getMetadataForCategory, seoToMetadata } from '@/lib/seo/getmetadata'
+import { CategoryContentSkeleton } from '@/shared/ui/storefrontskeletons'
 import { prisma } from '@/lib/prisma'
 import BreadcrumbStructuredData from '@/shared/ui/breadcrumbstructureddata'
 import ItemListStructuredData from '@/shared/ui/itemliststructureddata'
@@ -28,14 +34,10 @@ export async function generateStaticParams() {
 
 const PROPERTY_PARAM_PREFIX = 'prop.'
 
-function hasActiveQueryParams(
-	params: Record<string, string | string[] | undefined>,
-) {
+function hasActiveQueryParams(params: Record<string, string | string[] | undefined>) {
 	return Object.values(params).some(value => {
 		if (Array.isArray(value)) {
-			return value.some(
-				item => typeof item === 'string' && item.trim().length > 0,
-			)
+			return value.some(item => typeof item === 'string' && item.trim().length > 0)
 		}
 
 		return typeof value === 'string' && value.trim().length > 0
@@ -109,7 +111,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
 	const { slug } = await params
 	const sp = await searchParams
-	const category = await publicTrpc.categories.getBySlug(slug)
+	const category = await trpc.categories.getBySlug(slug)
 	if (!category) notFound()
 
 	const seo = await getMetadataForCategory({
@@ -180,9 +182,9 @@ export default async function CategoryPage({
 			const propKey = key.slice(PROPERTY_PARAM_PREFIX.length)
 			if (propKey) {
 				properties[propKey] = value
-					.split(',')
-					.map(v => v.trim())
-					.filter(Boolean)
+				.split(',')
+				.map(v => v.trim())
+				.filter(Boolean)
 			}
 		}
 	}
@@ -206,13 +208,13 @@ export default async function CategoryPage({
 
 	const [category, categoriesTree, availableFilters, initialProductsData] =
 		await Promise.all([
-			publicTrpc.categories.getBySlug(slug),
-			publicTrpc.categories.getTree(),
-			publicTrpc.products.getAvailableFilters({
+			trpc.categories.getBySlug(slug),
+			trpc.categories.getTree(),
+			trpc.products.getAvailableFilters({
 				categorySlug: slug,
 				includeChildren: true,
 			}),
-			publicTrpc.products.getMany(productsQueryInput),
+			trpc.products.getMany(productsQueryInput),
 		])
 
 	// Получаем имя категории для BreadcrumbList
@@ -254,10 +256,12 @@ export default async function CategoryPage({
 	}
 
 	return (
-		<PublicHydrateClient>
+		<HydrateClient>
 			{paginationLinks}
 			{schemaBreadcrumbItems && (
-				<BreadcrumbStructuredData items={schemaBreadcrumbItems} />
+				<BreadcrumbStructuredData
+					items={schemaBreadcrumbItems}
+				/>
 			)}
 			{category && schemaProducts && (
 				<ItemListStructuredData
@@ -281,15 +285,23 @@ export default async function CategoryPage({
 			)}
 			<div className='flex flex-col bg-background'>
 				<main className='mobile-page-padding mobile-edge-padding min-h-screen flex-1 container mx-auto max-w-7xl'>
-					<CategoryContent
-						slug={slug}
-						initialCategory={category}
-						initialCategoriesTree={categoriesTree}
-						initialAvailableFilters={availableFilters}
-						initialProductsData={initialProductsData}
-					/>
+					<TopBar />
+					<Header />
+					<CategoryNav />
+
+					<Suspense fallback={<CategoryContentSkeleton />}>
+						<CategoryContent
+							slug={slug}
+							initialCategory={category}
+							initialCategoriesTree={categoriesTree}
+							initialAvailableFilters={availableFilters}
+							initialProductsData={initialProductsData}
+						/>
+					</Suspense>
 				</main>
+
+				<Footer />
 			</div>
-		</PublicHydrateClient>
+		</HydrateClient>
 	)
 }

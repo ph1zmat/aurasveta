@@ -1,4 +1,5 @@
+import { FavoritesPageSkeleton } from '@/shared/ui/storefrontskeletons'
+
 export default function Loading() {
-	// Без искусственного полноэкранного skeleton — избранное рендерится сразу.
-	return null
+	return <FavoritesPageSkeleton />
 }

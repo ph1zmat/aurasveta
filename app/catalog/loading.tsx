@@ -1,4 +1,5 @@
+import { CatalogPageSkeleton } from '@/shared/ui/storefrontskeletons'
+
 export default function Loading() {
-	// Без искусственного полноэкранного skeleton — каталог рендерится сразу.
-	return null
+	return <CatalogPageSkeleton />
 }
